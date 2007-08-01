@@ -20,10 +20,10 @@ INSPECTION_OUTPUT=Inspection
 INSPECTION_DIR=InspectionData
 
 ## 'README' documentation:
-README_SRC=doc/manual/README.t2t
+README_SRC=doc/readme/README.t2t
 README_TARGET_TXT=README
 README_TARGET_XHTML=README.xhtml
-README_CSS_FILE=doc/manual/doc.css
+README_CSS_FILE=doc/readme/doc.css
 
 ## LICENSING:
 LICENSE_SRC=license.mit
