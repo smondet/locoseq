@@ -1,0 +1,27 @@
+
+PDF_TARGET=../locoseq-doc.pdf
+LATEX_FILES= latex-header.tex manual.tex
+GLOBAL_MAIN= latex-main
+HTML_TARGET = ../locoseq-doc.html
+
+
+.PHONY: clean pdf html doc
+
+doc: $(PDF_TARGET) $(HTML_TARGET)
+pdf: $(PDF_TARGET)
+html:$(HTML_TARGET)
+	
+$(PDF_TARGET): $(GLOBAL_MAIN).tex $(LATEX_FILES)
+  pdflatex $(GLOBAL_MAIN) && pdflatex $(GLOBAL_MAIN)
+  mv $(GLOBAL_MAIN).pdf $(PDF_TARGET)
+
+
+
+$(HTML_TARGET): $(GLOBAL_MAIN).tex $(LATEX_FILES)
+  hevea $(GLOBAL_MAIN).tex
+  mv $(GLOBAL_MAIN).html $(HTML_TARGET)
+
+clean: # propagated from root directory
+  rm -f *.aux *.log *.toc *.out
+
+

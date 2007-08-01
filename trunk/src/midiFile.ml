@@ -24,12 +24,26 @@
 (**************************************************************************)
 
 
+(* 
+ * Parse a midi file with ocaml.
+ * 
+ * 
+ *
+ * - a good recapitulation of the StandardMidiFile format:
+ *   http://www.ccarh.org/courses/253/handout/smf/
+ * - some things about meta events:
+ *   http://www.ccarh.org/courses/253/handout/smf/
+ *
+ *
+ *)
+(******************************************************************************)
+ 
+ 
 (******************************************************************************)
 (* 
  * The parsing exception:
- * *)
-exception Parsing_error of string ;;
-
+ *)
+ exception Parsing_error of string ;;
 
 (******************************************************************************)
 (*
