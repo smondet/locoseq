@@ -1,0 +1,251 @@
+Locoseq - Loop-based Controllable midi-Sequencer.
+Sebastien MONDET
+Tue, 31 Jul 2007 22:13:21 +0200
+
+
+------------------------------------------------------------------------
+
+  1. Presentation
+  2. Installation And Usage
+    2.1. Requirements
+    2.2. Build
+    2.3. Use
+    2.4. Examples
+    2.5. If it does not work
+  3. Development
+    3.1. Portability Inspection
+    3.2. Standard Midi File Debug
+    3.3. The file util.env
+    3.4. Development Tools
+    3.5. Documentation
+    3.6. The Source Tree
+  4. Copyright
+
+
+------------------------------------------------------------------------
+
+
+  1. Presentation
+  ===============
+
+Locoseq is a midi sequencer designed for live playing looping tracks.  You can
+create control tracks (called "meta-tracks") that drive the sequencer (schedule
+track x, mute, change tempo...) and you can configure how the sequencer
+reacts on a given input (midi-in port or keyboard). 
+
+The application is build on top of the alsa sequencer API, it is written in
+ocaml (http://www.ocaml.org) (except the code wrapping asoundlib) and uses GTK+
+and glade
+(lablgtk2 (http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgtk.html))
+for its GUI.
+
+The source code is available under a classic MIT license.
+
+
+  2. Installation And Usage
+  =========================
+
+
+	2.1. Requirements
+	=================
+
+For the moment, let's talk about ubuntu packages as the project is developed
+under ubntustudio. Those pakages should make you download all needed
+dependencies:
+
+
+  apt-get install libasound2-dev libxml-light-ocaml-dev omake ocaml-findlib \
+   liblablgtk2-ocaml-dev
+
+
+
+	2.2. Build
+	==========
+
+Just type:
+
+
+  omake
+
+
+
+	2.3. Use
+	========
+
+Launch the application:
+
+
+  ./src/locoseq gui
+
+
+
+	2.4. Examples
+	=============
+
+In the test directory:
+
+
+  \__ test
+   |  \__ one_song.xml
+   |  \__ tracks.mid
+
+The xml is a "whole" song (open with "Open").
+The mid is a midifile containing some tracks (import with "Add" in the
+midi-tracks view), it has been made with seq24 (http://www.filter24.org/seq24/).
+
+It's just for testing, it should render something more or less audible with a
+classical General Midi setup (e.g. some FluidSynth with a common
+soundfont).
+
+
+	2.5. If it does not work
+	========================
+
+This software is still under heavy development. If you detect problems please
+send an e-mail to the developers. If you can, send then also the result of the
+portability inspection (#inspect).
+
+
+  3. Development
+  ==============
+
+
+	3.1. Portability Inspection
+	===========================
+
+To generate some debug information for the developers simply type (you will see
+many errors in the term):
+
+
+  omake inspection
+
+then, you can:
+
+
+  $BROWSER InspectionData/Inspection.xhtml
+
+or
+
+
+  man InspectionData/Inspection.man
+
+And send the file InspectionData/Inspection.t2t to the developers.
+
+
+	3.2. Standard Midi File Debug
+	=============================
+
+You can dump a midi file:
+
+
+  ./src/locoseq parse <midi_file>
+
+
+
+	3.3. The file util.env
+	======================
+
+The command:
+
+
+  . util/util.env
+
+should be useful as it gives some functions:
+mk, cln, svns (colorized 'svn stat -u') and
+docbro (open ocamlbrowser with many libs).
+
+
+	3.4. Development Tools
+	======================
+
+In addition to ocaml distribution and omake:
+
+- the RAD tool used is glade-3 (with special semi-compiler
+  lablgladecc2)
+- for documentation, this file uses txt2tags (http://txt2tags.sourceforge.net/)
+- for licence header management we use headache
+
+
+	3.5. Documentation
+	==================
+
+doc/manual/README.t2t is the "head" file of the documentation, to generate, text and XHTML, just type:
+
+
+  omake readme
+
+
+
+	3.6. The Source Tree
+	====================
+
+
+  \__ src                                        
+   |  \__ main.ml               -> main, inspection, midi test
+   |  \__ midiFile.ml           -> midi file read and write
+   |  \__ tracker.ml            -> the sequencer
+   |  \__ midi.ml               -> manipulation of MIDI "Data"
+   |  \__ alsa_interface.c      -> asoundlib wrapper
+   |  \__ alsaSequencer.ml      -> OCamL functions for the wrapper
+   |  \__ gui_files                   
+   |   |  \__ app.glade         -> main Glade file
+   |  \__ gui.ml                -> All the GUI code is there
+   |  \__ stringServer.ml       -> attempt to group the user messages
+   |  \__ seqApp.ml             -> the "model interface", many functions for gui.ml 
+   |  \__ inputManager.ml       -> event handler of the tracker and midi listener
+   |  \__ log.ml                -> logging facilities
+  \__ OMakefile                 -> General build file
+  \__ OMakeroot                 -> Root for omake
+  \__ test                                       
+   |  \__ tracks.mid  
+   |  \__ one_song.xml                             
+  \__ TODO                      -> the main todo list                
+  \__ doc                                        
+   |  \__ manual                                 
+   |   |  \__ doc.css           -> common CSS for the manual
+   |   |  \__ README.t2t        -> source of this file
+  \__ util                      
+   |  \__ util.env              -> utilities for development
+  \__ licence.mit               -> licence template
+  \__ README                    -> generated README file
+
+
+
+  4. Copyright
+  ============
+
+This software is released under an MIT licence:
+
+
+  Copyright (c) 2007, Sebastien MONDET
+  
+  Permission is hereby granted, free of charge, to any person
+  obtaining a copy of this software and associated documentation
+  files (the "Software"), to deal in the Software without
+  restriction, including without limitation the rights to use,
+  copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following
+  conditions:
+  
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+  OTHER DEALINGS IN THE SOFTWARE.
+
+Current contributors are:
+
+- Sebastien MONDET (http://sebmdt.googlepages.com)
+- Frederic MOULINS
+
+
+
+
+
