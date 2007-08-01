@@ -43,7 +43,7 @@ OCAML_NATIVE_LINK_FLAGS=  -cclib -lasound
 ## Some targets:
 .PHONY: clean install inspection readme package license unlicense
 
-clean:
+clean: # The Big clean:
   find . \
   -name "*.cmo" -o \
   -name "*.cmxa" -o \
@@ -59,6 +59,7 @@ clean:
   -name "$(APP_NAME)" -o \
   -name ".omakedb*"  | xargs rm -f 
   rm -rf $(INSPECTION_DIR)
+  rm -f $(LABLGLADE_GEN_FILE)
   echo "Cleaned "
 
 
@@ -124,6 +125,9 @@ MakeExec () =
 
 .SUBDIRS: src
   MakeExec ()
+
+.SUBDIRS: doc/manual/src/
+
 
 ## .SUBDIRS: src
 ##   MakeApp ()

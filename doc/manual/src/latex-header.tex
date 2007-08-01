@@ -1,0 +1,72 @@
+\documentclass[10pt,a4paper,twocolumn]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Common packages:
+
+\usepackage{multicol}   
+\usepackage[english]{babel} 
+%\usepackage[dvips]{graphics} 
+%\usepackage[dvips]{graphicx}
+\usepackage{amsmath} % American Math Society :
+\usepackage{amssymb} 
+\usepackage[utf-8]{inputenc} 
+\usepackage{verbatim} 
+\usepackage{marvosym}
+\usepackage{ulem}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% For PDF
+
+%%% doc:
+%http://www-fourier.ujf-grenoble.fr/~bouche/PDFtex/
+%http://barrault.free.fr/ressources/rapports/pdflatex/
+
+%\usepackage[cyr]{aeguill} % Police vectorielle TrueType, guillemets français
+\usepackage[pdftex]{graphicx}
+\DeclareGraphicsExtensions{.jpg,.mps,.pdf,.png}
+
+\usepackage[pdftex]{thumbpdf}
+
+\usepackage[pdftex,                %
+bookmarks         = true,%
+bookmarksnumbered = true,%
+pdfpagemode       = None,%
+pdfstartview      = FitH,%
+pdfpagelayout     = SinglePage,%
+colorlinks        = true,%
+urlcolor          = {0 1 0},%
+pdfborder         = {0 0 0}%
+]{hyperref}%
+% manual : http://www.tug.org/applications/hyperref/manual.html
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Customisation:
+
+\addtolength{\voffset}{-1cm}
+\addtolength{\textheight}{1cm}
+
+%% Font:
+%\renewcommand{\familydefault}{cmss}
+
+%%% Interline 0.8*(original)
+%\renewcommand{\baselinestretch}{0.8}
+
+%% PDF:
+\usepackage{color}
+\definecolor{webred}{rgb}{0.3,0,0}
+\definecolor{webblue}{rgb}{0,0,0.3}
+
+
+\hypersetup{ 
+    linkcolor         = webred,
+    citecolor         = webblue,
+    linkbordercolor   = {1 1 1},
+    citebordercolor   = {1 1 1},
+    pdfauthor   = {Sebastien MONDET, Frederic MOULINS},%
+    pdftitle    = {Locoseq Documentation},%
+    pdfsubject  = {},%
+    pdfkeywords = {Midi, Ocaml, Sequencer},%
+    pdfcreator  = {PDFLaTeX},%
+    pdfproducer = {PDFLaTeX}}
+
+

@@ -23,6 +23,12 @@
 (*  OTHER DEALINGS IN THE SOFTWARE.                                       *)
 (**************************************************************************)
 
+
+
+
+
+type sequencer
+
 external make_sequencer : string -> string array -> string array -> sequencer =
   "alsaseq_make" ;;
 
@@ -136,6 +142,7 @@ external wait_next_tick : timer -> timeoutms:int -> int = "alsatim_wait_next" ;;
 external stop_timer : timer -> unit = "alsatim_stop_timer" ;;
 
 external set_ticks : timer -> ticks:int -> unit = "alsatim_set_ticks" ;;
+
 
 
 

@@ -24,14 +24,7 @@
 (**************************************************************************)
 
 
-(******************************************************************************)
-(*
- * The Test A:
- *   reads an prints contents of a midi file:
- * 
- * *)
 let test_parse_and_print_midi_files () =
-
   Array.iteri (
     fun index file ->
       if (index > 1 )
