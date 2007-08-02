@@ -18,7 +18,7 @@ $(PDF_TARGET): $(GLOBAL_MAIN).tex $(LATEX_FILES)
 
 
 $(HTML_TARGET): $(GLOBAL_MAIN).tex $(LATEX_FILES)
-  hevea $(GLOBAL_MAIN).tex
+  hevea $(GLOBAL_MAIN).tex && hevea $(GLOBAL_MAIN).tex
   mv $(GLOBAL_MAIN).html $(HTML_TARGET)
 
 clean: # propagated from root directory
