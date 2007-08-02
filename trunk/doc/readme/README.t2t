@@ -9,10 +9,11 @@ Tue, 31 Jul 2007 22:13:21 +0200
 
 + Presentation +
 
-Locoseq is a midi sequencer designed for live playing looping tracks.  You can
-create control tracks (called "meta-tracks") that drive the sequencer (schedule
-track //x//, mute, change tempo...) and you can configure how the sequencer
-reacts on a given input (midi-in port or keyboard). 
+[Locoseq http://locoseq.googlecode.com] is a midi sequencer designed for live
+playing looping tracks.  You can create control tracks (called "meta-tracks")
+that drive the sequencer (schedule track //x//, mute, change tempo...) and you
+can configure how the sequencer reacts on a given input (midi-in port or
+keyboard). 
 
 The application is build on top of the alsa sequencer API, it is written in
 [ocaml http://www.ocaml.org] (except the code wrapping asoundlib) and uses GTK+
