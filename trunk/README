@@ -12,13 +12,9 @@ Tue, 31 Jul 2007 22:13:21 +0200
     2.3. Use
     2.4. Examples
     2.5. If it does not work
-  3. Development
+  3. Debug
     3.1. Portability Inspection
     3.2. Standard Midi File Debug
-    3.3. The file util.env
-    3.4. Development Tools
-    3.5. Documentation
-    3.6. The Source Tree
   4. Copyright
 
 
@@ -106,8 +102,8 @@ send an e-mail to the developers. If you can, send then also the result of the
 portability inspection (#inspect).
 
 
-  3. Development
-  ==============
+  3. Debug
+  ========
 
 
 	3.1. Portability Inspection
@@ -139,75 +135,6 @@ You can dump a midi file:
 
 
   ./src/locoseq parse <midi_file>
-
-
-
-	3.3. The file util.env
-	======================
-
-The command:
-
-
-  . util/util.env
-
-should be useful as it gives some functions:
-mk, cln, svns (colorized 'svn stat -u') and
-docbro (open ocamlbrowser with many libs).
-
-
-	3.4. Development Tools
-	======================
-
-In addition to ocaml distribution and omake:
-
-- the RAD tool used is glade-3 (with special semi-compiler
-  lablgladecc2)
-- for documentation, this file uses txt2tags (http://txt2tags.sourceforge.net/)
-- for licence header management we use headache
-
-
-	3.5. Documentation
-	==================
-
-doc/manual/README.t2t is the "head" file of the documentation, to generate, text and XHTML, just type:
-
-
-  omake readme
-
-
-
-	3.6. The Source Tree
-	====================
-
-
-  \__ src                                        
-   |  \__ main.ml               -> main, inspection, midi test
-   |  \__ midiFile.ml           -> midi file read and write
-   |  \__ tracker.ml            -> the sequencer
-   |  \__ midi.ml               -> manipulation of MIDI "Data"
-   |  \__ alsa_interface.c      -> asoundlib wrapper
-   |  \__ alsaSequencer.ml      -> OCamL functions for the wrapper
-   |  \__ gui_files                   
-   |   |  \__ app.glade         -> main Glade file
-   |  \__ gui.ml                -> All the GUI code is there
-   |  \__ stringServer.ml       -> attempt to group the user messages
-   |  \__ seqApp.ml             -> the "model interface", many functions for gui.ml 
-   |  \__ inputManager.ml       -> event handler of the tracker and midi listener
-   |  \__ log.ml                -> logging facilities
-  \__ OMakefile                 -> General build file
-  \__ OMakeroot                 -> Root for omake
-  \__ test                                       
-   |  \__ tracks.mid  
-   |  \__ one_song.xml                             
-  \__ TODO                      -> the main todo list                
-  \__ doc                                        
-   |  \__ manual                                 
-   |   |  \__ doc.css           -> common CSS for the manual
-   |   |  \__ README.t2t        -> source of this file
-  \__ util                      
-   |  \__ util.env              -> utilities for development
-  \__ licence.mit               -> licence template
-  \__ README                    -> generated README file
 
 
 

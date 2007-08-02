@@ -1,10 +1,12 @@
 
 
-\title{Locoseq - The Looping Controllable Sequencer}
+\title{Locoseq - A Loop-based Controllable Sequencer}
 %\subtitle{Docuentation}
-\author{Sebastien MONDET and FredericMOULINS}
+\author{Sebastien MONDET\thanks{\url{http://sebmdt.googlepages.com}}\ \and
+Frederic MOULINS}
 
-\date{\today}
+\date{Documentation\\
+Thu, 02 Aug 2007 07:56:36 +0200}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -12,15 +14,225 @@
 
 
 \begin{document}
-\sffamily
+%\sffamily
 
 \onecolumn
 \maketitle
 \tableofcontents
-\twocolumn
+%\twocolumn
 
-The documentation will always be a work in progress\dots
+\section{Presentation}
 
+\href{http://locosec.googlecode.com}{Locoseq} is a midi sequencer designed for
+live playing looping tracks.  You can create control tracks (called
+"meta-tracks") that drive the sequencer (schedule track \textit{x}, mute,
+change tempo...) and you can configure how the sequencer reacts on a given
+input (midi-in port or keyboard).
+
+
+The application is build on top of the alsa sequencer API, it is written in
+\href{http://www.ocaml.org}{ocaml}
+(except the code wrapping asoundlib) and uses GTK+ and glade
+(\href {http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgtk.html}{lablgtk2})
+for its GUI.
+
+The source code is available under a classic MIT license.
+
+
+
+\section{Installation And Usage}
+
+\subsection{Requirements}
+
+For the moment, let's talk about ubuntu packages as the project is developed
+under ubntustudio. Those pakages should make you download all needed
+dependencies:
+
+\begin{verbatim}
+apt-get install libasound2-dev libxml-light-ocaml-dev omake ocaml-findlib \
+ liblablgtk2-ocaml-dev
+\end{verbatim}
+
+\subsection{Build}
+Just type:
+
+\begin{verbatim}
+omake
+\end{verbatim}
+
+\subsection{Use}
+Launch the application:
+
+\begin{verbatim}
+./src/locoseq gui
+\end{verbatim}
+
+\subsection{Examples}
+In the test directory:
+
+\begin{verbatim}
+\__ test
+ |  \__ one_song.xml
+ |  \__ tracks.mid
+\end{verbatim}
+
+The xml is a "whole" song (open with "Open").  The mid is a midifile containing
+some tracks (import with "Add" in the midi-tracks view), it has been made with
+\href{http://www.filter24.org/seq24/}{seq24}.
+
+It's just for testing, it should render something more or less audible with a
+classical General Midi setup (\textit{e.g.} some FluidSynth with a common
+soundfont).
+
+\subsection{If it does not work}
+
+This software is still under heavy development. If you detect problems please
+send an e-mail to the developers. If you can, send then also the result of the
+portability inspection (\ref{inspect}).
+
+
+\section{Development}
+
+\subsection{Portability Inspection}
+\label{inspect}
+
+To generate some debug information for the developers simply type (you will see
+many errors in the term):
+
+\begin{verbatim}
+omake inspection
+\end{verbatim}
+
+then, you can:
+
+\begin{verbatim}
+$BROWSER InspectionData/Inspection.xhtml
+\end{verbatim}
+
+or
+
+\begin{verbatim}
+man InspectionData/Inspection.man
+\end{verbatim}
+And send the file \texttt{InspectionData/Inspection.t2t} to the developers.
+
+\subsection{Standard Midi File Debug}
+You can dump a midi file:
+
+\begin{verbatim}
+./src/locoseq parse <midi_file>
+\end{verbatim}
+
+\subsection{The file util.env}
+The command:
+
+\begin{verbatim}
+. util/util.env
+\end{verbatim}
+should be useful as it gives some functions:
+\texttt{mk}, \texttt{cln}, \texttt{svns} (colorized \texttt{'svn stat -u'}) and
+docbro (open ocamlbrowser with many libs).
+
+\subsection{Development Tools}
+In addition to ocaml distribution and omake:
+
+\begin{itemize}
+  \item the RAD tool used is \texttt{glade-3} (with special semi-compiler
+  \texttt{lablgladecc2})
+  \item for documentation, this file uses
+  \href{http://txt2tags.sourceforge.net/}{txt2tags}
+  \item for licence header management we use \texttt{headache}
+\end{itemize}
+
+\subsection{Documentation}
+
+\subsubsection{README file}
+
+\texttt{doc/manual/README.t2t} is the minimal documentation, to
+generate, text and XHTML, just type:
+
+\begin{verbatim}
+omake readme
+\end{verbatim}
+
+\subsubsection{Manual}
+
+
+
+\subsection{The Source Tree}
+\begin{verbatim}
+\__ src                                        
+ |  \__ main.ml               -> main, inspection, midi test
+ |  \__ midiFile.ml           -> midi file read and write
+ |  \__ tracker.ml            -> the sequencer
+ |  \__ midi.ml               -> manipulation of MIDI "Data"
+ |  \__ alsa_interface.c      -> asoundlib wrapper
+ |  \__ alsaSequencer.ml      -> OCamL functions for the wrapper
+ |  \__ gui_files                   
+ |   |  \__ app.glade         -> main Glade file
+ |  \__ gui.ml                -> All the GUI code is there
+ |  \__ stringServer.ml       -> attempt to group the user messages
+ |  \__ seqApp.ml             -> the "model interface", many functions for gui.ml 
+ |  \__ inputManager.ml       -> event handler of the tracker and midi listener
+ |  \__ log.ml                -> logging facilities
+\__ OMakefile                 -> General build file
+\__ OMakeroot                 -> Root for omake
+\__ test                                       
+ |  \__ tracks.mid  
+ |  \__ one_song.xml                             
+\__ doc
+ |  \__ manual
+ |   |  \__ src
+ |   |   |  \__ latex-header.tex
+ |   |   |  \__ latex-main.tex
+ |   |   |  \__ manual.tex
+ |   |   |  \__ OMakefile
+ |   |  \__ locoseq-doc.pdf
+ |   |  \__ locoseq-doc.html
+ |  \__ readme
+ |   |  \__ README.t2t        -> source of readme
+ |   |  \__ doc.css           -> common CSS for the readme 
+\__ util                      
+ |  \__ util.env              -> utilities for development
+\__ licence.mit               -> licence template
+\__ README                    -> generated README file
+\end{verbatim}
+
+
+\section{Copyright}
+
+This software is released under an MIT licence:
+
+\begin{verbatim}
+Copyright (c) 2007, Sebastien MONDET
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+\end{verbatim}
+Current contributors are:
+
+\begin{itemize}
+\item \href{http://sebmdt.googlepages.com}{Sebastien MONDET}
+\item Frederic MOULINS
+\end{itemize}
 
 
 \end{document}
