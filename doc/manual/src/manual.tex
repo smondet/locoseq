@@ -5,8 +5,7 @@
 \author{Sebastien MONDET\thanks{\url{http://sebmdt.googlepages.com}}\ \and
 Frederic MOULINS}
 
-\date{Documentation\\
-Thu, 02 Aug 2007 07:56:36 +0200}
+\date{\today}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -20,6 +19,8 @@ Thu, 02 Aug 2007 07:56:36 +0200}
 \maketitle
 \tableofcontents
 %\twocolumn
+
+\newpage
 
 \section{Presentation}
 
@@ -36,7 +37,8 @@ The application is build on top of the alsa sequencer API, it is written in
 (\href {http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgtk.html}{lablgtk2})
 for its GUI.
 
-The source code is available under a classic MIT license.
+The source code is available under a classic MIT license (see
+\ref{sec:copyright}).
 
 
 
@@ -48,24 +50,22 @@ For the moment, let's talk about ubuntu packages as the project is developed
 under ubntustudio. Those pakages should make you download all needed
 dependencies:
 
-\begin{verbatim}
-apt-get install libasound2-dev libxml-light-ocaml-dev omake ocaml-findlib \
- liblablgtk2-ocaml-dev
-\end{verbatim}
+\shellcmd{
+apt-get install libasound2-dev libxml-light-ocaml-dev omake ocaml-findlib
+liblablgtk2-ocaml-dev
+}
 
 \subsection{Build}
+
 Just type:
 
-\begin{verbatim}
-omake
-\end{verbatim}
+\shellcmd{omake}
 
 \subsection{Use}
+
 Launch the application:
 
-\begin{verbatim}
-./src/locoseq gui
-\end{verbatim}
+\shellcmd{./src/locoseq gui}
 
 \subsection{Examples}
 In the test directory:
@@ -88,60 +88,54 @@ soundfont).
 
 This software is still under heavy development. If you detect problems please
 send an e-mail to the developers. If you can, send then also the result of the
-portability inspection (\ref{inspect}).
+portability inspection (\ref{sec:inspect}).
 
 
 \section{Development}
 
 \subsection{Portability Inspection}
-\label{inspect}
+\label{sec:inspect}
 
 To generate some debug information for the developers simply type (you will see
 many errors in the term):
 
-\begin{verbatim}
-omake inspection
-\end{verbatim}
+\shellcmd{omake inspection}
 
 then, you can:
 
-\begin{verbatim}
-$BROWSER InspectionData/Inspection.xhtml
-\end{verbatim}
+\shellcmd{\$BROWSER InspectionData/Inspection.xhtml}
 
 or
 
-\begin{verbatim}
-man InspectionData/Inspection.man
-\end{verbatim}
+\shellcmd{man InspectionData/Inspection.man}
+
 And send the file \texttt{InspectionData/Inspection.t2t} to the developers.
 
 \subsection{Standard Midi File Debug}
 You can dump a midi file:
 
-\begin{verbatim}
-./src/locoseq parse <midi_file>
-\end{verbatim}
+\shellcmd{./src/locoseq parse <midi\_file>}
 
 \subsection{The file util.env}
 The command:
 
-\begin{verbatim}
-. util/util.env
-\end{verbatim}
+\shellcmd{. util/util.env}
+
 should be useful as it gives some functions:
 \texttt{mk}, \texttt{cln}, \texttt{svns} (colorized \texttt{'svn stat -u'}) and
-docbro (open ocamlbrowser with many libs).
+\texttt{docbro} (open ocamlbrowser with many libs).
 
 \subsection{Development Tools}
 In addition to ocaml distribution and omake:
 
 \begin{itemize}
-  \item the RAD tool used is \texttt{glade-3} (with special semi-compiler
-  \texttt{lablgladecc2})
-  \item for documentation, this file uses
-  \href{http://txt2tags.sourceforge.net/}{txt2tags}
+  \item the RAD tool used is \texttt{glade-3} (with special
+  \textit{semi-compiler} \texttt{lablgladecc2})
+  \item for the README file and for inspection reports (\ref{sec:inspect}) we
+  use \href{http://txt2tags.sourceforge.net/}{txt2tags}
   \item for licence header management we use \texttt{headache}
+  \item this documentation is built with \LaTeX2e\ and 
+  \href{http://hevea.inria.fr/}{Hevea}
 \end{itemize}
 
 \subsection{Documentation}
@@ -151,15 +145,17 @@ In addition to ocaml distribution and omake:
 \texttt{doc/manual/README.t2t} is the minimal documentation, to
 generate, text and XHTML, just type:
 
-\begin{verbatim}
-omake readme
-\end{verbatim}
+\shellcmd{omake readme}
 
 \subsubsection{Manual}
 
+To generate the manual (pdf and HTML):
+
+\shellcmd{omake doc}
 
 
 \subsection{The Source Tree}
+
 \begin{verbatim}
 \__ src                                        
  |  \__ main.ml               -> main, inspection, midi test
@@ -200,6 +196,7 @@ omake readme
 
 
 \section{Copyright}
+\label{sec:copyright}
 
 This software is released under an MIT licence:
 

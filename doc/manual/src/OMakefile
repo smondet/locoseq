@@ -1,8 +1,10 @@
 
 PDF_TARGET=../locoseq-doc.pdf
-LATEX_FILES= latex-header.tex manual.tex
+LATEX_FILES= manual.tex
 GLOBAL_MAIN= latex-main
 HTML_TARGET = ../locoseq-doc.html
+HEVEA_CONFIG = locoseq-config.hva
+HEVEA_CMD = hevea -exec xxdate.exe
 
 
 .PHONY: clean pdf html doc
@@ -17,11 +19,12 @@ $(PDF_TARGET): $(GLOBAL_MAIN).tex $(LATEX_FILES)
 
 
 
-$(HTML_TARGET): $(GLOBAL_MAIN).tex $(LATEX_FILES)
-  hevea $(GLOBAL_MAIN).tex && hevea $(GLOBAL_MAIN).tex
+$(HTML_TARGET): $(GLOBAL_MAIN).tex $(LATEX_FILES) $(HEVEA_CONFIG)
+  $(HEVEA_CMD) $(HEVEA_CONFIG) $(GLOBAL_MAIN).tex
+  $(HEVEA_CMD) $(HEVEA_CONFIG) $(GLOBAL_MAIN).tex
   mv $(GLOBAL_MAIN).html $(HTML_TARGET)
 
 clean: # propagated from root directory
-  rm -f *.aux *.log *.toc *.out
+  rm -f *.aux *.log *.toc *.out *.haux *.htoc
 
 

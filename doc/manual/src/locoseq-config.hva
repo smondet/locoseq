@@ -1,0 +1,26 @@
+
+\input{article.hva}
+
+%\input{fancysection.hva}
+%\definecolor{part}{named}{BrickRed}
+%\definecolor{section}{named}{RedOrange}
+%\definecolor{subsection}{named}{BurntOrange}
+
+\newstyle{body}{
+  background-color: white;
+  color: black;
+  font-family: sans-serif;
+  position: relative;
+  %left: 10%;
+  %width: 80%;
+  %font-size: 12px;
+}
+
+\newstyle{.title}{text-align:center;margin:1ex auto;padding:2ex;border:solid navy;}
+
+\newstyle{.titlerest}{font-variant:small-caps;}
+
+\newstyle{.verbatim}{margin:1ex 1ex;padding:1ex;}
+
+\newstyle{h1,h2,h3}{ position: relative; color: \#760600;}
+
