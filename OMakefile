@@ -19,12 +19,6 @@ ALSAITF_FLAGS= -Wall
 INSPECTION_OUTPUT=Inspection
 INSPECTION_DIR=InspectionData
 
-## 'README' documentation:
-README_SRC=doc/readme/README.t2t
-README_TARGET_TXT=README
-README_TARGET_XHTML=README.xhtml
-README_CSS_FILE=doc/readme/doc.css
-
 ## LICENSING:
 LICENSE_SRC=license.mit
 
@@ -41,7 +35,7 @@ OCAML_CLIBS= $(ALSAITF_NAME)
 OCAML_NATIVE_LINK_FLAGS=  -cclib -lasound
 
 ## Some targets:
-.PHONY: clean install inspection readme package license unlicense
+.PHONY: clean install inspection package license unlicense
 
 clean: # The Big clean:
   find . \
@@ -67,17 +61,9 @@ clean: # The Big clean:
 inspection:src/$(APP_NAME)
   mkdir -p $(INSPECTION_DIR)
   src/$(APP_NAME) inspection  $(INSPECTION_DIR)/$(INSPECTION_OUTPUT).t2t
-  cp  $(README_CSS_FILE) $(INSPECTION_DIR)/inspect.css
+  # cp  $(README_CSS_FILE) $(INSPECTION_DIR)/inspect.css
   txt2tags --toc --enum-title -t man $(INSPECTION_DIR)/$(INSPECTION_OUTPUT).t2t
-  txt2tags --toc -t xhtml --style inspect.css $(INSPECTION_DIR)/$(INSPECTION_OUTPUT).t2t
-
-
-# genrate the non-code doc:
-readme:$(README_TARGET_TXT) $(README_TARGET_XHTML)
-$(README_TARGET_TXT): $(README_SRC)
-  txt2tags --toc -t txt -o $(README_TARGET_TXT) $(README_SRC)
-$(README_TARGET_XHTML): $(README_SRC)
-  txt2tags --toc -t xhtml --style $(README_CSS_FILE) -o $(README_TARGET_XHTML) $(README_SRC)
+  txt2tags --toc -t xhtml $(INSPECTION_DIR)/$(INSPECTION_OUTPUT).t2t
 
 
 MakePackage ()=
