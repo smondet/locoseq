@@ -96,6 +96,8 @@ colorlinks        = true,%
 %}
 }
 
+
+
 % File Names:
 \newcommand{\FileName}[1]{%
 \texttt{#1}}
@@ -103,94 +105,6 @@ colorlinks        = true,%
 %Changing programming language for:
 \lstset{language=[Objective]Caml}
 %\lstset{language=C}
-
-
-
-% \newcommand{\ShellCmdResult}{%
-%   \SaveVerb[aftersave={%
-%     \textbf{\UseVerb{Vitem}}%
-%   }]{Vitem}}
-% \DefineShortVerb{\|}
-
-%
-% This Part is stolen from the verbaim.sty by FMi
-% 
-%\newwrite\example@out
-%\newbox\exa@box
-%\newcounter{exacnt}
-%\setcounter{exacnt}{1}
-%\newlength{\savefboxrule}
-%\newlength{\savefboxsep}
-%\newlength{\outdent}
-%\setlength{\outdent}{2cm}
-%\addtolength{\headwidth}{\outdent}
-
-% 
-% \newenvironment{example}%
-% {\begingroup% Lets Keep the Changes Local
-% %\@bsphack
-%  0
-%  \immediate\openout \example@out \jobname.exa
-%   \let\do\@makeother\dospecials\catcode`\^^M\active
-%   \def\verbatim@processline{%
-%     \immediate\write\example@out{\the\verbatim@line}}%
-%   \verbatim@start}%
-% {\immediate\closeout\example@out\@esphack\endgroup%
-% }
-%%                                 %
-%%                                 % And here comes my part. :-
-%%                                 %
-%% \setbox\exa@box=\vbox{% This box is mainly for debugging
-%%   \stepcounter{exacnt}%
-%%   \setlength{\parindent}{0pt}%
-%% % Page \lsspageref{exa:\theexacnt}
-%% \expandafter\ifx\csname r@exa:\theexacnt\endcsname\relax\else
-%% \ifx\pdfoutput\undefined % We're not running pdftex
-%%   \ifx\@pr@ORI\undefined % We're not using french package
-%%     \def\exa@page{\HyPsd@pageref{exa:\theexacnt}}%
-%%   \else %
-%%     \def\exa@page{\@pr@ORI{exa:\theexacnt}}% french pageref is not a number
-%%   \fi %
-%% \else %
-%%   \def\exa@page{\HyPsd@pageref{exa:\theexacnt}}%
-%% \fi
-%% \ifodd\exa@page\hspace*{0pt}\else\hspace*{-\outdent}\fi%
-%% \fi
-%%    \makebox[\textwidth][l]{%
-%%     \raisebox{-\height}[0pt][\totalheight]{%
-%%       \begin{minipage}[t]{0.5\outdent+0.46\textwidth-3mm}%
-%%         \small\verbatiminput{\jobname.exa}
-%%       \end{minipage}}%
-%%     \hspace{5mm}%
-%%     \setlength{\savefboxrule}{\fboxrule}%
-%%     \setlength{\fboxrule}{0.1pt}%
-%%     \setlength{\savefboxsep}{\fboxsep}%
-%%     \setlength{\fboxsep}{3mm}%
-%%     \raisebox{-\height}[0pt][\totalheight]{%
-%%       \fbox{%
-%%         \begin{minipage}[t]{0.5\outdent+0.54\textwidth-2mm-2\fboxrule-2\fboxsep-0.7ex}%
-%%           \setlength{\fboxrule}{\savefboxrule}%
-%%           \setlength{\fboxsep}{\savefboxsep}%
-%%           \setlength{\fboxrule}{0.5pt}%
-%%           %\setlength{\parskip}{1ex plus 0.4ex minus 0.2ex}%
-%%           \setlength{\parskip}{0ex plus 0ex minus 0ex}%
-%%           \begin{trivlist}\item\small\input{\jobname.exa}
-%%           \end{trivlist}
-%%         \end{minipage}
-%%         }%
-%%       }%
-%%     }\label{exa:\theexacnt}%
-%% } % end vbox
-%% %\showthe\ht\exa@box
-%% \par\addvspace{2.0ex plus 0.8ex minus 1ex}\vskip -\parskip
-%% \noindent\box\exa@box
-%% \par\addvspace{3.2ex plus 0.8ex minus 1ex}\vskip -\parskip
-%% }
-
-
-
-
-
 
 \input{manual.tex}
 

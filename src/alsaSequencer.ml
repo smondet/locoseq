@@ -24,25 +24,43 @@
 (**************************************************************************)
 
 
+(** 
+ 
+OCaml types and functions wrapping {b libasound}
+and defined in alsa_interface.c
+
+@author S. Mondet
+
+ *)
 
 
-
+(** The sequencer object (abstract type) *)
 type sequencer
 
-external make_sequencer : string -> string array -> string array -> sequencer =
-  "alsaseq_make" ;;
+(**
+ The sequencer constructor
+ Called as  {[
+ let my_seq = 
+   make_sequencer
+   "alsa_client_name" 
+   [| "input_port_A" ; "input_port_B" |]
+   [| "out1" ; "out2" ; "outN" |] in
+   ]}
+ *)
+external make_sequencer:
+  string -> string array -> string array -> sequencer = "alsaseq_make"
 
 
 (******************************************************************************)
-(* New INPUT interface: *)
+(** {b INPUT interface:} *)
 
-(* Blocking: *)
-external wait_next_input_event : sequencer -> Midi.midi_event = 
-  "alsaseq_get_next_input_event" ;;
+(** Blocking wait for input: *)
+external wait_next_input_event:
+  sequencer -> Midi.midi_event = "alsaseq_get_next_input_event"
 
-(* Non-Blocking: *)
-external get_input_events : sequencer -> Midi.midi_event list =
-  "alsaseq_get_input_events_list" ;;
+(** Non-Blocking way to get current events: *)
+external get_input_events:
+  sequencer -> Midi.midi_event list = "alsaseq_get_input_events_list"
 
 
 

@@ -117,7 +117,7 @@ let string_of_meta_event event pqn = (
 
 
 let make_appwin_title songname =
-    app_name ^ (version ()) ^(
+    app_name ^ " " ^ (version ()) ^(
     match songname with
     | "" -> "   -- (no name song) --"
     | _  -> "    [" ^ songname ^ "]" 
