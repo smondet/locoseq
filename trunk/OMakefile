@@ -14,6 +14,9 @@ APP_MODS=  midi log alsaSequencer tracker inputManager midiFile $(LABLGLADE_GEN_
 ALSAITF_NAME=alsa_interface
 ALSAITF_FLAGS= -Wall
 
+## Code documentation:
+HTML_DIR=doc/ref/html
+LATEX_DIR=doc/ref/latex
 
 ## Inspection:
 INSPECTION_OUTPUT=Inspection
@@ -35,7 +38,7 @@ OCAML_CLIBS= $(ALSAITF_NAME)
 OCAML_NATIVE_LINK_FLAGS=  -cclib -lasound
 
 ## Some targets:
-.PHONY: clean install inspection package license unlicense
+.PHONY: clean install inspection package license unlicense codedoc
 
 clean: # The Big clean:
   find . \
@@ -90,6 +93,11 @@ license: $(LICENSE_SRC)
 
 unlicense: $(LICENSE_SRC)
   headache -r src/*.ml src/*.c
+
+codedoc: src/main.ml
+  mkdir -p $(HTML_DIR)
+  ocamlfind ocamldoc -package $(OCAMLPACKS) -d $(HTML_DIR) -I src\
+  -html -colorize-code src/*.ml
 
 
 ## this function defines what will be done in src/ subdirectory:
@@ -163,3 +171,4 @@ MakeExec () =
 ##   OCAMLINCLUDES += $(APP_INCS)
 ##   OCamlProgram($(APP_NAME), $(APP_MODS) )
 ##   .DEFAULT: $(APP_NAME) $(APP_NAME).opt
+
