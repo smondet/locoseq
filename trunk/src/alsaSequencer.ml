@@ -47,33 +47,34 @@ type sequencer
    [| "out1" ; "out2" ; "outN" |] in
    ]}
  *)
-external make_sequencer:
-  string -> string array -> string array -> sequencer = "alsaseq_make"
+external make_sequencer: string -> string array -> string array -> sequencer
+= "alsaseq_make"
 
 
 (******************************************************************************)
 (** {b INPUT interface:} *)
 
-(** Blocking wait for input: *)
-external wait_next_input_event:
-  sequencer -> Midi.midi_event = "alsaseq_get_next_input_event"
+(** Blocking wait for input *)
+external wait_next_input_event: sequencer -> Midi.midi_event
+= "alsaseq_get_next_input_event"
 
-(** Non-Blocking way to get current events: *)
-external get_input_events:
-  sequencer -> Midi.midi_event list = "alsaseq_get_input_events_list"
-
-
-
-(******************************************************************************)
-(* Direct OUTPUT interface: *)
-
-external output_event_direct : sequencer -> port:int -> Midi.midi_event -> unit =
-  "alsaseq_output_event_direct" ;;
+(** Non-Blocking way to get current events *)
+external get_input_events: sequencer -> Midi.midi_event list
+= "alsaseq_get_input_events_list"
 
 
 
 (******************************************************************************)
-(* QUEUE interface  *)
+(** {b Direct OUTPUT interface:} *)
+
+(** Output an event on a given port without any queue *)
+external output_event_direct: sequencer -> port:int -> Midi.midi_event -> unit
+= "alsaseq_output_event_direct" ;;
+
+
+
+(******************************************************************************)
+(** {b QUEUE interface } *)
 
 external set_queue_tempo : sequencer -> bpm:int -> ppqn:int -> unit =
   "alsaseq_set_tempo" ;;
