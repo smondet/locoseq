@@ -133,6 +133,7 @@ should be useful as it gives some functions:
 \texttt{docbro} (open ocamlbrowser with many libs).
 
 \subsection{Development Tools}
+
 In addition to ocaml distribution and omake:
 
 \begin{itemize}
@@ -149,16 +150,19 @@ In addition to ocaml distribution and omake:
 
 \subsubsection{README file}
 
-\FileName{doc/manual/README.t2t} is the minimal documentation, to
-generate, text and XHTML, just type:
-
-\ShellCmd{omake readme}
+Now the README file is an inpendent text file.
 
 \subsubsection{Manual}
 
 To generate the manual (pdf and HTML):
 
 \ShellCmd{omake doc}
+
+\subsubsection{Code}
+
+To generate in \FileName{doc/ref/html/} hte code documentation, just type:
+
+\ShellCmd{omake codedoc}
 
 
 \subsection{The Source Tree}
@@ -192,13 +196,10 @@ To generate the manual (pdf and HTML):
  |   |   |  \__ OMakefile
  |   |  \__ locoseq-doc.pdf
  |   |  \__ locoseq-doc.html
- |  \__ readme
- |   |  \__ README.t2t        -> source of readme
- |   |  \__ doc.css           -> common CSS for the readme 
 \__ util                      
  |  \__ util.env              -> utilities for development
 \__ licence.mit               -> licence template
-\__ README                    -> generated README file
+\__ README                    -> README file
 \end{verbatim}
 
 
