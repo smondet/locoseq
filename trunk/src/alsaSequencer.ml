@@ -33,16 +33,15 @@ and defined in alsa_interface.c
 
  *)
 
+(** {3 The sequencer object} *)
 
 (** The sequencer object (abstract type) *)
 type sequencer
 
 (**
  The sequencer constructor
- Called as  {[
- let my_seq = 
-   make_sequencer
-   "alsa_client_name" 
+ should be called as  {[
+ let my_seq = make_sequencer "alsa_client_name" 
    [| "input_port_A" ; "input_port_B" |]
    [| "out1" ; "out2" ; "outN" |] in
    ]}
@@ -52,7 +51,7 @@ external make_sequencer: string -> string array -> string array -> sequencer
 
 
 (******************************************************************************)
-(** {b INPUT interface:} *)
+(** {3 INPUT interface} *)
 
 (** Blocking wait for input *)
 external wait_next_input_event: sequencer -> Midi.midi_event
@@ -65,7 +64,7 @@ external get_input_events: sequencer -> Midi.midi_event list
 
 
 (******************************************************************************)
-(** {b Direct OUTPUT interface:} *)
+(** {3 Direct OUTPUT interface} *)
 
 (** Output an event on a given port without any queue *)
 external output_event_direct: sequencer -> port:int -> Midi.midi_event -> unit
@@ -74,40 +73,58 @@ external output_event_direct: sequencer -> port:int -> Midi.midi_event -> unit
 
 
 (******************************************************************************)
-(** {b QUEUE interface } *)
+(** {3 QUEUE interface} *)
 
-external set_queue_tempo : sequencer -> bpm:int -> ppqn:int -> unit =
-  "alsaseq_set_tempo" ;;
-external get_queue_tempo : sequencer ->  int * int =
-  "alsaseq_get_tempo" ;;
+(** Set BeatPerMinute and PerQuarterNote of the sequencer's queue *)
+external set_queue_tempo: sequencer -> bpm:int -> ppqn:int -> unit
+= "alsaseq_set_tempo"
 
-external start_queue : sequencer -> unit =
-  "alsaseq_start_queue" ;;
-external stop_queue : sequencer -> unit =
-  "alsaseq_stop_queue" ;;
 
-external get_current_tick : sequencer -> int =
-  "alsaseq_get_tick" ;;
+(** Get BeatPerMinute and PerQuarterNote of the sequencer's queue *)
+external get_queue_tempo: sequencer ->  int * int
+= "alsaseq_get_tempo"
 
-external put_event_in_queue : sequencer -> port:int -> Midi.midi_event -> unit =
-  "alsaseq_put_event_in_queue" ;;
 
-external clear_queue : sequencer -> unit =
-  "alsaseq_clear_queue" ;;
+(** Start the queue ([ snd_seq_start_queue ]) *)
+external start_queue: sequencer -> unit
+= "alsaseq_start_queue"
+
+(** Stop the queue *)
+external stop_queue: sequencer -> unit
+= "alsaseq_stop_queue"
+
+(** Get current tick of the queue (with [ snd_seq_get_queue_status]) *)
+external get_current_tick: sequencer -> int
+= "alsaseq_get_tick"
+
+(** Put an event in the queue, on a given output port *)
+external put_event_in_queue: sequencer -> port:int -> Midi.midi_event -> unit
+= "alsaseq_put_event_in_queue"
+
+(** Remove all events in the queue *)
+external clear_queue: sequencer -> unit
+= "alsaseq_clear_queue"
 
 (******************************************************************************)
-(* TIMER interface  *)
+(** {3 TIMER interface}  *)
 
+(** Description  of alsa timer information *)
 type timer_info = {
-  mutable t_class     : int ;
-  mutable t_sclass    : int ; 
-  mutable t_card      : int ;
-  mutable t_device    : int ; 
-  mutable t_subdevice : int ;    
+  mutable t_class     : int ; (** Class *)
+  mutable t_sclass    : int ; (** Slave class *)
+  mutable t_card      : int ; (** Card *)
+  mutable t_device    : int ; (** Device *)
+  mutable t_subdevice : int ; (** Subdevice *)   
 }
 
-external get_queue_timer_info : sequencer -> timer_info = "alsaseq_get_queue_timer" ;;
+(** Obtain the information of the timer of the sequencer's queue *)
+external get_queue_timer_info: sequencer -> timer_info
+= "alsaseq_get_queue_timer"
 
+
+(** One default timer information
+ (Class: global; SlaveClass: none; Card: system)
+ *)
 let default_timer_info = {
   t_class     =  1 ; (* SND_TIMER_CLASS_GLOBAL   *)
   t_sclass    = -1 ; (* SND_TIMER_CLASS_NONE     *)
@@ -115,7 +132,7 @@ let default_timer_info = {
   (* NOTE:seb: Those kind of anti-#define are not very convenient but... *)
   t_device    =  0 ; 
   t_subdevice =  0 ;    
-};;
+}
 
 
 external query_info : unit -> timer_info list =

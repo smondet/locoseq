@@ -18,6 +18,7 @@ ALSAITF_FLAGS= -Wall
 DOC_SOURCES=src/midi.ml src/log.ml src/alsaSequencer.ml src/tracker.ml src/inputManager.ml src/midiFile.ml src/stringServer.ml src/seqApp.ml src/guiEditor.ml src/gui.ml src/main.ml
 HTML_DIR=doc/ref/html
 LATEX_DIR=doc/ref/latex
+CODEDOC_CSS=codedoc.css
 
 ## Inspection:
 INSPECTION_OUTPUT=Inspection
@@ -57,7 +58,8 @@ clean: # The Big clean:
   -name "$(APP_NAME)" -o \
   -name ".omakedb*"  | xargs rm -f 
   rm -rf $(INSPECTION_DIR)
-  rm -f $(LABLGLADE_GEN_FILE)
+  rm -f $(HTML_DIR)/*.html
+  rm -f src/$(LABLGLADE_GEN_FILE)
   echo "Cleaned "
 
 
@@ -96,9 +98,8 @@ unlicense: $(LICENSE_SRC)
   headache -r src/*.ml src/*.c
 
 codedoc: $(DOC_SOURCES)
-  mkdir -p $(HTML_DIR)
   ocamlfind ocamldoc -package $(OCAMLPACKS) -d $(HTML_DIR) -I src\
-  -html -colorize-code $(DOC_SOURCES)
+  -html -css-style $(CODEDOC_CSS) -colorize-code $(DOC_SOURCES)
 
 
 ## this function defines what will be done in src/ subdirectory:
