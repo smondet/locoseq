@@ -718,7 +718,8 @@ let add_or_edit_meta (the_track: int option) = (
 )
 let b_aw_add_meta () = (
   add_or_edit_meta None ;
-  (* GuiEditor.track_editor (get_app()) `NEW_MIDI ; *)
+  (* NOTE: TEST *)
+  (* GuiEditor.track_editor (get_app()) `NEW_META ; *)
 )
 let b_aw_edit_meta   () = (
   if (!global_tv_aw_metaview_selction <> 0) then ( 
