@@ -24,13 +24,14 @@
 /**************************************************************************/
 
 /*
+ * C code used in AlsaSequencer module.
  *
- *
- *
- *
- *
+ * Author: S. MONDET
  */
 
+/* 
+ * Classic includes:
+ */
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -38,9 +39,18 @@
 #include <alloca.h>
 
 
+/*
+ * ALSA's dot H.
+ *
+ * Note: it is not `gcc -ansi -pedantic` compliant
+ */
 #include <alsa/asoundlib.h>
 
 
+/*
+ * Caml wrapping includes:
+ *
+ */
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/fail.h>
@@ -89,11 +99,11 @@ typedef struct {
 /*
  *  DESTROY the SEQUENCER 
  *  
- * */
+ */
+void 
+alsaseq_destroy(value alsa_seq){
 
-void  alsaseq_destroy(value alsa_seq){
-
-  /* CAMLparam1 (alsa_seq) ; */ /* must not use CAMLparam1 in destructor */
+  /* must not use CAMLparam1 in destructor */
   AlsaSequencer *seq = NULL ;
 
   /* Get the sequencer: */
@@ -104,32 +114,43 @@ void  alsaseq_destroy(value alsa_seq){
   free(seq->o_ports);
   free(seq->i_ports);
   free(seq);
-  printf("ALSA SEQUENCER DETROYED\n");
+  /* printf("ALSA SEQUENCER DETROYED\n"); */
 }
 
 static struct custom_operations sequencer_custom_ops = {
-  "seb.mondet.alsa_sequencer",
-  /* custom_finalize_default, */alsaseq_destroy, 
+  "locoseq.alsa_sequencer",
+  /* custom_finalize_default,*/ alsaseq_destroy, 
   custom_compare_default,
   custom_hash_default,
   custom_serialize_default,
   custom_deserialize_default
 };
 
-void exn_assert(int condition, char *msg) {
+/*
+ * An assert function that trows a Failure exception.
+ *
+ */
+void
+exn_assert(int condition, char *msg) {
   if (condition == 0)  {
     fprintf(stderr, "[C][ERR] Assert Failed: %s\n", msg) ;
     perror("[C][ERR] Unix Error: ");
     caml_failwith("GENERAL ASSERT FAILED in alsa_interface.c") ;
   }
 }
-void exn_alsa_assert(int err_code, char *msg) {
+
+/*
+ * Launch a "Failure" exception in case of negative return value from an ALSA
+ * function.
+ */
+void
+exn_alsa_assert(int err_code, char *msg) {
   if (err_code < 0)  {
     char exception[1024];
     fprintf(stderr, "[C][ERR] Assert Failed: %s\n", msg) ;
     fprintf(stderr, "[C][ERR] Alsa Error: %s\n", snd_strerror(err_code)) ;
     perror(         "[C][ERR] Unix Error: ");
-    snprintf(exception, 1024, "[C] ALSA ASSERT FAILED: %s (alsa_error: %s)",
+    sprintf(exception, "[C] ALSA ASSERT FAILED: %255s (alsa_error: %255s)",
         msg, snd_strerror(err_code));
     caml_failwith(exception) ;
   }
@@ -137,8 +158,12 @@ void exn_alsa_assert(int err_code, char *msg) {
 
 
 
-CAMLprim value alsaseq_make(
-    value app_name, value in_names_array, value ou_names_array) {
+/*
+ * Constructor of the sequencer "object"
+ *
+ */
+CAMLprim value
+alsaseq_make( value app_name, value in_names_array, value ou_names_array) {
 
   CAMLparam3(app_name, in_names_array, ou_names_array) ;
   int ret = 0 , i, in_size, ou_size;
@@ -205,14 +230,14 @@ CAMLprim value alsaseq_make(
 
 
 /* 
- * Output direct:
+ * Output directly a midi event on a given port:
  *  
- * */
+ */
+CAMLprim value
+alsaseq_output_event_direct(value alsa_seq, value port_nb, value midi_event){
 
-CAMLprim value alsaseq_output_event_direct(value alsa_seq, value port_nb, value midi_event){
-
-  CAMLparam3 (alsa_seq, port_nb, midi_event) ;
-  AlsaSequencer *seq = NULL ;
+  CAMLparam3 (alsa_seq, port_nb, midi_event);
+  AlsaSequencer *seq = NULL;
   
   int tick = 0;
   int port = 0;
@@ -226,14 +251,14 @@ CAMLprim value alsaseq_output_event_direct(value alsa_seq, value port_nb, value 
   snd_seq_ev_clear(&ev);
 
   /* Get the sequencer: */
-  seq = *((AlsaSequencer **)Data_custom_val(alsa_seq)) ;
+  seq = *((AlsaSequencer **)Data_custom_val(alsa_seq));
 
   port      = Int_val(port_nb);
-  tick      = Int_val(Field(midi_event, 0)) ;
-  buffer[0] = Int_val(Field(midi_event, 1)) & 0xF0 ; /* This '&' seems solve a bug */
-  buffer[0]+= Int_val(Field(midi_event, 2)) & 0x0F ;
-  buffer[1] = Int_val(Field(midi_event, 3)) ;
-  buffer[2] = Int_val(Field(midi_event, 4)) ;
+  tick      = Int_val(Field(midi_event, 0));
+  buffer[0] = Int_val(Field(midi_event, 1)) & 0xF0;
+  buffer[0]+= Int_val(Field(midi_event, 2)) & 0x0F;
+  buffer[1] = Int_val(Field(midi_event, 3));
+  buffer[2] = Int_val(Field(midi_event, 4));
 
   snd_midi_event_new( 3, &midi_ev );
   snd_midi_event_encode( midi_ev, buffer, 3, &ev ); 
@@ -253,13 +278,12 @@ CAMLprim value alsaseq_output_event_direct(value alsa_seq, value port_nb, value 
 /* 
  * get_next_input_event
  *
- *
- *
- * */
-CAMLprim value alsaseq_get_next_input_event(value alsa_seq){
+ */
+CAMLprim value
+alsaseq_get_next_input_event(value alsa_seq){
 
-  CAMLparam1 (alsa_seq) ;
-  AlsaSequencer *seq = NULL ;
+  CAMLparam1 (alsa_seq);
+  AlsaSequencer *seq = NULL;
 
   CAMLlocal1(midi_event) ;
     
@@ -725,7 +749,6 @@ CAMLprim value alsatim_make_timer(value ml_info)
   /* snd_timer_id_t *id; */
   snd_timer_info_t *info = NULL;
   snd_timer_params_t *params = NULL;
-  //int freq_timer ; 
 
   AlsaTimer *timer = NULL;
   value the_timer ;
@@ -739,8 +762,6 @@ CAMLprim value alsatim_make_timer(value ml_info)
   /* snd_timer_id_alloca(&id); */
   snd_timer_info_alloca(&info);
   snd_timer_params_alloca(&params);
-
-  // freq_timer = Int_val(freq) ;
 
   sprintf(timername , "hw:CLASS=%i,SCLASS=%i,CARD=%i,DEV=%i,SUBDEV=%i"
       , Int_val(Field(ml_info, 0))
@@ -768,19 +789,10 @@ CAMLprim value alsatim_make_timer(value ml_info)
   err = snd_timer_params_set_auto_start(params, 1);
   exn_alsa_assert(err, "timer snd_timer_params_set_auto_start error") ;
 
-  //if (!snd_timer_info_is_slave(info)) {
-  //snd_timer_params_set_ticks(params,
-  //    (1000000000 / snd_timer_info_get_resolution(info)) / freq_timer);
-  ///* 50Hz */
-  //if (snd_timer_params_get_ticks(params) < 1)
   
   /* Is void: */
   snd_timer_params_set_ticks(params, 1);
 
-  //printf("Using %li tick(s)\n", snd_timer_params_get_ticks(params));
-  //} else {
-  //  snd_timer_params_set_ticks(params, 1);
-  //}
   err = snd_timer_params(handle, params);
   exn_alsa_assert(err, "timer params error");
 
@@ -849,9 +861,6 @@ CAMLprim value alsatim_wait_next(value ml_timer, value timeout)
   snd_timer_read_t tr;
   AlsaTimer *timer = GET_TIMER(ml_timer);
 
-  //printf("poll( %x , %x , %d ) \n", timer->fds,
-  //    timer->fd_count, Int_val(timeout));
-  //printf("fds:%d, %d, %d\n", timer->fds[0].fd, timer->fds[0].events, timer->fds[0].revents  );
   err = poll(timer->fds, timer->fd_count, Int_val(timeout) );
   exn_assert(err >= 0, "poll timer error") ;
   if (err == 0) {
@@ -861,20 +870,13 @@ CAMLprim value alsatim_wait_next(value ml_timer, value timeout)
     count = 0; 
     while (snd_timer_read(timer->handle, &tr, sizeof(tr)) == sizeof(tr)) {
       count++ ;
-      // printf("TIMER: resolution = %uns, ticks = %u\n",
-      //     tr.resolution, tr.ticks);
-//      resol = tr.resolution ;
-//      ticks = tr.ticks ;
+      /* printf("TIMER: resolution = %uns, ticks = %u\n", */
+      /* tr.resolution, tr.ticks); */
+      /* resol = tr.resolution ; */
+      /* ticks = tr.ticks ; */
     }
   }
   /* printf("fds:%d, %d, %d\n", timer->fds[0].fd, timer->fds[0].events, timer->fds[0].revents  ); */
-
-  /* Allocate the ocaml struct and fill it: */
-//  ret = caml_alloc(3 , 0) ;
-//
-//  Store_field(ret , 0 , Val_int( count ));
-//  Store_field(ret , 1 , Val_int( resol ));
-//  Store_field(ret , 2 , Val_int( ticks ));
 
   CAMLreturn(Val_int(count));
 }

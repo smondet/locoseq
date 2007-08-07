@@ -248,6 +248,12 @@ let get_meta_track_actions trkr id =
     ) (meta_get_track trkr id).meta_events ;
   )
 
+let get_midi_track_events trkr id =
+  (midi_get_track trkr id).midi_events 
+
+
+
+
 let add_midi_tracks  trkr midi_tracks = (
   Array.iteri (
     fun index midi_track ->

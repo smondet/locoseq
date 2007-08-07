@@ -431,8 +431,12 @@ let b_aw_edit_midi   () = (
 
   if (tk_id = 0) then (
     aw_append_msg `ERR "You haven't selected any midi track..." ;
-  ) else (
-
+  ) else 
+    
+(*    ( (* NOTE: TEST *) GuiEditor.track_editor (get_app()) (`MIDI tk_id) ;))
+let old_fun_edit_midi () = ( let tk_id = 0 in
+*)
+  (
     let name,port,length =
       App.get_midi_track_information (get_app ()) tk_id in
     let ew = new GenGui.midi_window () in
@@ -718,8 +722,6 @@ let add_or_edit_meta (the_track: int option) = (
 )
 let b_aw_add_meta () = (
   add_or_edit_meta None ;
-  (* NOTE: TEST *)
-  (* GuiEditor.track_editor (get_app()) `NEW_META ; *)
 )
 let b_aw_edit_meta   () = (
   if (!global_tv_aw_metaview_selction <> 0) then ( 
