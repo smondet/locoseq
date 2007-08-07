@@ -1,49 +1,63 @@
-(**************************************************************************)
-(*  Copyright (c) 2007, Sebastien MONDET                                  *)
-(*                                                                        *)
-(*  Permission is hereby granted, free of charge, to any person           *)
-(*  obtaining a copy of this software and associated documentation        *)
-(*  files (the "Software"), to deal in the Software without               *)
-(*  restriction, including without limitation the rights to use,          *)
-(*  copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
-(*  copies of the Software, and to permit persons to whom the             *)
-(*  Software is furnished to do so, subject to the following              *)
-(*  conditions:                                                           *)
-(*                                                                        *)
-(*  The above copyright notice and this permission notice shall be        *)
-(*  included in all copies or substantial portions of the Software.       *)
-(*                                                                        *)
-(*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
-(*  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
-(*  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
-(*  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
-(*  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
-(*  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
-(*  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
-(*  OTHER DEALINGS IN THE SOFTWARE.                                       *)
-(**************************************************************************)
+(******************************************************************************)
+(*      Copyright (c) 2007, Sebastien MONDET                                  *)
+(*                                                                            *)
+(*      Permission is hereby granted, free of charge, to any person           *)
+(*      obtaining a copy of this software and associated documentation        *)
+(*      files (the "Software"), to deal in the Software without               *)
+(*      restriction, including without limitation the rights to use,          *)
+(*      copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
+(*      copies of the Software, and to permit persons to whom the             *)
+(*      Software is furnished to do so, subject to the following              *)
+(*      conditions:                                                           *)
+(*                                                                            *)
+(*      The above copyright notice and this permission notice shall be        *)
+(*      included in all copies or substantial portions of the Software.       *)
+(*                                                                            *)
+(*      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
+(*      EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
+(*      OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
+(*      NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
+(*      HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
+(*      WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
+(*      FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
+(*      OTHER DEALINGS IN THE SOFTWARE.                                       *)
+(******************************************************************************)
 
-module IM = InputManager ;;
 
+(**
+ Module implementing high level functionalities, and transmitting calls to the
+ tracker, the input manager, etc...
+
+ It's the {i model} from a GUI point of view (and the only one !).
+
+ @author S. Mondet
+*)
+
+
+(******************************************************************************)
+(** {3 The Container} *)
+
+(** Type container for the applicative non-GUI levels *)
 type seq_app = {
-  mutable a_sequencer : AlsaSequencer.sequencer ;
-  mutable a_tracker : Tracker.tracker ;
-  mutable a_input_mgr : InputManager.manager ;
+  mutable a_sequencer : AlsaSequencer.sequencer;
+  mutable a_tracker : Tracker.tracker;
+  mutable a_input_mgr : InputManager.manager;
 
-  mutable a_play_thread : Thread.t option ;
+  mutable a_play_thread : Thread.t option;
 
-  mutable a_songname :string ;
+  mutable a_songname :string;
 
-  mutable a_filename : string ;
-  mutable a_is_saved : bool ;
+  mutable a_filename : string;
+  mutable a_is_saved : bool;
 
-  mutable a_input_actions :
-    ( IM.input_specification * IM.action_specification ) list ;
-  mutable a_unsaved_actions : 
-    ( IM.input_specification * IM.action_specification ) list ;
-};;
+  mutable a_input_actions:
+    (InputManager.input_specification * InputManager.action_specification) list;
+  mutable a_unsaved_actions: 
+    (InputManager.input_specification * InputManager.action_specification) list;
+}
 
-let make_app  ?(visitor=fun () -> ()) () =
+(** Build the seq_app *)
+let make_app  ?(visitor=fun () -> ()) () = (
   let default_ppqn = 192 in
 
   let my_seq =
@@ -71,14 +85,16 @@ let make_app  ?(visitor=fun () -> ()) () =
     a_filename = "" ;
     a_is_saved = true ;(* Nothing has been done neither ! *)
   };
-;;
+)
 
 (******************************************************************************)
 (* APPLICATION FUNCTIONS: *)
 (******************************************************************************)
 
 (******************************************************************************)
-(* SONG VALUES: *)
+(** {3 Song Values} *)
+
+
 let clear_song app = (
   Tracker.clear_tracker app.a_tracker ;
   app.a_input_actions <- [] ;
@@ -116,7 +132,8 @@ let set_song_name app str = (
 )
 
 (******************************************************************************)
-(* TRACK MANAGEMENT: *)
+(** {3 Track Management} *)
+
 let add_midi_file app file =
   let midi_data =  MidiFile.parse_smf file in
 
@@ -188,10 +205,11 @@ let remove_meta_track app id = (
 )
 
 let get_meta_track app id = Tracker.get_meta_track_actions app.a_tracker id 
+let get_midi_track app id = Tracker.get_midi_track_events app.a_tracker id 
 
 
 (******************************************************************************)
-(* INPUT MANAGEMENT: *)
+(** {3 Input Management} *)
 
 let add_uniq_custom_unsaved_action app cust_id action = (
   app.a_unsaved_actions <-
@@ -207,14 +225,14 @@ let basic_add_handler app hdlr = (
 )
 
 let update_input_mgr app =
-  IM.remove_all_handlers app.a_input_mgr ;
+  InputManager.remove_all_handlers app.a_input_mgr ;
   List.iter (
     fun (inp,act) ->
-      IM.add_handler app.a_input_mgr inp act ;
+      InputManager.add_handler app.a_input_mgr inp act ;
   ) app.a_input_actions ;
   List.iter (
     fun (inp,act) ->
-      IM.add_handler app.a_input_mgr inp act ;
+      InputManager.add_handler app.a_input_mgr inp act ;
   ) app.a_unsaved_actions ;
 ;;
 
@@ -254,12 +272,13 @@ let custom_event app number =
 let get_input_action_list app = app.a_input_actions
 
 (******************************************************************************)
-(* SAVE & OPEN *)
+(** {3 Save & Open} *)
 
 let get_filename app = app.a_filename
 let is_saved app = app.a_is_saved
 
-module X = Xml ;;
+module X = Xml
+
 let xml_inputmgr = "input_manager"
 let xml_handler = "handler"
 
