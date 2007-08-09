@@ -25,6 +25,6 @@ $(HTML_TARGET): $(GLOBAL_MAIN).tex $(LATEX_FILES) $(HEVEA_CONFIG)
   mv $(GLOBAL_MAIN).html $(HTML_TARGET)
 
 clean: # propagated from root directory
-  rm -f *.aux *.log *.toc *.out *.haux *.htoc *.pdf
+  rm -f *.aux *.log *.toc *.out *.haux *.htoc *.pdf $(HTML_TARGET) $(PDF_TARGET)
 
 
