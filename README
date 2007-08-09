@@ -32,11 +32,18 @@ Current developers:
 ** Requirements:
 
 For the moment, let's talk about ubuntu packages as the project is developed
-under ubntustudio. Those packages should make you download all needed
-dependencies:
+under ubntustudio. 
+
+Those packages should make you download all needed dependencies to compile the
+application:
 
   apt-get install libasound2-dev libxml-light-ocaml-dev omake ocaml-findlib \
    liblablgtk2-ocaml-dev
+
+Those packages should make you download all needed dependencies to compile the
+documentation:
+
+  apt-get install tetex-bin tetex-extra hevea
 
 ** Build:
 
