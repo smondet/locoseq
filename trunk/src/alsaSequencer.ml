@@ -1,33 +1,33 @@
-(**************************************************************************)
-(*  Copyright (c) 2007, Sebastien MONDET                                  *)
-(*                                                                        *)
-(*  Permission is hereby granted, free of charge, to any person           *)
-(*  obtaining a copy of this software and associated documentation        *)
-(*  files (the "Software"), to deal in the Software without               *)
-(*  restriction, including without limitation the rights to use,          *)
-(*  copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
-(*  copies of the Software, and to permit persons to whom the             *)
-(*  Software is furnished to do so, subject to the following              *)
-(*  conditions:                                                           *)
-(*                                                                        *)
-(*  The above copyright notice and this permission notice shall be        *)
-(*  included in all copies or substantial portions of the Software.       *)
-(*                                                                        *)
-(*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
-(*  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
-(*  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
-(*  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
-(*  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
-(*  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
-(*  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
-(*  OTHER DEALINGS IN THE SOFTWARE.                                       *)
-(**************************************************************************)
+(******************************************************************************)
+(*      Copyright (c) 2007, Sebastien MONDET                                  *)
+(*                                                                            *)
+(*      Permission is hereby granted, free of charge, to any person           *)
+(*      obtaining a copy of this software and associated documentation        *)
+(*      files (the "Software"), to deal in the Software without               *)
+(*      restriction, including without limitation the rights to use,          *)
+(*      copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
+(*      copies of the Software, and to permit persons to whom the             *)
+(*      Software is furnished to do so, subject to the following              *)
+(*      conditions:                                                           *)
+(*                                                                            *)
+(*      The above copyright notice and this permission notice shall be        *)
+(*      included in all copies or substantial portions of the Software.       *)
+(*                                                                            *)
+(*      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
+(*      EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
+(*      OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
+(*      NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
+(*      HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
+(*      WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
+(*      FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
+(*      OTHER DEALINGS IN THE SOFTWARE.                                       *)
+(******************************************************************************)
 
 
 (** 
  
-OCaml types and functions wrapping {b libasound}
-and defined in alsa_interface.c
+OCaml types and functions providing high level access to the sequencer and the
+timer of {b libasound} and defined in alsa_interface.c
 
 @author S. Mondet
 
@@ -134,11 +134,12 @@ let default_timer_info = {
   t_subdevice =  0 ;    
 }
 
+(** Get information about all "{i available}" timers *)
+external query_info: unit -> timer_info list
+= "alsatim_query_info"
 
-external query_info : unit -> timer_info list =
-  "alsatim_query_info" ;;
-
-let timer_class_to_string t_class =
+(** Utility to print the Class of a timer *)
+let timer_class_to_string t_class = (
     match t_class with
     | -1 -> "SND_TIMER_CLASS_NONE"
     | 0  -> "SND_TIMER_CLASS_SLAVE"
@@ -146,38 +147,56 @@ let timer_class_to_string t_class =
     | 2  -> "SND_TIMER_CLASS_CARD"
     | 3  -> "SND_TIMER_CLASS_PCM"
     | _  -> "UNKNOWN CLASS"
-;;
+)
  
-let timer_slave_class_to_string t_sclass =
+(** Utility to print the Slave Class of a timer *)
+let timer_slave_class_to_string t_sclass = (
     match t_sclass with
     | 0 -> "SND_TIMER_SCLASS_NONE"
     | 1 -> "SND_TIMER_SCLASS_APPLICATION"
     | 2 -> "SND_TIMER_SCLASS_SEQUENCER"
     | 3 -> "SND_TIMER_SCLASS_OSS_SEQUENCER"
     | _ -> "UNKNOWN SLAVE CLASS"
-;;
+)
 
+(** The abstract type of a timer *)
 type timer 
 
+(** Constructor of a timer *)
+external make_timer: timer_info -> timer
+= "alsatim_make_timer"
 
-external make_timer : timer_info -> timer = "alsatim_make_timer" ;;
-
+(** Status of a timer ({i a priori} playing) *)
 type timer_status = {
   resolution : int ;
   lost : int ;
   overrun : int ;
   queue : int ;
-};;
+}
 
-external get_status : timer -> timer_status = "alsatim_get_timer_status" ;;
+(** Retrieve the status of the timer *)
+external get_status: timer -> timer_status
+= "alsatim_get_timer_status"
 
-external start_timer : timer -> unit = "alsatim_start_timer" ;;
+(** Start the timer *)
+external start_timer: timer -> unit
+= "alsatim_start_timer"
 
-external wait_next_tick : timer -> timeoutms:int -> int = "alsatim_wait_next" ;;
+(** Block until next available timer tick
+@return the number of ticks read,
+if -1 there has been a time out,
+if >1 you're late ;-)
+*)
+external wait_next_tick: timer -> timeoutms:int -> int
+= "alsatim_wait_next"
 
-external stop_timer : timer -> unit = "alsatim_stop_timer" ;;
+(** Stop the timer *)
+external stop_timer: timer -> unit
+= "alsatim_stop_timer"
 
-external set_ticks : timer -> ticks:int -> unit = "alsatim_set_ticks" ;;
+(** Set the number of real ticks contained in one "user tick" *)
+external set_ticks: timer -> ticks:int -> unit
+= "alsatim_set_ticks"
 
 
 

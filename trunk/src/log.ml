@@ -23,18 +23,34 @@
 (*  OTHER DEALINGS IN THE SOFTWARE.                                       *)
 (**************************************************************************)
 
-module P = Printf ;;
+(**
+Some utilities for logging.
 
-let used_channel = ref stdout ;;
-let iam_logging = ref true ;;
+@author S.Mondet
+*)
 
-let p (form:('a, out_channel, unit ) format) =
+
+
+module P = Printf
+
+(** The channel used for logging (you can set it to a file) *)
+let used_channel = ref stdout
+
+
+(**
+The most-used debug, works like  Printf.printf (but you can choose a file for
+output)
+*)
+let p (form:('a, out_channel, unit ) format) = (
   (* let prefix = format_of_string ( *)
     (* P.sprintf "[LOG:] " ) in *)
   (* let suffix = format_of_string "%!" in *)
   P.fprintf !used_channel ( "[LOG:] " ^^ form ^^ "%!" ) 
-;;
+)
 
+(** Get a string containing date in RFC 822 format
+ (under unix, try `date -R`, under windows try wikipedia...)
+ *)
 let rfc_822_date () = (
 
   let module U = Unix in
@@ -47,9 +63,9 @@ let rfc_822_date () = (
   let mon   = st.U.tm_mon in (* : int;*)
   let year  = st.U.tm_year in (* : int;*)
   let wday  = st.U.tm_wday in (* : int;*)
-  let yday  = st.U.tm_yday in (* : int;
-  let isdst = st.U.tm_isdst in (* : bool;*)
-*)
+  let yday  = st.U.tm_yday in (* : int; *)
+  (* let isdst = st.U.tm_isdst in (* : bool;*)*)
+
   let diff = 
     if yday =(U.gmtime t).U.tm_yday then
       hour - (U.gmtime t).U.tm_hour 
