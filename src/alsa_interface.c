@@ -42,7 +42,7 @@
 /*
  * ALSA's dot H.
  *
- * Note: it is not `gcc -ansi -pedantic` compliant
+ * Note: it is the "not `gcc -ansi -pedantic` compliant" black sheep ;-)
  */
 #include <alsa/asoundlib.h>
 
@@ -205,9 +205,11 @@ alsaseq_make( value app_name, value in_names_array, value ou_names_array) {
 
   /* allocate the client's queue: */
   seq->queue_id = snd_seq_alloc_queue(seq->seq_handle);
+  exn_alsa_assert (seq->queue_id, "Error in queue allocation" ) ;
+
   /* set the output pool size: */
   /* snd_seq_set_client_pool_output(seq->seq_handle, 1024 ); */
-  /* (here we put a big size to allow many notes) */
+  /* XXX (here we don't know which size) */
 
 
   /* Get number of descriptors (generally 1): */
@@ -342,7 +344,11 @@ alsaseq_get_next_input_event(value alsa_seq){
   CAMLreturn (midi_event) ;
 }
 
-CAMLprim value alsaseq_get_input_events_list(value alsa_seq){
+/*
+ * build an ocaml list of the current pending input events
+ */
+CAMLprim value
+alsaseq_get_input_events_list(value alsa_seq){
 
   CAMLparam1 (alsa_seq) ;
   AlsaSequencer *seq = NULL ;
@@ -368,10 +374,8 @@ CAMLprim value alsaseq_get_input_events_list(value alsa_seq){
   seq = *((AlsaSequencer **)Data_custom_val(alsa_seq)) ;
 
 
-  if (snd_seq_event_input_pending (seq->seq_handle,1))
-  {
-    do
-    {
+  if (snd_seq_event_input_pending (seq->seq_handle,1)) {
+    do {
       snd_seq_event_input(seq->seq_handle, &ev);
       snd_midi_event_new( 0x08, &midi_ev );
       snd_midi_event_decode( midi_ev, buffer, 0x08, ev); 
@@ -414,20 +418,24 @@ CAMLprim value alsaseq_get_input_events_list(value alsa_seq){
         midi_events_tail = midi_new_item ;
       }
 
-    }
-    while (snd_seq_event_input_pending (seq->seq_handle,0));
-      /* printf("End while\n"); */
+    } while (snd_seq_event_input_pending (seq->seq_handle,0));
   }
-
 
   CAMLreturn (midi_events) ;
 }
 
-void alsaseq_update_tempo(AlsaSequencer *seq) {
+/*
+ * Internal "tool" function, takes the bpm and tpq from sequencer and updates 
+ * the tempo of the queue.
+ */
+void 
+alsaseq_update_tempo(AlsaSequencer *seq) {
   int tempo = 0 ;
   snd_seq_queue_tempo_t *queue_tempo;
 
   snd_seq_queue_tempo_malloc(&queue_tempo);
+  exn_assert(queue_tempo != NULL,
+      "Queue tempo allocation (alsaseq_update_tempo)");
 
   /* make tempo: (formula from miniArp.c by Matthias Nagorni) */
   tempo = (int)(6e7 / ((double)seq->bpm * (double)seq->tpq) * (double)seq->tpq);
@@ -441,7 +449,11 @@ void alsaseq_update_tempo(AlsaSequencer *seq) {
   snd_seq_queue_tempo_free(queue_tempo);
 }
 
-CAMLprim value alsaseq_set_tempo(value alsa_seq, value bpm, value tpq){
+/*
+ * Set the current tempo
+ */
+CAMLprim value 
+alsaseq_set_tempo(value alsa_seq, value bpm, value tpq){
 
   CAMLparam3 (alsa_seq, bpm, tpq) ;
   AlsaSequencer *seq = NULL ;
@@ -456,7 +468,11 @@ CAMLprim value alsaseq_set_tempo(value alsa_seq, value bpm, value tpq){
   CAMLreturn (Val_int(0)) ;
 }
 
-CAMLprim value alsaseq_get_tempo(value alsa_seq){
+/*
+ * Get a tuple containing bpm and tpq values
+ */
+CAMLprim value
+alsaseq_get_tempo(value alsa_seq){
 
   CAMLparam1 (alsa_seq) ;
   AlsaSequencer *seq = NULL ;
@@ -473,7 +489,11 @@ CAMLprim value alsaseq_get_tempo(value alsa_seq){
 }
 
 
-CAMLprim value alsaseq_start_queue(value alsa_seq){
+/*
+ * Start the queue (ready to play)
+ */
+CAMLprim value
+alsaseq_start_queue(value alsa_seq){
 
   CAMLparam1 (alsa_seq) ;
   AlsaSequencer *seq = NULL ;
@@ -484,7 +504,8 @@ CAMLprim value alsaseq_start_queue(value alsa_seq){
   alsaseq_update_tempo(seq) ;
 
   /* Start the queue: */
-  snd_seq_start_queue( seq->seq_handle, seq->queue_id, NULL);
+  ret = snd_seq_start_queue( seq->seq_handle, seq->queue_id, NULL);
+  exn_alsa_assert(ret , "snd_seq_start_queue");
   /* drains all pending events on the output buffer: */
   ret = snd_seq_drain_output(seq->seq_handle);
   exn_alsa_assert(ret , "snd_seq_drain_output");
@@ -495,7 +516,8 @@ CAMLprim value alsaseq_start_queue(value alsa_seq){
 /* 
  * get current time in the queue 
  */
-CAMLprim value alsaseq_get_tick(value alsa_seq){
+CAMLprim value
+alsaseq_get_tick(value alsa_seq){
 
   CAMLparam1 (alsa_seq) ;
   AlsaSequencer *seq = NULL ;
@@ -507,6 +529,7 @@ CAMLprim value alsaseq_get_tick(value alsa_seq){
 
   /* Get the tick: */
   snd_seq_queue_status_malloc(&status);
+  exn_assert(status != NULL, "snd_seq_queue_status_malloc");
   snd_seq_get_queue_status(seq->seq_handle, seq->queue_id, status);
   current_tick = snd_seq_queue_status_get_tick_time(status);
   snd_seq_queue_status_free(status);
@@ -515,6 +538,9 @@ CAMLprim value alsaseq_get_tick(value alsa_seq){
 }
 
 
+/*
+ * Schedule a given event on the queue
+ */
 CAMLprim value
 alsaseq_put_event_in_queue(value alsa_seq, value port_nb, value midi_event){
 
@@ -568,7 +594,8 @@ alsaseq_put_event_in_queue(value alsa_seq, value port_nb, value midi_event){
  * Clear the whole queue:
  */
 
-CAMLprim value alsaseq_clear_queue(value alsa_seq){
+CAMLprim value
+alsaseq_clear_queue(value alsa_seq){
 
   CAMLparam1 (alsa_seq) ;
   AlsaSequencer *seq = NULL ;
@@ -590,10 +617,10 @@ CAMLprim value alsaseq_clear_queue(value alsa_seq){
 
 
 /*
- *
- * snd_seq_stop_queue(seq, q, ev) */
-
-CAMLprim value alsaseq_stop_queue(value alsa_seq){
+ * Stop the queue.
+ */
+CAMLprim value
+alsaseq_stop_queue(value alsa_seq){
 
   CAMLparam1 (alsa_seq) ;
   AlsaSequencer *seq = NULL ;
@@ -610,7 +637,11 @@ CAMLprim value alsaseq_stop_queue(value alsa_seq){
   CAMLreturn (Val_int(0)) ;
 }
 
-CAMLprim value alsaseq_get_queue_timer(value alsa_seq){
+/*
+ * Get a timer_info structure describing the timer of the queue
+ */
+CAMLprim value
+alsaseq_get_queue_timer(value alsa_seq){
 
   CAMLparam1 (alsa_seq) ;
   CAMLlocal1(timer_info);
@@ -623,6 +654,8 @@ CAMLprim value alsaseq_get_queue_timer(value alsa_seq){
   seq = *((AlsaSequencer **)Data_custom_val(alsa_seq)) ;
 
   snd_seq_queue_timer_malloc (&queue_timer);
+  exn_assert(queue_timer != NULL, "snd_seq_queue_timer_malloc");
+
   snd_seq_get_queue_timer (seq->seq_handle, seq->queue_id, queue_timer);
 
   /* We need the cast because the function returns a (const snd_timer_id_t*) */
@@ -651,13 +684,13 @@ CAMLprim value alsaseq_get_queue_timer(value alsa_seq){
  *
  * ALSA TIMER INTERFACE
  *
- * */
+ */
+
 typedef struct {
 
-  snd_timer_t * handle;
-  struct pollfd * fds;
-  int fd_count ;
-
+  snd_timer_t * handle; /* "The" timer */
+  struct pollfd * fds; /* the file descriptors to poll */
+  int fd_count ;       /* their number */
 
 } AlsaTimer ;
 
@@ -670,13 +703,11 @@ void destroy_alsa_timer(value ml_timer){
 
   snd_timer_close(at->handle);
   free(at->fds);
-
-  fprintf(stderr, "[C] AlsaTimer DESTROYED by Garbage Collector\n") ;
-
+  /* fprintf(stderr, "[C] AlsaTimer DESTROYED by Garbage Collector\n") ; */
 }
 
 static struct custom_operations alsa_timer_custom_ops = {
-  "seb.mondet.alsa_timer",
+  "locoseq.alsa_timer",
   /* custom_finalize_default,  */
   destroy_alsa_timer, 
   custom_compare_default,
@@ -687,8 +718,12 @@ static struct custom_operations alsa_timer_custom_ops = {
 
 
 
-CAMLprim value alsatim_query_info(value unit)
-{
+/*
+ * Get information about available timers
+ */
+CAMLprim value
+alsatim_query_info(value unit) {
+
   CAMLparam1 (unit);
   CAMLlocal3(timer_info, ti_list, ti_item) ;
 
@@ -697,6 +732,7 @@ CAMLprim value alsatim_query_info(value unit)
   snd_timer_id_t *id = NULL;
 
   snd_timer_id_alloca(&id);
+  exn_assert(id != NULL, "snd_timer_id_alloca");
 
   ti_list = Val_int(0) ; /* start with list:[] */
 
@@ -740,8 +776,12 @@ CAMLprim value alsatim_query_info(value unit)
 }
 
 
-CAMLprim value alsatim_make_timer(value ml_info)
-{
+/*
+ * Build a timer from an "info" description
+ */
+CAMLprim value
+alsatim_make_timer(value ml_info) {
+
   CAMLparam1 (ml_info);
   int count, err = 0;
   char timername[64];
@@ -771,20 +811,20 @@ CAMLprim value alsatim_make_timer(value ml_info)
       , Int_val(Field(ml_info, 4))
       );
 
-  printf("[C] Open timer: %s\n", timername);
+  /* printf("[C] Open timer: %s\n", timername); */
   err = snd_timer_open(&handle, timername, SND_TIMER_OPEN_NONBLOCK);
   exn_alsa_assert(err, "timer open error") ;
 
   err = snd_timer_info(handle, info);
   exn_alsa_assert(err, "timer info error") ;
-
+/*
   printf("[C]Timer info:\n");
   printf(" |   slave = %s\n", snd_timer_info_is_slave(info) ? "yes" : "no");
   printf(" |   card = %i\n", snd_timer_info_get_card(info));
   printf(" |   id = '%s'\n", snd_timer_info_get_id(info));
   printf(" |   name = '%s'\n", snd_timer_info_get_name(info));
   printf(" |   average resolution = %li\n", snd_timer_info_get_resolution(info));
-
+*/
   /* To have an auto-restart timer: */
   err = snd_timer_params_set_auto_start(params, 1);
   exn_alsa_assert(err, "timer snd_timer_params_set_auto_start error") ;
@@ -819,8 +859,12 @@ CAMLprim value alsatim_make_timer(value ml_info)
 
 }
 
-CAMLprim value alsatim_get_timer_status(value ml_timer)
-{
+/*
+ * Get the snd_timer_status of the timer
+ */
+CAMLprim value
+alsatim_get_timer_status(value ml_timer) {
+
   CAMLparam1 (ml_timer);
   CAMLlocal1(ml_info) ;
   int err;
@@ -842,8 +886,11 @@ CAMLprim value alsatim_get_timer_status(value ml_timer)
   CAMLreturn (ml_info) ;
 }
 
-CAMLprim value alsatim_start_timer(value ml_timer)
-{
+/*
+ * Launch the timer
+ */
+CAMLprim value
+alsatim_start_timer(value ml_timer) {
   CAMLparam1 (ml_timer);
   int err = 0;
 
@@ -853,8 +900,17 @@ CAMLprim value alsatim_start_timer(value ml_timer)
   CAMLreturn (Val_int(0)) ; /* unit */
 }
 
-CAMLprim value alsatim_wait_next(value ml_timer, value timeout)
-{
+/*
+ * Block until the next timer tick
+ * and return the number of read ticks
+ * if -1 -> poll has timed out
+ * if 0  -> ???? (never observed)
+ * if  >1  -> YOU ARE LATE ;-D
+ *
+ */
+CAMLprim value
+alsatim_wait_next(value ml_timer, value timeout) {
+
   CAMLparam2(ml_timer,timeout);
   CAMLlocal1(ret);
   int count, err;
@@ -876,13 +932,17 @@ CAMLprim value alsatim_wait_next(value ml_timer, value timeout)
       /* ticks = tr.ticks ; */
     }
   }
-  /* printf("fds:%d, %d, %d\n", timer->fds[0].fd, timer->fds[0].events, timer->fds[0].revents  ); */
+  /* printf("fds:%d, %d, %d\n",
+     timer->fds[0].fd, timer->fds[0].events, timer->fds[0].revents  ); */
 
   CAMLreturn(Val_int(count));
 }
 
-CAMLprim value alsatim_stop_timer(value ml_timer)
-{
+/*
+ * Stop the timer
+ */ 
+CAMLprim value
+alsatim_stop_timer(value ml_timer) {
   CAMLparam1 (ml_timer);
 
   exn_alsa_assert( snd_timer_stop(GET_TIMER(ml_timer)->handle), "timer stop error");
@@ -890,8 +950,13 @@ CAMLprim value alsatim_stop_timer(value ml_timer)
   CAMLreturn (Val_int(0)) ;
 }
 
-CAMLprim value alsatim_set_ticks(value ml_timer, value ticks)
-{
+/*
+ * Set the number of real ticks (cf timer resolution) that we waant for 1 tick
+ * of our sequencing timer
+ */
+CAMLprim value
+alsatim_set_ticks(value ml_timer, value ticks) {
+
   CAMLparam2(ml_timer,ticks);
 
   int err = 0;
@@ -899,6 +964,7 @@ CAMLprim value alsatim_set_ticks(value ml_timer, value ticks)
   snd_timer_params_t *params;
 
   snd_timer_params_alloca(&params);
+  exn_assert(params != NULL, "snd_timer_params_alloca");
 
   /* To have an auto-restart timer: */
   err = snd_timer_params_set_auto_start(params, 1);
