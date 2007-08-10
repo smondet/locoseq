@@ -13,8 +13,8 @@
 
 
 
- * port these notes on the project wiki
- * implement the quasi-generic track editor
+ * *done* port this to the project's wiki
+ * *started* implement the quasi-generic track editor
  * use explicit variable names in code (no btn, sngnam, etc...)
  * document code:
   * *started*  in the .ml's
@@ -68,7 +68,6 @@
  * s/gtk/whatever/g
 
 *-> 2.0*
-
 
 
 
