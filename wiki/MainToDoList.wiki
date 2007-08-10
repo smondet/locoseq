@@ -1,4 +1,4 @@
-# a text based todo list
+# the todo list
 
 
 
@@ -15,24 +15,24 @@
 
  * *done* port this to the project's wiki
  * *started* implement the quasi-generic track editor
- * use explicit variable names in code (no btn, sngnam, etc...)
  * document code:
-  * *started*  in the .ml's
-  *  maybe port to mli's ?
-  * *done* a CSS for code documentation
+   * use explicit variable names in code (no btn, sngnam, etc...)
+   * *started*  in the .ml's
+   *  maybe port to mli's ?
+   * *done* a CSS for code documentation
  * make up documentation framework
-  * *done* OMakefile for pdflatex and htmlByHevea
-  * *done* \filename
-  * *done* \ShellcmdWithResult (but cannot use verbatim, and fancyvrb seems incompatible with hevea)
-  * \OptionDescr
-  * *done* \SourceCodeOCaml -> packge listing
-  * *done* \SourceCodeC -> idem
+   * *done* OMakefile for pdflatex and htmlByHevea
+   * *done* \filename
+   * *done* \ShellcmdWithResult (but cannot use verbatim, and fancyvrb seems incompatible with hevea)
+   * \OptionDescr
+   * *done* \SourceCodeOCaml -> packge listing
+   * *done* \SourceCodeC -> idem
  * *done* re-do the README without txt2tags
  * disable "stop" action in InputMgr
  * 'main' with options
-  * the file to load
-  * alsa client name
-  * see licence
+   * the file to load
+   * alsa client name
+   * see licence
 
 *-> 0.1*
 
@@ -68,6 +68,5 @@
  * s/gtk/whatever/g
 
 *-> 2.0*
-
 
 
