@@ -18,7 +18,7 @@
  * document code:
    * use explicit variable names in code (no btn, sngnam, etc...)
    * *started*  in the .ml's
-   *  maybe port to mli's ?
+   *  maybe create mli's ?
    * *done* a CSS for code documentation
  * make up documentation framework
    * *done* OMakefile for pdflatex and htmlByHevea
@@ -68,5 +68,6 @@
  * s/gtk/whatever/g
 
 *-> 2.0*
+
 
 
