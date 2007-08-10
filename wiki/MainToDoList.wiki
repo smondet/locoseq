@@ -1,6 +1,3 @@
-# the todo list
-
-
 
 === Bugs: ===
 
@@ -68,6 +65,5 @@
  * s/gtk/whatever/g
 
 *-> 2.0*
-
 
 
