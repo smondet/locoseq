@@ -30,10 +30,10 @@
  *)
 
 
-module App = SeqApp ;;
-module S = StringServer ;;
+module App = SeqApp
+module S = StringServer
 
-(** {3 Internal utilities} *)
+(** {3 Internal GUI utilities} *)
 
 (** append a label to a box *)
 let util_append_label text (box:GPack.box) = (
@@ -42,6 +42,8 @@ let util_append_label text (box:GPack.box) = (
     ~packing:(box#pack ~expand:false ~fill:false ~padding:0) () in
   ()
 )
+
+(** Append a vertical separator to a box *)
 let util_append_vertsepar (box:GPack.box) = (
   let sep =
     GMisc.separator `VERTICAL
@@ -50,6 +52,8 @@ let util_append_vertsepar (box:GPack.box) = (
   sep#misc#set_size_request ~width:30 ();
   ()
 )
+
+(** Append an horizontal separator to a box *)
 let util_append_horzsepar (box:GPack.box) = (
   let sep =
     GMisc.separator `HORIZONTAL
@@ -77,18 +81,27 @@ let util_int_spin_button min max box = (
   GEdit.spin_button ~adjustment:adj ~packing:(box#add) ()
 )
 
+(** {3 The model} *)
+
+(** A {i minimalistic} variant to optimize matching *)
+type track_type = MIDI_TRACK | META_TRACK
+
 (** An {i ugly} mapping structure that encloses both midi and meta tracks for
  the editor  *)
 type track_values = {
-  mutable tv_type: string;
+  mutable tv_type : track_type;
+  mutable tv_type_str: string;
   mutable tv_name: string;
   mutable tv_length_b: int;
   mutable tv_length_q: int;
   mutable tv_length_t: int;
+  mutable tv_pqn : int ;
   mutable tv_port: int;
   mutable tv_midievs: Midi.midi_event list;
   mutable tv_metaevs: Tracker.meta_action_spec list;
 }
+
+(** [track_values] constructor *)
 let util_get_track_values app tk_ref = (
   match tk_ref with
   | `MIDI tk -> 
@@ -97,11 +110,13 @@ let util_get_track_values app tk_ref = (
       let _,p = App.get_bpm_ppqn app in
       let b,q,t = S.unitize_length_tuple length p in
       {
-        tv_type = "MIDI";
+        tv_type = MIDI_TRACK;
+        tv_type_str = "MIDI";
         tv_name = name; 
         tv_length_b = b; 
         tv_length_q = q; 
         tv_length_t = t; 
+        tv_pqn = p ;
         tv_port = port;
         tv_midievs = App.get_midi_track app tk ;
         tv_metaevs = [];
@@ -111,24 +126,189 @@ let util_get_track_values app tk_ref = (
       let _,p = App.get_bpm_ppqn app in
       let b,q,t = S.unitize_length_tuple length p in
       {
-        tv_type = "META";
+        tv_type = META_TRACK;
+        tv_type_str = "META";
         tv_name = name; 
         tv_length_b = b; 
         tv_length_q = q; 
         tv_length_t = t; 
+        tv_pqn = p ;
         tv_port = 0;
         tv_midievs = [];
         tv_metaevs = App.get_meta_track app tk ;
       }
 )
 
+let util_midi_event_to_string midi_ev = (
+  let cmd = Midi.midi_cmd_of_event midi_ev in
+  Midi.midi_cmd_to_string cmd
+)
+
+(******************************************************************************)
+(** {3 The event editor frame} *)
+
+
+(** The object *)
+type event_frame = {
+  mutable ef_model: track_values;
+  mutable ef_area: GMisc.drawing_area;
+  mutable ef_draw: GDraw.drawable;
+
+  mutable ef_grid_begin_x: int;
+  mutable ef_h: int;
+  mutable ef_w: int;
+  mutable ef_zoom: int;
+}
+
+let (global_bg_color:GDraw.color ref) = ref (`NAME "#4A00DD")
+let (global_grid_color:GDraw.color ref) = ref (`NAME "#E8B500")
+let global_text_color = ref (`NAME "#00C444")
+(* Forcing type is needed only if the global is not used *)
+
+let global_separ_width = ref 3
+let global_horiz_lines_width = ref 2
+
+let ef_update_size ef = (
+  (* we add some pixels to have an elegant drawing... *)
+  ef.ef_area#set_size ~width:(ef.ef_w+2) ~height:(ef.ef_h+2);
+)
+
+let ef_make_layout ef str = (
+  let lo = 
+    Pango.Layout.create ef.ef_area#misc#pango_context#as_context in
+  Pango.Layout.set_text lo str;
+  lo
+)
+let ef_set_font ef  str = (
+  let font = 
+    Pango.Font.from_string str in
+  let ctx =
+    ef.ef_area#misc#pango_context#as_context in
+  Pango.Context.set_font_description ctx font;
+)
+let ef_event_number ef = (
+  match ef.ef_model.tv_type with
+  | META_TRACK -> List.length ef.ef_model.tv_metaevs
+  | MIDI_TRACK -> List.length ef.ef_model.tv_midievs
+)
+
+let ef_draw_background ef = (
+
+
+  (* The Width *)
+  let b,q,t =
+    ef.ef_model.tv_length_b, ef.ef_model.tv_length_q, ef.ef_model.tv_length_t in
+  let p = ef.ef_model.tv_pqn in
+  let pixel_length = ef.ef_zoom * (b * 4 * p + q * p + t) in
+  ef.ef_w <- ef.ef_grid_begin_x + pixel_length;
+
+  (* The Height *)
+  let dummy_layout = ef_make_layout ef "Chouniard !!!" in
+  let _, ly = Pango.Layout.get_pixel_size dummy_layout in
+  let ev_nb = ef_event_number ef in
+  ef.ef_h <- 1 + (ly * ev_nb) + 1;
+
+  ef_update_size ef ;
+
+
+  ef.ef_draw#set_foreground !global_bg_color;
+  ef.ef_draw#rectangle ~x:0 ~y:0
+  ~width:ef.ef_w ~height:ef.ef_h ~filled:true ();
+  ef.ef_draw#set_foreground !global_grid_color;
+  ef.ef_draw#rectangle ~x:0 ~y:0
+  ~width:ef.ef_w ~height:ef.ef_h ~filled:false ();
+
+  (* The vertical separator: *)
+  ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x - !global_separ_width) ~y:0
+  ~width:!global_separ_width ~height:ef.ef_h ~filled:true ();
+
+  (* Horizontal lines: *)
+  for i = 1 to ev_nb do
+    ef.ef_draw#rectangle ~x:0 ~y:( 1 + (i * ly) )
+    ~width:ef.ef_w ~height:!global_horiz_lines_width ~filled:true ();
+  done;
+
+)
+
+
+let ef_redraw ef _ = (
+  ef_draw_background ef;
+  ef.ef_draw#set_foreground !global_text_color;
+  let _ = 
+    match ef.ef_model.tv_type with
+    | META_TRACK -> ()
+    | MIDI_TRACK -> (
+      let cpt = ref 0 in
+      List.iter (
+        fun ev ->
+          let str = util_midi_event_to_string ev in
+          let lo = ef_make_layout ef str in
+          let l_x,l_y = Pango.Layout.get_pixel_size lo in
+          let cur_y = 2 + (!cpt * l_y) in
+          ef.ef_draw#put_layout ~x:10 ~y:cur_y lo ;
+          (* ef.ef_draw#rectangle ~x:ef.ef_grid_begin_x ~y:(cur_y + 1) *)
+          (* ~width:5 ~height:(l_y - 2) ~filled:true (); *)
+          incr cpt;
+      ) ef.ef_model.tv_midievs ;
+    )
+  in
+  false
+)
+
+let ef_on_mouse ef x y = (
+  Log.p "evb is called (%d,%d) !!\n" x y ;
+)
+
+let ef_cmd_redraw ef = (
+  GtkBase.Widget.queue_draw ef.ef_area#as_widget ;
+)
+
+let ef_make (box:GPack.box) values = (
+
+  let scrolled_window = GBin.scrolled_window ~border_width:10
+  ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC ~packing:box#add () in
+  let event_box =
+    GBin.event_box ~packing:scrolled_window#add_with_viewport () in
+  let draw_area = GMisc.drawing_area
+  (* ~width:600 ~height:480 *)
+  ~packing:event_box#add ()
+  in
+
+  let w = draw_area#misc#realize (); draw_area#misc#window in
+  let drawing = new GDraw.drawable w in 
+
+  let the_event_frame = {
+    ef_model = values;
+    ef_area = draw_area;
+    ef_draw = drawing;
+    ef_grid_begin_x = 200;
+    ef_zoom = 1;
+    ef_h = 0;
+    ef_w = 0;
+  } in
+
+  ef_set_font the_event_frame "Monospace 6";
+
+  ignore(draw_area#event#connect#expose ~callback:(ef_redraw the_event_frame));
+  ignore(event_box#event#connect#button_press ~callback:(
+    fun ev ->
+      let x = int_of_float (GdkEvent.Button.x ev) in
+    	let y = int_of_float (GdkEvent.Button.y ev) in
+      ef_on_mouse the_event_frame x y ;
+      true
+  ));
+
+)
+
+(******************************************************************************)
+(** {3 The "public" constructor} *)
+
 (** Launch the editor *)
-let track_editor
-app (to_edit:[`MIDI of int|`META of int]) = (
+let track_editor app (to_edit:[`MIDI of int|`META of int]) = (
 
   let tk_values = util_get_track_values app to_edit in
 
-  let te = GWindow.window ~title:(tk_values.tv_type ^ " Track Editor") () in
+  let te = GWindow.window ~title:(tk_values.tv_type_str ^ " Track Editor") () in
 
   ignore(te#connect#destroy ~callback:te#destroy);
 
@@ -228,65 +408,7 @@ app (to_edit:[`MIDI of int|`META of int]) = (
 
   util_append_horzsepar main_vbox ;
 
-  let scrolled_window = GBin.scrolled_window ~border_width:10
-  ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC ~packing:main_vbox#add () in
-  let event_box =
-    GBin.event_box ~packing:scrolled_window#add_with_viewport () in
-  let draw_area = GMisc.drawing_area
-  (* ~width:600 ~height:480 *)
-  ~packing:event_box#add ()
-  in
-
-  let w = draw_area#misc#realize (); draw_area#misc#window in
-  let drawing = new GDraw.drawable w in 
-  let static_thing = ref (165,165) in
-  let redraw _ =
-    drawing#polygon ~filled:true
-    [ 10,100; 35,35; 100,10; 165,35; 190,100;
-    !static_thing ; 100,190; 35,165; 10,100 ];
-    let _ = 
-      match to_edit with
-      | `META tk -> ()
-      | `MIDI tk -> (
-        let cpt = ref 0 in
-        List.iter (
-          fun ev ->
-            let cmd = Midi.midi_cmd_of_event ev in
-            let str = Midi.midi_cmd_to_string cmd in
-            (* Log.p "font: %s\n" ; *)
-            let font = 
-              Pango.Font.from_string "Monospace 6" in
-            let ctx =
-              draw_area#misc#pango_context#as_context in
-            Pango.Context.set_font_description ctx font;
-            let lo = 
-              Pango.Layout.create draw_area#misc#pango_context#as_context in
-            Pango.Layout.set_text lo str;
-            drawing#put_layout ~x:10 ~y:(!cpt * 10) lo ;
-            incr cpt;
-
-
-        ) tk_values.tv_midievs ;
-
-      )
-    in
-
-    false
-  in
-  ignore(draw_area#event#connect#expose ~callback:redraw);
-  draw_area#set_size ~width:600 ~height:400 ;
-  ignore(event_box#event#connect#button_press ~callback:(
-    fun ev ->
-      Log.p "evb is called !!\n" ;
-      let x = int_of_float (GdkEvent.Button.x ev) in
-    	let y = int_of_float (GdkEvent.Button.y ev) in
-      static_thing := (x,y) ;      
-      Log.p "evb is called (%d,%d) !!\n" x y ;
-      GtkBase.Widget.queue_draw draw_area#as_widget ;
-      true
-  ));
-
-
+  ef_make main_vbox tk_values ;
 
   let _ = (* NOTE:
   Avoiding "not-used" warnings during development,
