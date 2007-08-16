@@ -1,27 +1,28 @@
-(**************************************************************************)
-(*  Copyright (c) 2007, Sebastien MONDET                                  *)
-(*                                                                        *)
-(*  Permission is hereby granted, free of charge, to any person           *)
-(*  obtaining a copy of this software and associated documentation        *)
-(*  files (the "Software"), to deal in the Software without               *)
-(*  restriction, including without limitation the rights to use,          *)
-(*  copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
-(*  copies of the Software, and to permit persons to whom the             *)
-(*  Software is furnished to do so, subject to the following              *)
-(*  conditions:                                                           *)
-(*                                                                        *)
-(*  The above copyright notice and this permission notice shall be        *)
-(*  included in all copies or substantial portions of the Software.       *)
-(*                                                                        *)
-(*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
-(*  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
-(*  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
-(*  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
-(*  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
-(*  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
-(*  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
-(*  OTHER DEALINGS IN THE SOFTWARE.                                       *)
-(**************************************************************************)
+(******************************************************************************)
+(*      Copyright (c) 2007, Sebastien MONDET                                  *)
+(*                                                                            *)
+(*      Permission is hereby granted, free of charge, to any person           *)
+(*      obtaining a copy of this software and associated documentation        *)
+(*      files (the "Software"), to deal in the Software without               *)
+(*      restriction, including without limitation the rights to use,          *)
+(*      copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
+(*      copies of the Software, and to permit persons to whom the             *)
+(*      Software is furnished to do so, subject to the following              *)
+(*      conditions:                                                           *)
+(*                                                                            *)
+(*      The above copyright notice and this permission notice shall be        *)
+(*      included in all copies or substantial portions of the Software.       *)
+(*                                                                            *)
+(*      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
+(*      EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
+(*      OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
+(*      NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
+(*      HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
+(*      WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
+(*      FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
+(*      OTHER DEALINGS IN THE SOFTWARE.                                       *)
+(******************************************************************************)
+
 
 (**
  Generic track editor that should work for MIDI and META events.
@@ -158,8 +159,11 @@ type event_frame = {
   mutable ef_h: int;
   mutable ef_w: int;
   mutable ef_zoom: int;
+
+  mutable ef_cut_quarters: int; (** The number of sub-quarter divisions *)
 }
 
+let global_main_font = ref "Monospace 6"
 let (global_bg_color:GDraw.color ref) = ref (`NAME "#4A00DD")
 let (global_grid_color:GDraw.color ref) = ref (`NAME "#E8B500")
 let global_text_color = ref (`NAME "#00C444")
@@ -167,6 +171,9 @@ let global_text_color = ref (`NAME "#00C444")
 
 let global_separ_width = ref 3
 let global_horiz_lines_width = ref 2
+
+let global_vert_quarter_quarter_width = ref 1
+let global_vert_quarter_width = ref 2
 
 let ef_update_size ef = (
   (* we add some pixels to have an elegant drawing... *)
@@ -191,15 +198,16 @@ let ef_event_number ef = (
   | META_TRACK -> List.length ef.ef_model.tv_metaevs
   | MIDI_TRACK -> List.length ef.ef_model.tv_midievs
 )
+let ef_ticks_to_pixels ef ticks = (ef.ef_zoom * ticks / 50 )
 
 let ef_draw_background ef = (
-
 
   (* The Width *)
   let b,q,t =
     ef.ef_model.tv_length_b, ef.ef_model.tv_length_q, ef.ef_model.tv_length_t in
   let p = ef.ef_model.tv_pqn in
-  let pixel_length = ef.ef_zoom * (b * 4 * p + q * p + t) in
+  let ticks_length = (b * 4 * p + q * p + t) in
+  let pixel_length = ef_ticks_to_pixels ef ticks_length in
   ef.ef_w <- ef.ef_grid_begin_x + pixel_length;
 
   (* The Height *)
@@ -209,7 +217,6 @@ let ef_draw_background ef = (
   ef.ef_h <- 1 + (ly * ev_nb) + 1;
 
   ef_update_size ef ;
-
 
   ef.ef_draw#set_foreground !global_bg_color;
   ef.ef_draw#rectangle ~x:0 ~y:0
@@ -226,6 +233,24 @@ let ef_draw_background ef = (
   for i = 1 to ev_nb do
     ef.ef_draw#rectangle ~x:0 ~y:( 1 + (i * ly) )
     ~width:ef.ef_w ~height:!global_horiz_lines_width ~filled:true ();
+  done;
+
+
+  (* Vertical lines: *)
+  for i = 0 to ticks_length do
+    if ( i mod p ) = 0 then (
+      let x = ef_ticks_to_pixels ef i in
+      ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x + x) ~y:0
+      ~width:!global_vert_quarter_width
+      ~height:ef.ef_h ~filled:true ();
+    ) else (
+      if ( i mod (p / ef.ef_cut_quarters) ) = 0 then (
+        let x = ef_ticks_to_pixels ef i in
+        ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x + x) ~y:0
+        ~width:!global_vert_quarter_quarter_width
+        ~height:ef.ef_h ~filled:true ();
+      )
+    )
   done;
 
 )
@@ -252,7 +277,9 @@ let ef_redraw ef _ = (
       ) ef.ef_model.tv_midievs ;
     )
   in
-  false
+
+  Log.p "Redrawed !!\n" ;
+  true
 )
 
 let ef_on_mouse ef x y = (
@@ -285,11 +312,16 @@ let ef_make (box:GPack.box) values = (
     ef_zoom = 1;
     ef_h = 0;
     ef_w = 0;
+    ef_cut_quarters = 8;
   } in
 
-  ef_set_font the_event_frame "Monospace 6";
+  ef_set_font the_event_frame !global_main_font;
 
+  draw_area#misc#set_can_focus false ;
+  ignore(draw_area#event#connect#focus_in  ~callback:(fun _ -> true));
+  ignore(draw_area#event#connect#focus_out ~callback:(fun _ -> true));
   ignore(draw_area#event#connect#expose ~callback:(ef_redraw the_event_frame));
+
   ignore(event_box#event#connect#button_press ~callback:(
     fun ev ->
       let x = int_of_float (GdkEvent.Button.x ev) in
@@ -298,6 +330,7 @@ let ef_make (box:GPack.box) values = (
       true
   ));
 
+  the_event_frame
 )
 
 (******************************************************************************)
@@ -408,7 +441,18 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) = (
 
   util_append_horzsepar main_vbox ;
 
-  ef_make main_vbox tk_values ;
+  let ev_frame = ef_make main_vbox tk_values in
+
+  
+
+  (* Connections: *)
+  ignore(zoom_scale#connect#value_changed ~callback:( fun () -> 
+    ev_frame.ef_zoom <- int_of_float zoom_adj#value;
+    ef_cmd_redraw ev_frame;
+  ));
+
+
+
 
   let _ = (* NOTE:
   Avoiding "not-used" warnings during development,
