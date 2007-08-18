@@ -433,7 +433,6 @@ let load_xml trkr xml = (
             let the_rev_events =
               List.rev_map (
                 fun xev ->
-                  Log.p "parsing: %s\n" (X.tag xev) ;
                   let b = ios (X.attrib xev xml_begin) in
                   let e = ios (X.attrib xev xml_end) in
                   let action = X.attrib xev xml_action in
@@ -881,16 +880,16 @@ let play on_end tr = (
     let count = Tim.wait_next_tick my_timer 1000 in
     if count <> 1 then (
       if count = -1 then
-        Log.p "At loop %d, Timer has returned -1. TIME OUT ?\n" !cpt_ticks  
+        Log.warn "At loop %d, Timer has returned -1. TIME OUT ?\n" !cpt_ticks  
       else
-        Log.p "[%d] Read %d timer events\n"  !cpt_ticks count 
+        Log.warn "[%d] Read %d timer events\n"  !cpt_ticks count 
     );
     let cur_tk = Seq.get_current_tick tr.sequencer in
 
     let ticks_to_manage = cur_tk - !previous_tick in
     if (ticks_to_manage < 0) 
     then (
-      Log.p "Cur Tk: %d   Prev Tk: %d\n"  cur_tk !previous_tick ;
+      Log.warn "Going to fail:  Cur Tk: %d   Prev Tk: %d\n" cur_tk !previous_tick ;
       failwith ( "Ticks to manage: " ^ (string_of_int ticks_to_manage) ^ "< 0");
     );
 
