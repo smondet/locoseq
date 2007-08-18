@@ -147,6 +147,7 @@ void
 exn_alsa_assert(int err_code, char *msg) {
   if (err_code < 0)  {
     char exception[1024];
+    /* (The msg can be on stack because caml_failwith will copy it) */
     fprintf(stderr, "[C][ERR] Assert Failed: %s\n", msg) ;
     fprintf(stderr, "[C][ERR] Alsa Error: %s\n", snd_strerror(err_code)) ;
     perror(         "[C][ERR] Unix Error: ");
