@@ -206,7 +206,12 @@ let main () =
             failwith "Parse What ??"
           else
             test_parse_and_print_midi_files ()
-      | "gui" -> Gui.start () ;
+      | "gui" ->
+          if argc = 2 then (
+            Gui.start () ;
+          ) else (
+            Gui.start ~open_file:Sys.argv.(2) ();
+          )
       | "inspection" -> 
           if argc = 2 then
             failwith "I need one more argument: the file to write"
