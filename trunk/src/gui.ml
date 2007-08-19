@@ -432,8 +432,8 @@ let b_aw_edit_midi   () = (
   if (tk_id = 0) then (
     aw_append_msg `ERR "You haven't selected any midi track..." ;
   ) else 
-    
-(*    ( (* NOTE: TEST *) GuiEditor.track_editor (get_app()) (`MIDI tk_id) ;))
+  (*  
+    ( (* NOTE: TEST *) GuiEditor.track_editor (get_app()) (`MIDI tk_id) ;))
 let old_fun_edit_midi () = ( let tk_id = 0 in
 *)
   (
@@ -1133,7 +1133,7 @@ let k_aw_on_key_press x = (
 )
 
 (******************************************************************************)
-let start () = (
+let start ?open_file () = (
 
   let count_calls = ref 0 in
   global_app := Some (
@@ -1147,6 +1147,12 @@ let start () = (
     ) ()
   ) ;
   let app = get_app () in
+
+  begin match open_file with
+  | Some filename -> App.load_of_file app filename;
+  | None -> ()
+  end;
+
   let mw = new GenGui.app_window () in
   global_app_window := Some mw ;
   ignore(mw#app_window#event#connect#delete ~callback:(
