@@ -431,50 +431,9 @@ let b_aw_edit_midi   () = (
 
   if (tk_id = 0) then (
     aw_append_msg `ERR "You haven't selected any midi track..." ;
-  ) else 
-  (*  
-    ( (* NOTE: TEST *) GuiEditor.track_editor (get_app()) (`MIDI tk_id) ;))
-let old_fun_edit_midi () = ( let tk_id = 0 in
-*)
-  (
-    let name,port,length =
-      App.get_midi_track_information (get_app ()) tk_id in
-    let ew = new GenGui.midi_window () in
-    ignore(ew#midi_window#connect#destroy ~callback:ew#midi_window#destroy);
-    ignore(ew#button_cancel#connect#clicked ~callback:ew#midi_window#destroy);
-
-    ew#entry_name#set_text name ;
-
-    let port_combo = 
-      GEdit.combo_box_text
-      ~strings:(Array.to_list S.out_put_ports)
-      ~add_tearoffs:false
-      (* ~active:1 *)
-      (* ~allow_empty:false ~value_in_list:true *)
-      ~packing:ew#hbox_port#add ()
-    in
-    (fst port_combo)#set_active port ;
-
-
-    let mult_combo = util_make_time_combo_box ew#hbox_length#add in
-    let _,p = App.get_bpm_ppqn (get_app()) in
-    let lgth,unity = S.unitize_length length p in
-    let cb,_ = mult_combo in
-    cb#set_active unity ;
-    ew#spinbutton_lgth#adjustment#set_value (float lgth) ;
-
-    ignore(ew#button_ok#connect#clicked ~callback:(
-      fun () ->
-        App.set_midi_track_information (get_app ()) tk_id
-        ew#entry_name#text (fst port_combo)#active (
-          (int_of_float ew#spinbutton_lgth#value) *
-          (util_time_of_combo_box mult_combo)
-        );
-        tv_aw_update_midi_view () ;
-        ew#midi_window#destroy ();
-    ));
-
-    ew#midi_window#show () ;
+  ) else ( 
+    (* NOTE: Still TEST *) 
+    GuiEditor.track_editor (get_app()) (`MIDI tk_id) tv_aw_update_midi_view;
   )
 )
 let b_aw_suppr_midi  () = (

@@ -87,9 +87,18 @@ let util_int_spin_button min max box = (
 (** A {i minimalistic} variant to optimize matching *)
 type track_type = MIDI_TRACK | META_TRACK
 
+type editable_event =
+  | EE_None
+  | EE_Midi of Midi.midi_event
+  | EE_MidiNote of (Midi.midi_event * Midi.midi_event) list
+  | EE_MetaSpec of Tracker.meta_action_spec
+
+
 (** An {i ugly} mapping structure that encloses both midi and meta tracks for
  the editor  *)
 type track_values = {
+  mutable tv_app: SeqApp.seq_app;
+  mutable tv_tk_id: int;
   mutable tv_type : track_type;
   mutable tv_type_str: string;
   mutable tv_name: string;
@@ -98,19 +107,88 @@ type track_values = {
   mutable tv_length_t: int;
   mutable tv_pqn : int ;
   mutable tv_port: int;
-  mutable tv_midievs: Midi.midi_event list;
-  mutable tv_metaevs: Tracker.meta_action_spec list;
+  mutable tv_edit_evts : editable_event array;
 }
 
+let util_make_midi_editables midi_events = (
+
+  let module HT = Hashtbl in
+
+  let note_ons  = HT.create 50 in
+  let note_offs  = HT.create 50 in
+  let note_on_keys = ref [] in
+  let add_key note = 
+    note_on_keys := note::(List.filter (fun x -> x <> note) !note_on_keys) in
+    
+
+  let other_list = ref [] in
+  let notes_list = ref [] in
+
+  List.iter (
+    fun midi_ev ->
+      match midi_ev.Midi.status with
+      | rs when ((0x80<= rs) && (rs <= 0x8F)) ->
+          HT.add note_offs midi_ev.Midi.data_1 midi_ev;
+      | rs when ((0x90<= rs) && (rs <= 0x9F)) -> 
+          HT.add note_ons midi_ev.Midi.data_1 midi_ev;
+          add_key midi_ev.Midi.data_1;
+      | _ -> other_list := (EE_Midi midi_ev)::!other_list;
+  ) midi_events;
+
+  List.iter (
+    fun x -> 
+      let for_this_note = ref [] in
+
+      let ons  = ref (
+        List.fast_sort (fun x y -> compare x.Midi.ticks y.Midi.ticks)
+        (HT.find_all note_ons x)) in
+      let ofs = ref (
+        List.fast_sort (fun x y -> compare x.Midi.ticks y.Midi.ticks)
+        (HT.find_all note_offs x)) in
+      let ons_iter = ref (List.length !ons) in
+      let ofs_iter = ref (List.length !ofs) in
+      while !ons_iter > 0 && !ofs_iter > 0 do
+        let tuple = List.hd !ons , List.hd !ofs in
+        for_this_note := tuple::!for_this_note;
+        ons := List.tl !ons;
+        ofs := List.tl !ofs;
+        decr ons_iter;
+        decr ofs_iter;
+      done;
+      notes_list :=  (EE_MidiNote !for_this_note)::!notes_list;
+      List.iter (
+        fun x ->  other_list := (EE_Midi x)::!other_list;
+      ) !ons;
+      List.iter (
+        fun x ->  other_list := (EE_Midi x)::!other_list;
+      ) !ofs;
+
+  ) !note_on_keys;
+
+  (List.append (List.fast_sort (
+    fun x y -> 
+      let get_note = function | EE_MidiNote ((mev,_)::_) -> mev.Midi.data_1
+      | _ -> failwith "not a note in note list" in
+      - (compare (get_note x) (get_note y))
+  ) !notes_list) (List.rev (!other_list)))
+)
+
 (** [track_values] constructor *)
-let util_get_track_values app tk_ref = (
+let tv_make_track_values app tk_ref = (
   match tk_ref with
   | `MIDI tk -> 
       let name,port,length =
         App.get_midi_track_information app tk in
       let _,p = App.get_bpm_ppqn app in
       let b,q,t = S.unitize_length_tuple length p in
+      let midi_events = App.get_midi_track app tk in
+      let editables_list = util_make_midi_editables midi_events in
+        (* List.rev (List.rev_map ( *)
+        (* fun midi_ev -> EE_Midi midi_ev) midi_events) in *)
+      let editables_array = Array.of_list editables_list in
       {
+        tv_app = app;
+        tv_tk_id = tk;
         tv_type = MIDI_TRACK;
         tv_type_str = "MIDI";
         tv_name = name; 
@@ -119,14 +197,19 @@ let util_get_track_values app tk_ref = (
         tv_length_t = t; 
         tv_pqn = p ;
         tv_port = port;
-        tv_midievs = App.get_midi_track app tk ;
-        tv_metaevs = [];
+        tv_edit_evts = editables_array;
       }
   | `META tk ->
       let name,length = App.get_meta_track_information app tk in
       let _,p = App.get_bpm_ppqn app in
       let b,q,t = S.unitize_length_tuple length p in
+      let meta_events = App.get_meta_track app tk in
+      let editables_list = List.rev (List.rev_map (
+        fun meta_ev -> EE_MetaSpec meta_ev) meta_events) in
+      let editables_array = Array.of_list editables_list in
       {
+        tv_app = app;
+        tv_tk_id = tk;
         tv_type = META_TRACK;
         tv_type_str = "META";
         tv_name = name; 
@@ -135,8 +218,7 @@ let util_get_track_values app tk_ref = (
         tv_length_t = t; 
         tv_pqn = p ;
         tv_port = 0;
-        tv_midievs = [];
-        tv_metaevs = App.get_meta_track app tk ;
+        tv_edit_evts = editables_array;
       }
 )
 
@@ -145,15 +227,44 @@ let util_midi_event_to_string midi_ev = (
   Midi.midi_cmd_to_string cmd
 )
 
+let tv_update_track_info tv = (
+  begin match tv.tv_type with
+  | MIDI_TRACK ->
+      App.set_midi_track_information tv.tv_app tv.tv_tk_id
+      tv.tv_name tv.tv_port 
+      ( (tv.tv_length_b * tv.tv_pqn * 4)
+      + (tv.tv_length_q * tv.tv_pqn) + tv.tv_length_t) ;
+  | META_TRACK ->
+      Log.warn "tv_update_track_info (META) NOT IMPLEMENTED\n" ;
+  end
+
+)
 (******************************************************************************)
 (** {3 The event editor frame} *)
 
+type edit_pointer_tool =
+  | EPTool_None
+  | EPTool_Write
+  | EPTool_Erase
+  | EPTool_Resize
 
-(** The object *)
+type edit_pointer_status =
+  | EPStatus_Idle
+
+type edit_pointer = {
+  mutable ep_tool: edit_pointer_tool;
+  mutable ep_status: edit_pointer_status;
+
+}
+
+
+(** The "draw" object *)
 type event_frame = {
   mutable ef_model: track_values;
-  mutable ef_area: GMisc.drawing_area;
-  mutable ef_draw: GDraw.drawable;
+  mutable ef_draw: GDraw.pixmap;
+  mutable ef_imag: GMisc.image;
+
+  mutable ef_pointer: edit_pointer; (** The pointer for edition *)
 
   mutable ef_grid_begin_x: int;
   mutable ef_h: int;
@@ -161,43 +272,50 @@ type event_frame = {
   mutable ef_zoom: int;
 
   mutable ef_cut_quarters: int; (** The number of sub-quarter divisions *)
+
+  ef_set_cursor: Gdk.Cursor.cursor_type -> unit
 }
 
+
+(** The editor font: *)
 let global_main_font = ref "Monospace 6"
-let (global_bg_color:GDraw.color ref) = ref (`NAME "#4A00DD")
-let (global_grid_color:GDraw.color ref) = ref (`NAME "#E8B500")
-let global_text_color = ref (`NAME "#00C444")
-(* Forcing type is needed only if the global is not used *)
+
+
+let make_color str = (`NAME str : GDraw.color)
+let global_bg_color   = ref (make_color "#4A00DD")
+let global_grid_color = ref (make_color "#E8B500")
+let global_text_color = ref (make_color "#B9FFB1")
+let global_text_velocity_color = ref (make_color "#D40000")
+let global_midi_event_tick_color = ref (make_color "#BB006A")
+let global_midi_event_range_color = ref (make_color "#5AFE00")
 
 let global_separ_width = ref 3
 let global_horiz_lines_width = ref 2
 
-let global_vert_quarter_quarter_width = ref 1
+let global_vert_cut_quarter_width = ref 1
 let global_vert_quarter_width = ref 2
 
 let ef_update_size ef = (
   (* we add some pixels to have an elegant drawing... *)
-  ef.ef_area#set_size ~width:(ef.ef_w+2) ~height:(ef.ef_h+2);
+  (* ef.ef_area#set_size ~width:(ef.ef_w+2) ~height:(ef.ef_h+2); *)
+  let pixmap = GDraw.pixmap ~width:(ef.ef_w+2) ~height:(ef.ef_h+2) () in
+  ef.ef_draw <- pixmap;
 )
 
 let ef_make_layout ef str = (
   let lo = 
-    Pango.Layout.create ef.ef_area#misc#pango_context#as_context in
+    Pango.Layout.create ef.ef_imag#misc#pango_context#as_context in
   Pango.Layout.set_text lo str;
   lo
 )
 let ef_set_font ef  str = (
-  let font = 
-    Pango.Font.from_string str in
-  let ctx =
-    ef.ef_area#misc#pango_context#as_context in
+  let font = Pango.Font.from_string str in
+  let ctx = ef.ef_imag#misc#pango_context#as_context in
   Pango.Context.set_font_description ctx font;
 )
-let ef_event_number ef = (
-  match ef.ef_model.tv_type with
-  | META_TRACK -> List.length ef.ef_model.tv_metaevs
-  | MIDI_TRACK -> List.length ef.ef_model.tv_midievs
-)
+
+let ef_event_number ef = ( Array.length ef.ef_model.tv_edit_evts ;)
+
 let ef_ticks_to_pixels ef ticks = (ef.ef_zoom * ticks / 50 )
 
 let ef_draw_background ef = (
@@ -214,10 +332,11 @@ let ef_draw_background ef = (
   let dummy_layout = ef_make_layout ef "Chouniard !!!" in
   let _, ly = Pango.Layout.get_pixel_size dummy_layout in
   let ev_nb = ef_event_number ef in
-  ef.ef_h <- 1 + (ly * ev_nb) + 1;
+  ef.ef_h <- 1 + (ly * ev_nb);
 
   ef_update_size ef ;
 
+  (* The background: *)
   ef.ef_draw#set_foreground !global_bg_color;
   ef.ef_draw#rectangle ~x:0 ~y:0
   ~width:ef.ef_w ~height:ef.ef_h ~filled:true ();
@@ -247,47 +366,102 @@ let ef_draw_background ef = (
       if ( i mod (p / ef.ef_cut_quarters) ) = 0 then (
         let x = ef_ticks_to_pixels ef i in
         ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x + x) ~y:0
-        ~width:!global_vert_quarter_quarter_width
+        ~width:!global_vert_cut_quarter_width
         ~height:ef.ef_h ~filled:true ();
       )
     )
   done;
-
 )
 
+let util_note_to_string note = (
+  let virtual_note = StringServer.note_names.(note mod 12) in
+  let octave = (note / 12) + 1 in
+  Printf.sprintf "NOTE: %s%d" virtual_note octave
+)
 
-let ef_redraw ef _ = (
-  ef_draw_background ef;
-  ef.ef_draw#set_foreground !global_text_color;
-  let _ = 
-    match ef.ef_model.tv_type with
-    | META_TRACK -> ()
-    | MIDI_TRACK -> (
-      let cpt = ref 0 in
+let ef_draw_event ef index event = (
+  begin match event with
+  | EE_Midi ev ->
+      let str = util_midi_event_to_string ev in
+      let lo = ef_make_layout ef str in
+      let _, l_y = Pango.Layout.get_pixel_size lo in
+      let cur_y = 2 + (index * l_y) in
+      ef.ef_draw#set_foreground !global_text_color;
+      ef.ef_draw#put_layout ~x:10 ~y:cur_y lo ;
+      
+      let x_in_grid =
+        ef.ef_grid_begin_x + 
+        (ef_ticks_to_pixels ef ev.Midi.ticks) in
+      ef.ef_draw#set_foreground !global_midi_event_tick_color;
+      ef.ef_draw#rectangle ~x:x_in_grid ~y:(cur_y + 1)
+      ~width:3 ~height:(l_y - 2) ~filled:true ();
+  | EE_MidiNote [] -> Log.p "An empty midi note...\n" ;
+  | EE_MidiNote ev_list ->
+      let ev_on, _ = List.hd ev_list in
+      let str = util_note_to_string ev_on.Midi.data_1 in
+      let lo = ef_make_layout ef str in
+      let _, l_y = Pango.Layout.get_pixel_size lo in
+      let cur_y = 2 + (index * l_y) in
+      ef.ef_draw#set_foreground !global_text_color;
+      ef.ef_draw#put_layout ~x:10 ~y:cur_y lo ;
+      
       List.iter (
-        fun ev ->
-          let str = util_midi_event_to_string ev in
-          let lo = ef_make_layout ef str in
-          let l_x,l_y = Pango.Layout.get_pixel_size lo in
-          let cur_y = 2 + (!cpt * l_y) in
-          ef.ef_draw#put_layout ~x:10 ~y:cur_y lo ;
-          (* ef.ef_draw#rectangle ~x:ef.ef_grid_begin_x ~y:(cur_y + 1) *)
-          (* ~width:5 ~height:(l_y - 2) ~filled:true (); *)
-          incr cpt;
-      ) ef.ef_model.tv_midievs ;
-    )
-  in
+        fun (ev_on , ev_off) ->
+          let x_on_in_grid =
+            ef.ef_grid_begin_x + (ef_ticks_to_pixels ef ev_on.Midi.ticks) in
+          let x_off_in_grid =
+            ef.ef_grid_begin_x + (ef_ticks_to_pixels ef ev_off.Midi.ticks) in
+          ef.ef_draw#set_foreground !global_midi_event_range_color;
+          ef.ef_draw#rectangle ~x:x_on_in_grid ~y:(cur_y + 2)
+          ~width:(x_off_in_grid - x_on_in_grid) ~height:(l_y - 3)
+          ~filled:true ();
 
-  Log.p "Redrawed !!\n" ;
-  true
+          let str = Printf.sprintf "[%d]" ev_on.Midi.data_2 in
+          ef.ef_draw#set_foreground !global_text_velocity_color;
+          ef.ef_draw#put_layout ~x:(x_on_in_grid  + 3)
+          ~y:(cur_y + 1) (ef_make_layout ef str);
+     
+      ) ev_list;
+  | _ -> Log.warn "NOT IMPLEMENTED\n" ;
+  end
 )
 
-let ef_on_mouse ef x y = (
-  Log.p "evb is called (%d,%d) !!\n" x y ;
+let ef_make_draw ef = (
+  ef_draw_background ef;
+  Array.iteri (ef_draw_event ef) ef.ef_model.tv_edit_evts;
+  ef.ef_imag#set_pixmap ef.ef_draw;
+)
+
+
+let ef_y_to_event ef y = (
+  let ev_size = (ef.ef_h - 1) / (ef_event_number ef) in y / ev_size
+)
+
+let ef_on_mouse_press ef x y = (
+  Log.p "ef_on_mouse_press is called: (%d,%d) on event: %d !!\n"
+  x y (ef_y_to_event ef y);
+)
+
+let ef_on_mouse_release ef x y = (
+  Log.p "ef_on_mouse_release is called: (%d,%d) on event: %d !!\n"
+  x y (ef_y_to_event ef y);
 )
 
 let ef_cmd_redraw ef = (
-  GtkBase.Widget.queue_draw ef.ef_area#as_widget ;
+  (* GtkBase.Widget.queue_draw ef.ef_imag#as_widget ; *)
+  ef_make_draw ef;
+)
+
+let ef_set_tool ef tool_type = (
+  let cursor_type =
+    match tool_type with
+    | EPTool_Resize -> `SB_H_DOUBLE_ARROW
+    | EPTool_None   -> `TOP_LEFT_ARROW
+    | EPTool_Write  -> `PENCIL
+    | EPTool_Erase  -> `PIRATE
+  in
+  ef.ef_pointer.ep_tool <- tool_type;
+  ef.ef_set_cursor cursor_type;
 )
 
 let ef_make (box:GPack.box) values = (
@@ -296,40 +470,56 @@ let ef_make (box:GPack.box) values = (
   ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC ~packing:box#add () in
   let event_box =
     GBin.event_box ~packing:scrolled_window#add_with_viewport () in
-  let draw_area = GMisc.drawing_area
-  (* ~width:600 ~height:480 *)
-  ~packing:event_box#add ()
-  in
 
-  let w = draw_area#misc#realize (); draw_area#misc#window in
-  let drawing = new GDraw.drawable w in 
+  let draw_area = GMisc.image ~packing:event_box#add () in 
+  draw_area#set_xpad 0;
+  draw_area#set_ypad 0;
+  draw_area#set_xalign 0.;
+  draw_area#set_yalign 0.;
+
+  let pixmap = GDraw.pixmap ~width:1 ~height:1 () in
 
   let the_event_frame = {
     ef_model = values;
-    ef_area = draw_area;
-    ef_draw = drawing;
+    (* ef_area = draw_area; *)
+    ef_imag = draw_area;
+    ef_draw = pixmap;
+    ef_pointer = {
+      ep_tool = EPTool_None;
+      ep_status = EPStatus_Idle;
+    };
     ef_grid_begin_x = 200;
     ef_zoom = 1;
     ef_h = 0;
     ef_w = 0;
     ef_cut_quarters = 8;
+
+    ef_set_cursor = (
+      fun cur_typ ->
+        let cursor = Gdk.Cursor.create cur_typ in
+        Gdk.Window.set_cursor event_box#misc#window cursor;
+    );
   } in
 
   ef_set_font the_event_frame !global_main_font;
 
-  draw_area#misc#set_can_focus false ;
-  ignore(draw_area#event#connect#focus_in  ~callback:(fun _ -> true));
-  ignore(draw_area#event#connect#focus_out ~callback:(fun _ -> true));
-  ignore(draw_area#event#connect#expose ~callback:(ef_redraw the_event_frame));
+  ef_cmd_redraw the_event_frame;
 
   ignore(event_box#event#connect#button_press ~callback:(
     fun ev ->
       let x = int_of_float (GdkEvent.Button.x ev) in
     	let y = int_of_float (GdkEvent.Button.y ev) in
-      ef_on_mouse the_event_frame x y ;
+      ef_on_mouse_press the_event_frame x y ;
       true
   ));
-
+  ignore(event_box#event#connect#button_release ~callback:(
+    fun ev ->
+      let x = int_of_float (GdkEvent.Button.x ev) in
+    	let y = int_of_float (GdkEvent.Button.y ev) in
+      ef_on_mouse_release the_event_frame x y ;
+      true
+  ));
+    
   the_event_frame
 )
 
@@ -337,9 +527,9 @@ let ef_make (box:GPack.box) values = (
 (** {3 The "public" constructor} *)
 
 (** Launch the editor *)
-let track_editor app (to_edit:[`MIDI of int|`META of int]) = (
+let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
 
-  let tk_values = util_get_track_values app to_edit in
+  let tk_values = tv_make_track_values app to_edit in
 
   let te = GWindow.window ~title:(tk_values.tv_type_str ^ " Track Editor") () in
 
@@ -377,9 +567,9 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) = (
 
   util_append_label " ticks" track_settings_hbox ;
 
-  (* The "optional" ouput port: *)
-  let port_combo = match to_edit with
-  | `MIDI _ -> (
+  (* The only MIDI ouput port: *)
+  let port_combo = match tk_values.tv_type with
+  | MIDI_TRACK -> (
     util_append_vertsepar track_settings_hbox ;
     util_append_label " Port: " track_settings_hbox ;
     let port_combo =
@@ -443,24 +633,92 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) = (
 
   let ev_frame = ef_make main_vbox tk_values in
 
-  
-
   (* Connections: *)
   ignore(zoom_scale#connect#value_changed ~callback:( fun () -> 
     ev_frame.ef_zoom <- int_of_float zoom_adj#value;
     ef_cmd_redraw ev_frame;
   ));
 
+  (* Tool/Pointer Automata: *)
+  ignore( write_toggle#connect#toggled ~callback:(fun () -> 
+    if write_toggle#active then (
+      ef_set_tool ev_frame EPTool_Write;
+      erase_toggle#set_active false;
+      resiz_toggle#set_active false;
+      Log.p "now write !\n" ;
+    ) else (
+      if (ev_frame.ef_pointer.ep_tool = EPTool_Write) then (
+        ef_set_tool ev_frame EPTool_None;
+        Log.p "now none (from write)\n" ;
+      );
+    );
+  ));
+  ignore(erase_toggle#connect#toggled ~callback:(fun () -> 
+    if erase_toggle#active then (
+      ef_set_tool ev_frame EPTool_Erase;
+      write_toggle#set_active false;
+      resiz_toggle#set_active false;
+      Log.p "now erase !\n" ;
+    ) else (
+      if (ev_frame.ef_pointer.ep_tool = EPTool_Erase) then (
+        ef_set_tool ev_frame EPTool_None;
+        Log.p "now none (from erase)\n" ;
+      );
+    );
+  ));
+  ignore(resiz_toggle#connect#toggled ~callback:(fun () -> 
+    if resiz_toggle#active then (
+      ef_set_tool ev_frame EPTool_Resize;
+      erase_toggle#set_active false;
+      write_toggle#set_active false;
+      Log.p "now resize !\n" ;
+    ) else (
+      if (ev_frame.ef_pointer.ep_tool = EPTool_Resize) then (
+        ef_set_tool ev_frame EPTool_None;
+        Log.p "now none (from resize)\n" ;
+      );
+    );
+  ));
 
 
+  (* Set the name (directly): *)
+  ignore(name_entry#connect#changed ~callback:( fun () ->
+    Log.p "Name changed: %s\n" name_entry#text;
+    tk_values.tv_name <- name_entry#text;
+    tv_update_track_info tk_values; change_callback ();
+  ));
+  (* Set the length: *)
+  ignore(length_b_spin#connect#changed ~callback:(fun () ->
+    tk_values.tv_length_b <- int_of_float length_b_spin#adjustment#value;
+    tv_update_track_info tk_values; change_callback ();
+  ));
+  ignore(length_q_spin#connect#changed ~callback:(fun () ->
+    tk_values.tv_length_q <- int_of_float length_q_spin#adjustment#value;
+    tv_update_track_info tk_values; change_callback ();
+  ));
+  ignore(length_t_spin#connect#changed ~callback:(fun () ->
+    tk_values.tv_length_t <- int_of_float length_t_spin#adjustment#value;
+    tv_update_track_info tk_values; change_callback ();
+  ));
+  (* Set the port (MIDI) *)
+  begin match port_combo with
+  | Some (pc, _) -> 
+      ignore( pc#connect#changed ~callback:( fun () ->
+        tk_values.tv_port <- pc#active;
+          tv_update_track_info tk_values; change_callback ();
+      ));
+  | _ -> ()
+  end;
+    
 
   let _ = (* NOTE:
   Avoiding "not-used" warnings during development,
-  allows to remark real warnings !!
+  allows to distinguish REAL warnings !!
   *)
-    add_button,zoom_scale,resiz_toggle,erase_toggle,write_toggle,port_combo,
+    add_button,port_combo,
     length_b_spin,length_t_spin,length_q_spin,name_entry
   in
+
 
   te#show ();
 )
