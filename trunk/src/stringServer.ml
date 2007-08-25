@@ -96,11 +96,6 @@ let unitize_length_tuple lgth pqn = (
 let string_of_length lgth pqn = (
   let b,q,t = unitize_length_tuple lgth pqn in
   spr "%dB:%dQ:%dT" b q t 
-  (* match n with *)
-  (* | 0 -> spr "%dT" l *)
-  (* | 1 -> spr "%dQ" l *)
-  (* | 2 -> spr "%dB" l *)
-  (* | _ -> spr "%d_" l *)
 )
 (* if (lgth mod pqn) = 0 then ( *)
 (* (string_of_int (lgth / pqn)) ^ "Q") else ( (string_of_int lgth) ^ "T")  *)
@@ -290,6 +285,11 @@ let arg_spec_of_string str i =
   | _ -> failwith "Unrecognizable arg_spec string"
 
 
+let note_names = [|
+  "C"; "C#"; "D"; "D#"; 
+  "E"; "F"; "F#"; "G";
+  "G#"; "A"; "A#"; "B"
+|]
 
 
 
