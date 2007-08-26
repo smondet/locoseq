@@ -82,6 +82,28 @@ let util_int_spin_button min max box = (
   GEdit.spin_button ~adjustment:adj ~packing:(box#add) ()
 )
 
+(******************************************************************************)
+(** {3 More generic utilities} *)
+
+let util_note_octave_of_event ev = (
+  ev.Midi.data_1 mod 12 , (ev.Midi.data_1 / 12) + 1
+)
+let util_note_of_val_octave value octave = (octave - 1) * 12 + value
+
+let util_note_to_string note = (
+  let value,octave = util_note_octave_of_event note in
+  let virtual_note = StringServer.note_names.(value) in
+  let chan = note.Midi.channel in
+  Printf.sprintf "NOTE: %s%d -> %d" virtual_note octave chan
+)
+
+let util_midi_event_to_string midi_ev = (
+  let cmd = Midi.midi_cmd_of_event midi_ev in
+  let chan = midi_ev.Midi.channel in
+  Printf.sprintf "%s -> %d" (Midi.midi_cmd_to_string cmd) chan
+)
+
+(******************************************************************************)
 (** {3 The model} *)
 
 (** A {i minimalistic} variant to optimize matching *)
@@ -238,11 +260,6 @@ let tv_rebuild_editables tv = (
   end;
 )
 
-let util_midi_event_to_string midi_ev = (
-  let cmd = Midi.midi_cmd_of_event midi_ev in
-  Midi.midi_cmd_to_string cmd
-)
-
 let tv_update_track_info tv = (
   begin match tv.tv_type with
   | MIDI_TRACK ->
@@ -391,18 +408,6 @@ let ef_draw_background ef = (
       )
     )
   done;
-)
-
-let util_note_octave_of_event ev = (
-  ev.Midi.data_1 mod 12 , (ev.Midi.data_1 / 12) + 1
-)
-let util_note_of_val_octave value octave = (octave - 1) * 12 + value
-
-let util_note_to_string note = (
-  let value,octave = util_note_octave_of_event note in
-  let virtual_note = StringServer.note_names.(value) in
-  let chan = note.Midi.channel in
-  Printf.sprintf "NOTE: %s%d -> %d" virtual_note octave chan
 )
 
 let ef_draw_event ef index event = (
