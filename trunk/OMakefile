@@ -12,7 +12,7 @@ APP_MODS=  $(LABLGLADE_GEN_MOD)  midi log alsaSequencer tracker inputManager mid
 
 ## ALSA interface library:
 ALSAITF_NAME=alsa_interface
-ALSAITF_FLAGS= -Wall
+ALSAITF_FLAGS= -Wall -Wextra -Wpointer-arith -Wbad-function-cast
 # NOTE: could not use '-ansi -pedantic' because of asoundlib.h
 
 
