@@ -230,7 +230,7 @@ let int_of_midi_status ms = (
 )
 
 let midi_channel_strings = [
-  ""; "0"; "1"; "2"; "2"; "4"; "5"; "6"; "7"; "8"; "9";
+  ""; "0"; "1"; "2"; "3"; "4"; "5"; "6"; "7"; "8"; "9";
   "10"; "11"; "12"; "13"; "14"; "15";
 ]
 let midi_channel_of_string str =

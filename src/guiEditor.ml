@@ -222,6 +222,22 @@ let tv_make_track_values app tk_ref = (
       }
 )
 
+let tv_rebuild_editables tv = (
+  begin match tv.tv_type with
+  | MIDI_TRACK ->
+      let midi_events = App.get_midi_track tv.tv_app tv.tv_tk_id in
+      let editables_list = util_make_midi_editables midi_events in
+      let editables_array = Array.of_list editables_list in
+      tv.tv_edit_evts <- editables_array;
+  | META_TRACK ->
+      let meta_events = App.get_meta_track tv.tv_app tv.tv_tk_id in
+      let editables_list = List.rev (List.rev_map (
+        fun meta_ev -> EE_MetaSpec meta_ev) meta_events) in
+      let editables_array = Array.of_list editables_list in
+      tv.tv_edit_evts <- editables_array;
+  end;
+)
+
 let util_midi_event_to_string midi_ev = (
   let cmd = Midi.midi_cmd_of_event midi_ev in
   Midi.midi_cmd_to_string cmd
@@ -271,9 +287,12 @@ type event_frame = {
   mutable ef_w: int;
   mutable ef_zoom: int;
 
+  mutable ef_current_selection: int;
+
   mutable ef_cut_quarters: int; (** The number of sub-quarter divisions *)
 
-  ef_set_cursor: Gdk.Cursor.cursor_type -> unit
+  ef_set_cursor: Gdk.Cursor.cursor_type -> unit;
+  ef_on_selection: event_frame -> unit;
 }
 
 
@@ -285,6 +304,7 @@ let make_color str = (`NAME str : GDraw.color)
 let global_bg_color   = ref (make_color "#4A00DD")
 let global_grid_color = ref (make_color "#E8B500")
 let global_text_color = ref (make_color "#B9FFB1")
+let global_selected_text_color = ref (make_color "#FF0C00")
 let global_text_velocity_color = ref (make_color "#D40000")
 let global_midi_event_tick_color = ref (make_color "#BB006A")
 let global_midi_event_range_color = ref (make_color "#5AFE00")
@@ -373,20 +393,33 @@ let ef_draw_background ef = (
   done;
 )
 
+let util_note_octave_of_event ev = (
+  ev.Midi.data_1 mod 12 , (ev.Midi.data_1 / 12) + 1
+)
+let util_note_of_val_octave value octave = (octave - 1) * 12 + value
+
 let util_note_to_string note = (
-  let virtual_note = StringServer.note_names.(note mod 12) in
-  let octave = (note / 12) + 1 in
-  Printf.sprintf "NOTE: %s%d" virtual_note octave
+  let value,octave = util_note_octave_of_event note in
+  let virtual_note = StringServer.note_names.(value) in
+  let chan = note.Midi.channel in
+  Printf.sprintf "NOTE: %s%d -> %d" virtual_note octave chan
 )
 
 let ef_draw_event ef index event = (
+  let choose_text_color () = 
+    if (index = ef.ef_current_selection) then (
+      ef.ef_draw#set_foreground !global_selected_text_color;
+    ) else (
+      ef.ef_draw#set_foreground !global_text_color;
+    );
+  in
   begin match event with
   | EE_Midi ev ->
       let str = util_midi_event_to_string ev in
       let lo = ef_make_layout ef str in
       let _, l_y = Pango.Layout.get_pixel_size lo in
       let cur_y = 2 + (index * l_y) in
-      ef.ef_draw#set_foreground !global_text_color;
+      choose_text_color ();
       ef.ef_draw#put_layout ~x:10 ~y:cur_y lo ;
       
       let x_in_grid =
@@ -398,11 +431,11 @@ let ef_draw_event ef index event = (
   | EE_MidiNote [] -> Log.p "An empty midi note...\n" ;
   | EE_MidiNote ev_list ->
       let ev_on, _ = List.hd ev_list in
-      let str = util_note_to_string ev_on.Midi.data_1 in
+      let str = util_note_to_string ev_on in
       let lo = ef_make_layout ef str in
       let _, l_y = Pango.Layout.get_pixel_size lo in
       let cur_y = 2 + (index * l_y) in
-      ef.ef_draw#set_foreground !global_text_color;
+      choose_text_color ();
       ef.ef_draw#put_layout ~x:10 ~y:cur_y lo ;
       
       List.iter (
@@ -432,14 +465,27 @@ let ef_make_draw ef = (
   ef.ef_imag#set_pixmap ef.ef_draw;
 )
 
+let ef_cmd_redraw ef = (
+  (* GtkBase.Widget.queue_draw ef.ef_imag#as_widget ; *)
+  ef_make_draw ef;
+)
 
 let ef_y_to_event ef y = (
-  let ev_size = (ef.ef_h - 1) / (ef_event_number ef) in y / ev_size
+  let ev_size = (ef.ef_h - 1) / (ef_event_number ef) in
+  if (y / ev_size) < (ef_event_number ef) then
+    y / ev_size
+  else 
+    -1
 )
 
 let ef_on_mouse_press ef x y = (
   Log.p "ef_on_mouse_press is called: (%d,%d) on event: %d !!\n"
   x y (ef_y_to_event ef y);
+  if (ef.ef_pointer.ep_tool = EPTool_None && x < ef.ef_grid_begin_x) then (
+    ef.ef_current_selection <- (ef_y_to_event ef y);
+    ef_cmd_redraw ef;
+    ef.ef_on_selection ef;
+  );
 )
 
 let ef_on_mouse_release ef x y = (
@@ -447,10 +493,6 @@ let ef_on_mouse_release ef x y = (
   x y (ef_y_to_event ef y);
 )
 
-let ef_cmd_redraw ef = (
-  (* GtkBase.Widget.queue_draw ef.ef_imag#as_widget ; *)
-  ef_make_draw ef;
-)
 
 let ef_set_tool ef tool_type = (
   let cursor_type =
@@ -464,7 +506,7 @@ let ef_set_tool ef tool_type = (
   ef.ef_set_cursor cursor_type;
 )
 
-let ef_make (box:GPack.box) values = (
+let ef_make (box:GPack.box) values ~on_selection = (
 
   let scrolled_window = GBin.scrolled_window ~border_width:10
   ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC ~packing:box#add () in
@@ -494,11 +536,14 @@ let ef_make (box:GPack.box) values = (
     ef_w = 0;
     ef_cut_quarters = 8;
 
+    ef_current_selection = -1;
+
     ef_set_cursor = (
       fun cur_typ ->
         let cursor = Gdk.Cursor.create cur_typ in
         Gdk.Window.set_cursor event_box#misc#window cursor;
     );
+    ef_on_selection = on_selection;
   } in
 
   ef_set_font the_event_frame !global_main_font;
@@ -522,6 +567,100 @@ let ef_make (box:GPack.box) values = (
     
   the_event_frame
 )
+
+(******************************************************************************)
+(** {3 The event parameters' line} *)
+
+(** Update the GUI line where we can edit the parameters 
+(declared {i rec} because referenced in event callbacks)
+ *)
+let rec util_update_add_edit_line box ef = (
+
+  let module S = StringServer in
+
+  List.iter (fun x -> x#destroy ()) box#all_children;
+  let add_button = util_append_button "Add event" box in
+  ignore(add_button#connect#clicked ~callback:(
+    fun () -> Log.p "Clicked !\n" ;
+  ));
+  if ef.ef_current_selection >= 0 then (
+    let event = ef.ef_model.tv_edit_evts.(ef.ef_current_selection) in
+    begin match event with
+    | EE_MidiNote ((mev_b,mev_e)::t as ev_list) ->
+        Log.p "editing a note\n" ;
+        util_append_label "NOTE: " box;
+
+        
+        let note_value, octave = util_note_octave_of_event mev_b in
+        (* The note: *)
+        util_append_label "Value:" box;
+        let note_entry = 
+          GEdit.combo_box_text ~strings:(Array.to_list S.note_names)
+          ~packing:box#add () in
+        let cbo,_ = note_entry in
+        cbo#set_active note_value;
+        ignore(cbo#connect#changed ~callback:( fun () ->
+          Log.p "The active is: %d\n" cbo#active;
+          let _, octave = util_note_octave_of_event mev_b in
+          let new_note = cbo#active in
+          List.iter (
+            fun (evb, eve) ->
+              evb.Midi.data_1 <- util_note_of_val_octave new_note octave;
+              eve.Midi.data_1 <- util_note_of_val_octave new_note octave;
+          ) ev_list;
+          tv_rebuild_editables ef.ef_model;
+          ef.ef_current_selection <- -1;
+          util_update_add_edit_line box ef;
+          ef_cmd_redraw ef;
+        ));
+
+        (* The octave: *)
+        util_append_label "Octave:" box;
+        let octave_adj =
+          (* TODO: choose a good upper !! *)
+          GData.adjustment ~value:(float octave) ~lower:(1.0) ~upper:25.0
+          ~step_incr:1.0 ~page_incr:5.0 ~page_size:0.0 () in
+        let octave_spin =
+          GEdit.spin_button ~adjustment:octave_adj ~packing:(box#add) () in
+        ignore (octave_spin#connect#changed ~callback:(fun () ->
+          let note, _ = util_note_octave_of_event mev_b in
+          let new_octave = int_of_float octave_adj#value in
+          List.iter (
+            fun (evb, eve) ->
+              evb.Midi.data_1 <- util_note_of_val_octave note new_octave;
+              eve.Midi.data_1 <- util_note_of_val_octave note new_octave;
+          ) ev_list;
+          tv_rebuild_editables ef.ef_model;
+          ef.ef_current_selection <- -1;
+          util_update_add_edit_line box ef;
+          ef_cmd_redraw ef;
+        ));
+
+        (* The channel: *)
+        util_append_label "Channel:" box;
+        let chan_entry = 
+          GEdit.combo_box_text ~strings:S.midi_channel_strings
+          ~packing:box#add () in
+        let cbo,_ = chan_entry in
+        cbo#set_active (mev_b.Midi.channel + 1);
+        ignore(cbo#connect#changed ~callback:( fun () ->
+          Log.p "The active is: %d\n" cbo#active;
+          let new_chan = cbo#active - 1 in
+          List.iter (
+            fun (evb, eve) ->
+              evb.Midi.channel <- new_chan;
+              eve.Midi.channel <- new_chan;
+          ) ev_list;
+          ef_cmd_redraw ef;
+        ));
+
+    | _ ->
+        Log.warn "In util_update_add_edit_line, far from being implemented\n";
+    end;
+  );
+
+)
+
 
 (******************************************************************************)
 (** {3 The "public" constructor} *)
@@ -617,9 +756,9 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
     (* ~allow_empty:false ~value_in_list:true *)
     ~packing:(tools_hbox#pack ~expand:false ~fill:false ~padding:0) ()
   in
-  (fst snap_combo)#set_active 0 ;
+  (fst snap_combo)#set_active 0;
 
-  util_append_horzsepar main_vbox ;
+  util_append_horzsepar main_vbox;
 
   let add_edit_hbox = util_append_hbox main_vbox in
   (* The "edit" line: *)
@@ -627,11 +766,15 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
 
   (* Current edited event goes there: *)
 
-  util_append_vertsepar tools_hbox ;
+  util_append_vertsepar tools_hbox;
 
-  util_append_horzsepar main_vbox ;
+  util_append_horzsepar main_vbox;
 
-  let ev_frame = ef_make main_vbox tk_values in
+  let ev_frame =
+    ef_make main_vbox tk_values
+    ~on_selection:(util_update_add_edit_line add_edit_hbox)
+  in
+
 
   (* Connections: *)
   ignore(zoom_scale#connect#value_changed ~callback:( fun () -> 
@@ -715,9 +858,7 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   Avoiding "not-used" warnings during development,
   allows to distinguish REAL warnings !!
   *)
-    add_button,port_combo,
-    length_b_spin,length_t_spin,length_q_spin,name_entry
-  in
+    add_button in
 
 
   te#show ();
