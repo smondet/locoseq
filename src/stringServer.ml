@@ -194,27 +194,22 @@ let create_new_handler = "Create your <b>new</b> input handler"
 let edit_handler m = ("Edit the handler: <b>" ^ m ^ "</b>")
 
 
-let global_available_midi_events = [
-  "" ;
-  "NoteOFF           (0x80)" ; 
-  "NoteON            (0x90)" ; 
-  "AfterTouch        (0xA0)" ; 
-  "ControlChange     (0xB0)" ; 
-  "ProgramChange     (0xC0)" ; 
-  "ChannelAfterTouch (0xD0)" ; 
-  "PitchRange        (0xE0)" ; 
+let midi_status_string_value = [
+  ("NoteOFF           (0x80)", 0x80 ) ; 
+  ("NoteON            (0x90)", 0x90 ) ; 
+  ("AfterTouch        (0xA0)", 0xA0 ) ; 
+  ("ControlChange     (0xB0)", 0xB0 ) ; 
+  ("ProgramChange     (0xC0)", 0xC0 ) ; 
+  ("ChannelAfterTouch (0xD0)", 0xD0 ) ; 
+  ("PitchRange        (0xE0)", 0xE0 ) ; 
 ]
+
+let global_available_midi_events = 
+  ""::(fst (List.split midi_status_string_value))
+
 let midi_status_of_string str = 
-  match str with
-  | ""                         -> -1
-  | "NoteOFF           (0x80)" -> 0x80 
-  | "NoteON            (0x90)" -> 0x90 
-  | "AfterTouch        (0xA0)" -> 0xA0 
-  | "ControlChange     (0xB0)" -> 0xB0 
-  | "ProgramChange     (0xC0)" -> 0xC0 
-  | "ChannelAfterTouch (0xD0)" -> 0xD0 
-  | "PitchRange        (0xE0)" -> 0xE0 
-  | _ -> failwith "Unrecognizable midi event !!" 
+  if str = "" then -1 else 
+    (snd (List.find (fun (a,b) -> a = str) midi_status_string_value))
 
 let int_of_midi_status ms = (
   match ms with

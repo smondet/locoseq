@@ -595,7 +595,6 @@ let rec util_update_add_edit_line box ef = (
         Log.p "editing a note\n" ;
         util_append_label "NOTE: " box;
 
-        
         let note_value, octave = util_note_octave_of_event mev_b in
         (* The note: *)
         util_append_label "Value:" box;
@@ -658,7 +657,63 @@ let rec util_update_add_edit_line box ef = (
           ) ev_list;
           ef_cmd_redraw ef;
         ));
-
+    | EE_Midi ev ->
+        util_append_label "MIDI EVENT: " box;
+        let stat_entry = 
+          GEdit.combo_box_text ~strings:(List.tl S.global_available_midi_events)
+          ~packing:box#add () in
+        let cbo,_ = stat_entry in
+        let active_index = ref (-1) in
+        let _ =
+          List.find (fun (_,b) -> 
+            incr active_index ; ev.Midi.status land 0xF0 = b
+          ) S.midi_status_string_value in
+        cbo#set_active !active_index;
+        ignore(cbo#connect#changed ~callback:( fun () ->
+          begin match GEdit.text_combo_get_active stat_entry with
+          | Some c -> ev.Midi.status <- S.midi_status_of_string c
+          | None -> ()
+          end;
+          util_update_add_edit_line box ef;
+          ef_cmd_redraw ef;
+        ));
+        util_append_label " Channel:" box;
+        let chan_entry = 
+          GEdit.combo_box_text ~strings:S.midi_channel_strings
+            ~packing:box#add () in
+        let cbo,_ = chan_entry in
+        cbo#set_active (ev.Midi.channel + 1);
+        ignore(cbo#connect#changed ~callback:( fun () ->
+          ev.Midi.channel <-  cbo#active - 1;
+          util_update_add_edit_line box ef;
+          ef_cmd_redraw ef;
+        ));
+        util_append_label " Data 1:" box;
+        let note_adj =
+          GData.adjustment ~value:(float ev.Midi.data_1) ~lower:(0.)
+          ~upper:255.0 ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+        let spin =
+          GEdit.spin_button ~adjustment:note_adj ~packing:(box#add) () in
+        ignore (spin#connect#changed ~callback:( fun () ->
+          ev.Midi.data_1 <- int_of_float note_adj#value ;
+          util_update_add_edit_line box ef;
+          ef_cmd_redraw ef;
+        ));
+        (* for 2-arg midi events: *)
+        let rs = ev.Midi.status land 0xF0 in
+        if not ((0xC0 <= rs) && (rs <= 0xDF)) then (
+          util_append_label " Data 2:" box;
+          let velo_adj =
+            GData.adjustment ~value:(float ev.Midi.data_2) ~lower:(0.0)
+            ~upper:255.0 ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+          let spin =
+            GEdit.spin_button ~adjustment:velo_adj ~packing:(box#add) () in
+          ignore (spin#connect#changed ~callback:( fun () ->
+            ev.Midi.data_2 <- int_of_float velo_adj#value ;
+            util_update_add_edit_line box ef;
+            ef_cmd_redraw ef;
+          ));
+        );
     | _ ->
         Log.warn "In util_update_add_edit_line, far from being implemented\n";
     end;
