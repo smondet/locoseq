@@ -622,14 +622,14 @@ let rec util_update_add_edit_line box ef = (
         (* The octave: *)
         util_append_label "Octave:" box;
         let octave_adj =
-          (* TODO: choose a good upper !! *)
-          GData.adjustment ~value:(float octave) ~lower:(1.0) ~upper:25.0
+          GData.adjustment ~value:(float octave) ~lower:(1.0) ~upper:22.0
           ~step_incr:1.0 ~page_incr:5.0 ~page_size:0.0 () in
         let octave_spin =
           GEdit.spin_button ~adjustment:octave_adj ~packing:(box#add) () in
         ignore (octave_spin#connect#changed ~callback:(fun () ->
           let note, _ = util_note_octave_of_event mev_b in
           let new_octave = int_of_float octave_adj#value in
+          (* TODO verify that data_1 < 255 *)
           List.iter (
             fun (evb, eve) ->
               evb.Midi.data_1 <- util_note_of_val_octave note new_octave;
