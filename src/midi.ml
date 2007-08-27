@@ -1,27 +1,27 @@
-(**************************************************************************)
-(*  Copyright (c) 2007, Sebastien MONDET                                  *)
-(*                                                                        *)
-(*  Permission is hereby granted, free of charge, to any person           *)
-(*  obtaining a copy of this software and associated documentation        *)
-(*  files (the "Software"), to deal in the Software without               *)
-(*  restriction, including without limitation the rights to use,          *)
-(*  copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
-(*  copies of the Software, and to permit persons to whom the             *)
-(*  Software is furnished to do so, subject to the following              *)
-(*  conditions:                                                           *)
-(*                                                                        *)
-(*  The above copyright notice and this permission notice shall be        *)
-(*  included in all copies or substantial portions of the Software.       *)
-(*                                                                        *)
-(*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
-(*  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
-(*  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
-(*  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
-(*  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
-(*  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
-(*  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
-(*  OTHER DEALINGS IN THE SOFTWARE.                                       *)
-(**************************************************************************)
+(******************************************************************************)
+(*      Copyright (c) 2007, Sebastien MONDET                                  *)
+(*                                                                            *)
+(*      Permission is hereby granted, free of charge, to any person           *)
+(*      obtaining a copy of this software and associated documentation        *)
+(*      files (the "Software"), to deal in the Software without               *)
+(*      restriction, including without limitation the rights to use,          *)
+(*      copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
+(*      copies of the Software, and to permit persons to whom the             *)
+(*      Software is furnished to do so, subject to the following              *)
+(*      conditions:                                                           *)
+(*                                                                            *)
+(*      The above copyright notice and this permission notice shall be        *)
+(*      included in all copies or substantial portions of the Software.       *)
+(*                                                                            *)
+(*      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
+(*      EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
+(*      OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
+(*      NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
+(*      HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
+(*      WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
+(*      FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
+(*      OTHER DEALINGS IN THE SOFTWARE.                                       *)
+(******************************************************************************)
 
 
 type midi_event = {
@@ -209,7 +209,7 @@ let midi_cmd_of_event ev =
     make_2B_cmd rs ev.data_1 ev.data_2
   )
   (* It is a 1 byte MIDI EVENT: *)
-  | rs when ((0xB0 <= rs) && (rs <= 0xCF)) -> (
+  | rs when ((0xC0 <= rs) && (rs <= 0xDF)) -> (
     make_1B_cmd rs ev.data_1
    )
   | _ -> (
@@ -234,7 +234,7 @@ let midi_cmd_to_string cmd =
   | ProgramChange n     -> Printf.sprintf "ProgramChange      %x   " n  
   | ChannelAfterTouch n -> Printf.sprintf "ChannelAfterTouch  %x   " n  
   | PitchRange (n,v)    -> Printf.sprintf "PitchRange         %x %x" n v 
-  | Unkown ev -> Printf.sprintf "Unkown [stat:%d [%x %x]]" ev.status ev.data_1 ev.data_2
+  | Unkown ev -> Printf.sprintf "Unkown [stat:%x [%x %x]]" ev.status ev.data_1 ev.data_2
 ;;
 
 
