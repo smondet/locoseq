@@ -1,55 +1,60 @@
-(**************************************************************************)
-(*  Copyright (c) 2007, Sebastien MONDET                                  *)
-(*                                                                        *)
-(*  Permission is hereby granted, free of charge, to any person           *)
-(*  obtaining a copy of this software and associated documentation        *)
-(*  files (the "Software"), to deal in the Software without               *)
-(*  restriction, including without limitation the rights to use,          *)
-(*  copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
-(*  copies of the Software, and to permit persons to whom the             *)
-(*  Software is furnished to do so, subject to the following              *)
-(*  conditions:                                                           *)
-(*                                                                        *)
-(*  The above copyright notice and this permission notice shall be        *)
-(*  included in all copies or substantial portions of the Software.       *)
-(*                                                                        *)
-(*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
-(*  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
-(*  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
-(*  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
-(*  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
-(*  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
-(*  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
-(*  OTHER DEALINGS IN THE SOFTWARE.                                       *)
-(**************************************************************************)
+(******************************************************************************)
+(*      Copyright (c) 2007, Sebastien MONDET                                  *)
+(*                                                                            *)
+(*      Permission is hereby granted, free of charge, to any person           *)
+(*      obtaining a copy of this software and associated documentation        *)
+(*      files (the "Software"), to deal in the Software without               *)
+(*      restriction, including without limitation the rights to use,          *)
+(*      copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
+(*      copies of the Software, and to permit persons to whom the             *)
+(*      Software is furnished to do so, subject to the following              *)
+(*      conditions:                                                           *)
+(*                                                                            *)
+(*      The above copyright notice and this permission notice shall be        *)
+(*      included in all copies or substantial portions of the Software.       *)
+(*                                                                            *)
+(*      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
+(*      EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
+(*      OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
+(*      NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
+(*      HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
+(*      WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
+(*      FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
+(*      OTHER DEALINGS IN THE SOFTWARE.                                       *)
+(******************************************************************************)
 
-module GenGui = GeneratedGui ;;
-module App = SeqApp ;;
-module S = StringServer ;;
+(**
+The main GUI module
+*)
 
-let get_option opt =
+module GenGui = GeneratedGui
+module App = SeqApp
+module S = StringServer
+
+let get_option opt = (
   match opt with
   | None -> failwith "NoneOptionException"
   | Some x -> x
-;;
+)
 
 
 (******************************************************************************)
-(*  GLOBAL APPLICATION AND WINDOW:  *)
+(** {3  Global application and window}  *)
 
-let global_app = ref None ;;
-let global_app_window = ref None ;;
-let get_app () = get_option (!global_app:App.seq_app option) ;;
-let get_aw () = get_option (!global_app_window:GenGui.app_window option) ;;
+let global_app = ref None
+let global_app_window = ref None
+let get_app () = get_option (!global_app:App.seq_app option)
+let get_aw () = get_option (!global_app_window:GenGui.app_window option)
 
 (******************************************************************************)
-(* INPUT MANAGEMENT: *)
+(** {3 GUI-Input management} *)
 
 let global_mouse_l_click_offset = 10000
 let global_mouse_m_click_offset = 20000
 
 (******************************************************************************)
-(* GUI UTILITIES *)
+(** {3 Gui utilities} *)
+
 let util_make_time_combo_box packing = (
   let cbt =
     GEdit.combo_box_text
@@ -94,7 +99,7 @@ let util_set_playing_state playing = (
 )
 
 (******************************************************************************)
-(* UPDATING INFO-LABELS *)
+(** {3 Updating info-labels} *)
 
 let aw_update_title () = (
   (get_aw ())#app_window#set_title (
@@ -138,7 +143,7 @@ let update_during_play () = (
 )
 
 (******************************************************************************)
-(* TREE VIEWS: *)
+(** {3 Tree views} *)
 
 type tv_aw_trackview_info = {
   tkv_nbrs_col : int GTree.column ;
@@ -310,10 +315,10 @@ let tv_aw_update_track_view (kind:[`MIDI|`META]) treeview tv_info  = (
     );
     tv_model#set ~row:iter ~column:size_col (Printf.sprintf "%s" size_str) ;
 
-    App.add_uniq_custom_unsaved_action (get_app ()) (global_mouse_l_click_offset + id)
-    (`toggle_track, `direct_int id) ;
-    App.add_uniq_custom_unsaved_action (get_app ()) (global_mouse_m_click_offset + id)
-    (`schedule_toggle_track, `direct_int id) ;
+    App.add_uniq_custom_unsaved_action (get_app ())
+    (global_mouse_l_click_offset + id) (`toggle_track, `direct_int id);
+    App.add_uniq_custom_unsaved_action (get_app ())
+    (global_mouse_m_click_offset + id) (`schedule_toggle_track, `direct_int id);
   done;
   App.update_input_mgr (get_app ()) ;
 
@@ -408,7 +413,7 @@ let tv_aw_update_iact_view () = (
 )
 
 (******************************************************************************)
-(* BOTTONS' CALLBACKS: *)
+(* {3 Buttons' callbacks} *)
 
 let b_aw_add_midi    () = (
   let file_ok_sel fw () =
@@ -489,192 +494,181 @@ let add_or_edit_meta (the_track: int option) = (
 
   let mult_combo = util_make_time_combo_box ew#hbox_name_lgth#add in
 
-  let _ =
-    match the_track with
-    | None -> () | Some tk_id -> (
-      let name,size = (App.get_meta_track_information (get_app ()) tk_id) in
-      ew#entry_name#set_text name ;
-      let _,p = App.get_bpm_ppqn (get_app()) in
-      let lgth,unity = S.unitize_length size p in
-      let cb,_ = mult_combo in
-      cb#set_active unity ;
-      ew#spinbutton_lgth#adjustment#set_value (float lgth) ;
-    ) in
+  begin  match the_track with
+  | None -> () | Some tk_id -> (
+    let name,size = (App.get_meta_track_information (get_app ()) tk_id) in
+    ew#entry_name#set_text name ;
+    let _,p = App.get_bpm_ppqn (get_app()) in
+    let lgth,unity = S.unitize_length size p in
+    let cb,_ = mult_combo in
+    cb#set_active unity ;
+    ew#spinbutton_lgth#adjustment#set_value (float lgth) ;
+  ) end;
 
-  ignore(ew#button_add#connect#clicked ~callback:(
-    fun () ->
-      let box = ew#hbox_edit in
-      List.iter (fun w -> w#destroy ()) box#children ;
-      let menu = GMenu.menu () in
-      let menuitem_tkson =
-        GMenu.menu_item ~label:"Set Track On" ~packing:menu#append () in
-      ignore(menuitem_tkson#connect#activate ~callback:(
-        fun () ->
-          let _ =
-            GMisc.label ~text:("Track ON:  ID: ") ~packing:(box#add) () in
-          let track_adj =
-            GData.adjustment ~value:0.0 ~lower:(-2000.0) ~upper:2100.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let _ =
-            GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
-          let _ =
-            GMisc.label ~text:(" at ")  ~packing:(box#add) () in
-          let begin_adj =
-            GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let _ =
-            GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
-          let t_beg_mult = util_make_time_combo_box box#add in
-          let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
-          ignore(button_ok#connect#clicked ~callback:(
-            fun () -> 
-              let tk_id = int_of_float track_adj#value in
-              let beg =
-                (int_of_float begin_adj#value)
-                * (util_time_of_combo_box t_beg_mult) in
-              real_events_input := (`track_set_on (beg,tk_id))::!real_events_input ;
-              List.iter (fun w -> w#destroy ()) box#children ;
-              update_model ();
-          ));
+  ignore(ew#button_add#connect#clicked ~callback:( fun () ->
+    let box = ew#hbox_edit in
+    List.iter (fun w -> w#destroy ()) box#children ;
+    let menu = GMenu.menu () in
+    let menuitem_tkson =
+      GMenu.menu_item ~label:"Set Track On" ~packing:menu#append () in
+    ignore(menuitem_tkson#connect#activate ~callback:( fun () ->
+      let _ =
+        GMisc.label ~text:("Track ON:  ID: ") ~packing:(box#add) () in
+      let track_adj =
+        GData.adjustment ~value:0.0 ~lower:(-2000.0) ~upper:2100.0
+        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+      let _ =
+        GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
+      let _ =
+        GMisc.label ~text:(" at ")  ~packing:(box#add) () in
+      let begin_adj =
+        GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
+        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+      let _ =
+        GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
+      let t_beg_mult = util_make_time_combo_box box#add in
+      let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
+      ignore(button_ok#connect#clicked ~callback:( fun () -> 
+        let tk_id = int_of_float track_adj#value in
+        let beg =
+          (int_of_float begin_adj#value)
+          * (util_time_of_combo_box t_beg_mult) in
+        real_events_input := (`track_set_on (beg,tk_id))::!real_events_input;
+        List.iter (fun w -> w#destroy ()) box#children ;
+        update_model ();
       ));
-      let menuitem_tksoff=
-        GMenu.menu_item ~label:"Set Track Off" ~packing:menu#append () in
-      ignore(menuitem_tksoff#connect#activate ~callback:(
-        fun () ->
-          let _ =
-            GMisc.label ~text:("Track OFF:  ID: ") ~packing:(box#add) () in
-          let track_adj =
-            GData.adjustment ~value:0.0 ~lower:(-2000.0) ~upper:2100.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let _ =
-            GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
-          let _ =
-            GMisc.label ~text:(" at ")  ~packing:(box#add) () in
-          let begin_adj =
-            GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let _ =
-            GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
-          let t_beg_mult = util_make_time_combo_box box#add in
-          let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
-          ignore(button_ok#connect#clicked ~callback:(
-            fun () -> 
-              let tk_id = int_of_float track_adj#value in
-              let beg =
-                (int_of_float begin_adj#value)
-                * (util_time_of_combo_box t_beg_mult) in
-              real_events_input := (`track_set_off (beg,tk_id))::!real_events_input ;
-              List.iter (fun w -> w#destroy ()) box#children ;
-              update_model ();
-          ));
+    ));
+    let menuitem_tksoff=
+      GMenu.menu_item ~label:"Set Track Off" ~packing:menu#append () in
+    ignore(menuitem_tksoff#connect#activate ~callback:( fun () ->
+      let _ =
+        GMisc.label ~text:("Track OFF:  ID: ") ~packing:(box#add) () in
+      let track_adj =
+        GData.adjustment ~value:0.0 ~lower:(-2000.0) ~upper:2100.0
+        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+      let _ =
+        GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
+      let _ =
+        GMisc.label ~text:(" at ")  ~packing:(box#add) () in
+      let begin_adj =
+        GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
+        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+      let _ =
+        GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
+      let t_beg_mult = util_make_time_combo_box box#add in
+      let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
+      ignore(button_ok#connect#clicked ~callback:( fun () -> 
+        let tk_id = int_of_float track_adj#value in
+        let beg =
+          (int_of_float begin_adj#value)
+          * (util_time_of_combo_box t_beg_mult) in
+        real_events_input := (`track_set_off (beg,tk_id))::!real_events_input;
+        List.iter (fun w -> w#destroy ()) box#children ;
+        update_model ();
       ));
-      let menuitem_sbpm  =
-        GMenu.menu_item ~label:"Set BPM" ~packing:menu#append () in
-      ignore(menuitem_sbpm#connect#activate ~callback:(
-        fun () ->
-          let _ =
-            GMisc.label ~text:("Set BPM: ") ~packing:(box#add) () in
-          let track_adj =
-            GData.adjustment ~value:0.0 ~lower:(0.0) ~upper:2100.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let _ =
-            GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
-          let _ =
-            GMisc.label ~text:(" at ")  ~packing:(box#add) () in
-          let begin_adj =
-            GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let _ =
-            GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
-          let t_beg_mult = util_make_time_combo_box box#add in
-          let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
-          ignore(button_ok#connect#clicked ~callback:(
-            fun () -> 
-              let bpm = int_of_float track_adj#value in
-              let beg =
-                (int_of_float begin_adj#value)
-                * (util_time_of_combo_box t_beg_mult) in
-              real_events_input := (`set_bpm (beg,bpm))::!real_events_input ;
-              List.iter (fun w -> w#destroy ()) box#children ;
-              update_model ();
-          ));
-      ));
-      let menuitem_tkon  =
-        GMenu.menu_item ~label:"Keep Track On" ~packing:menu#append () in
-      ignore(menuitem_tkon#connect#activate ~callback:(
-        fun () ->
-          let _ =
-            GMisc.label ~text:("Keep Track ON:  ID: ") ~packing:(box#add) () in
-          let track_adj =
-            GData.adjustment ~value:0.0 ~lower:(-2000.0) ~upper:2100.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let _ =
-            GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
-          let _ =
-            GMisc.label ~text:(" from ")  ~packing:(box#add) () in
-          let begin_adj =
-            GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let _ =
-            GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
-          let t_beg_mult = util_make_time_combo_box box#add in
-          let _ =
-            GMisc.label ~text:(" to ")  ~packing:(box#add) () in
-          let end_adj =
-            GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let _ =
-            GEdit.spin_button ~adjustment:end_adj ~packing:(box#add) () in
-          let t_end_mult = util_make_time_combo_box box#add in
-          let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
-          ignore(button_ok#connect#clicked ~callback:(
-            fun () -> 
-              let tk_id = int_of_float track_adj#value in
-              let beg =
-                (int_of_float begin_adj#value)
-                * (util_time_of_combo_box t_beg_mult) in
-              let e_d =
-                (int_of_float end_adj#value)
-                * (util_time_of_combo_box t_end_mult)  in
-              real_events_input := (`track_on (beg,e_d,tk_id))::!real_events_input ;
-
-              List.iter (fun w -> w#destroy ()) box#children ;
-              update_model ();
-          ));
-      ));
-      menu#popup  ~button:1 ~time:0l ;
-  ));
-  ignore(ew#button_suppr#connect#clicked ~callback:(
-    fun () ->
-      List.iter (
-        fun x ->
-          let index =
-            let iter = meta_model#get_iter x in
-            meta_model#get ~row:iter ~column:index_col
-          in
-          let cur =  ref (-1) in
-          real_events_input := List.filter (
-            fun _ -> 
-              incr cur ;
-              !cur <> index
-          ) !real_events_input ;
+    ));
+    let menuitem_sbpm  =
+      GMenu.menu_item ~label:"Set BPM" ~packing:menu#append () in
+    ignore(menuitem_sbpm#connect#activate ~callback:( fun () ->
+      let _ =
+        GMisc.label ~text:("Set BPM: ") ~packing:(box#add) () in
+      let track_adj =
+        GData.adjustment ~value:0.0 ~lower:(0.0) ~upper:2100.0
+        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+      let _ =
+        GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
+      let _ =
+        GMisc.label ~text:(" at ")  ~packing:(box#add) () in
+      let begin_adj =
+        GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
+        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+      let _ =
+        GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
+      let t_beg_mult = util_make_time_combo_box box#add in
+      let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
+      ignore(button_ok#connect#clicked ~callback:(
+        fun () -> 
+          let bpm = int_of_float track_adj#value in
+          let beg =
+            (int_of_float begin_adj#value)
+            * (util_time_of_combo_box t_beg_mult) in
+          real_events_input := (`set_bpm (beg,bpm))::!real_events_input;
+          List.iter (fun w -> w#destroy ()) box#children ;
           update_model ();
-      ) ew#treeview#selection#get_selected_rows ;
+      ));
+    ));
+    let menuitem_tkon  =
+        GMenu.menu_item ~label:"Keep Track On" ~packing:menu#append () in
+    ignore(menuitem_tkon#connect#activate ~callback:( fun () ->
+      let _ =
+        GMisc.label ~text:("Keep Track ON:  ID: ") ~packing:(box#add) () in
+      let track_adj =
+        GData.adjustment ~value:0.0 ~lower:(-2000.0) ~upper:2100.0
+        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+      let _ =
+        GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
+      let _ =
+        GMisc.label ~text:(" from ")  ~packing:(box#add) () in
+      let begin_adj =
+        GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
+        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+      let _ =
+        GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
+      let t_beg_mult = util_make_time_combo_box box#add in
+      let _ =
+        GMisc.label ~text:(" to ")  ~packing:(box#add) () in
+      let end_adj =
+        GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
+        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+      let _ =
+        GEdit.spin_button ~adjustment:end_adj ~packing:(box#add) () in
+      let t_end_mult = util_make_time_combo_box box#add in
+      let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
+      ignore(button_ok#connect#clicked ~callback:(
+        fun () -> 
+          let tk_id = int_of_float track_adj#value in
+          let beg =
+            (int_of_float begin_adj#value)
+            * (util_time_of_combo_box t_beg_mult) in
+          let e_d =
+            (int_of_float end_adj#value)
+            * (util_time_of_combo_box t_end_mult)  in
+          real_events_input := (`track_on (beg,e_d,tk_id))::!real_events_input;
+
+          List.iter (fun w -> w#destroy ()) box#children ;
+          update_model ();
+      ));
+    ));
+    menu#popup  ~button:1 ~time:0l ;
+  ));
+  ignore(ew#button_suppr#connect#clicked ~callback:( fun () ->
+    List.iter ( fun x ->
+      let index =
+        let iter = meta_model#get_iter x in
+        meta_model#get ~row:iter ~column:index_col
+      in
+      let cur =  ref (-1) in
+      real_events_input := List.filter (
+        fun _ -> 
+          incr cur ;
+          !cur <> index
+      ) !real_events_input;
+      update_model ();
+    ) ew#treeview#selection#get_selected_rows ;
   ));
 
-  ignore(ew#button_ok#connect#clicked ~callback:(
-    fun () ->
-      let what_to_call =
-        match the_track with
-        | None ->  App.add_meta_track (get_app ())
-        | Some tk_id -> App.replace_meta_track (get_app ()) tk_id
-      in
-      what_to_call ew#entry_name#text (
-        (int_of_float ew#spinbutton_lgth#value) *
-        (util_time_of_combo_box mult_combo)
-      ) !real_events_input ;
-      tv_aw_update_meta_view () ;
-      ew#meta_window#destroy ();
+  ignore(ew#button_ok#connect#clicked ~callback:( fun () ->
+    let what_to_call =
+      match the_track with
+      | None ->  App.add_meta_track (get_app ())
+      | Some tk_id -> App.replace_meta_track (get_app ()) tk_id
+    in
+    what_to_call ew#entry_name#text (
+      (int_of_float ew#spinbutton_lgth#value) *
+      (util_time_of_combo_box mult_combo)
+    ) !real_events_input;
+    tv_aw_update_meta_view () ;
+    ew#meta_window#destroy ();
   ));
 
   ew#meta_window#show () ;
@@ -716,74 +710,78 @@ let  add_or_edit_iact ?to_edit () = (
   let current_input = ref "" in
   let rest_of_input = [| -1 ; -1 ; -1 ; -1 ; -1 |] in
   let on_changed_callback ?(get_values=false) () =
-      let choice = GEdit.text_combo_get_active input_type_combo in
-      if (choice <> Some !current_input) then (
-        List.iter (fun w -> w#destroy ()) arg_input_hbox#children ;
-        match choice with
-        | Some s when s = S.keyboard -> (
-          let key_entry =
-            GEdit.combo_box_text ~strings:(
-              Array.to_list S.global_available_keys)
-            ~packing:arg_input_hbox#add () in
-          if get_values then (
-            (fst key_entry)#set_active rest_of_input.(0) ;
-          );
-          let cbo,_ = key_entry in
-          ignore(cbo#connect#changed ~callback:(
-            fun () ->
-              match GEdit.text_combo_get_active key_entry with
-              | Some c -> (
-                rest_of_input.(0) <- (S.key_to_int c);
-              )
-              | None -> () ;
-          ));
-          current_input := S.keyboard ;
-        )
-        | Some s when s = S.midi_evt -> (
-          let stat_entry = 
-            GEdit.combo_box_text ~strings:S.global_available_midi_events
-            ~packing:arg_input_hbox#add () in
-          let cbo,_ = stat_entry in
-          ignore(cbo#connect#changed ~callback:( fun () ->
-            match GEdit.text_combo_get_active stat_entry with
-            | Some c -> rest_of_input.(1) <- S.midi_status_of_string c
+    let choice = GEdit.text_combo_get_active input_type_combo in
+    if (choice <> Some !current_input) then (
+      List.iter (fun w -> w#destroy ()) arg_input_hbox#children ;
+      begin match choice with
+      | Some s when s = S.keyboard -> 
+        let key_entry =
+          GEdit.combo_box_text ~strings:(
+            Array.to_list S.global_available_keys)
+          ~packing:arg_input_hbox#add () in
+        if get_values then (
+          (fst key_entry)#set_active rest_of_input.(0) ;
+        );
+        let cbo,_ = key_entry in
+        ignore(cbo#connect#changed ~callback:(
+          fun () ->
+            match GEdit.text_combo_get_active key_entry with
+            | Some c -> (
+              rest_of_input.(0) <- (S.key_to_int c);
+            )
             | None -> () ;
-          ));
-          let _ =  GMisc.label ~text:" chan: " ~packing:arg_input_hbox#add () in
-          let chan_entry = 
-            GEdit.combo_box_text ~strings:S.midi_channel_strings
-            ~packing:arg_input_hbox#add () in
-          let cbo,_ = chan_entry in
-          ignore(cbo#connect#changed ~callback:( fun () ->
-            rest_of_input.(2) <- 
-              S.midi_channel_of_string (GEdit.text_combo_get_active chan_entry) ;
-          ));
-          let _ =  GMisc.label ~text:" note: " ~packing:arg_input_hbox#add () in
-          let note_adj =
-            GData.adjustment ~value:(-1.0) ~lower:(-1.0) ~upper:256.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let spin =
-            GEdit.spin_button ~adjustment:note_adj ~packing:(arg_input_hbox#add) () in
-          ignore (spin#connect#changed ~callback:( fun () ->
-            rest_of_input.(3) <- int_of_float note_adj#value ;));
-          let _ =  GMisc.label ~text:" velocity: " ~packing:arg_input_hbox#add () in
-          let velo_adj =
-            GData.adjustment ~value:(-1.0) ~lower:(-1.0) ~upper:256.0
-            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-          let spin =
-            GEdit.spin_button ~adjustment:velo_adj ~packing:(arg_input_hbox#add) () in
-          ignore (spin#connect#changed ~callback:( fun () ->
-            rest_of_input.(4) <- int_of_float velo_adj#value ;));
-          current_input := S.midi_evt ;
-          if get_values then (
-            (fst stat_entry)#set_active (S.int_of_midi_status rest_of_input.(1));
-            (fst chan_entry)#set_active (rest_of_input.(2)+1) ;
-            note_adj#set_value (float rest_of_input.(3)) ;
-            velo_adj#set_value (float rest_of_input.(4)) ;
-          );
-        )
-        | _ -> Log.p "Problem... in b_aw_add_iact\n" ;
-      );
+        ));
+        current_input := S.keyboard ;
+      | Some s when s = S.midi_evt -> (
+        let stat_entry = 
+          GEdit.combo_box_text ~strings:S.global_available_midi_events
+          ~packing:arg_input_hbox#add () in
+        let cbo,_ = stat_entry in
+        ignore(cbo#connect#changed ~callback:( fun () ->
+          match GEdit.text_combo_get_active stat_entry with
+          | Some c -> rest_of_input.(1) <- S.midi_status_of_string c
+          | None -> () ;
+        ));
+        let _ =  GMisc.label ~text:" chan: " ~packing:arg_input_hbox#add () in
+        let chan_entry = 
+          GEdit.combo_box_text ~strings:S.midi_channel_strings
+          ~packing:arg_input_hbox#add () in
+        let cbo,_ = chan_entry in
+        ignore(cbo#connect#changed ~callback:( fun () ->
+          rest_of_input.(2) <- 
+            S.midi_channel_of_string (GEdit.text_combo_get_active chan_entry) ;
+        ));
+        let _ =  GMisc.label ~text:" note: " ~packing:arg_input_hbox#add () in
+        let note_adj =
+          GData.adjustment ~value:(-1.0) ~lower:(-1.0) ~upper:256.0
+          ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+        let spin =
+          GEdit.spin_button ~adjustment:note_adj
+          ~packing:(arg_input_hbox#add) () in
+        ignore (spin#connect#changed ~callback:( fun () ->
+          rest_of_input.(3) <- int_of_float note_adj#value ;
+        ));
+        let _= GMisc.label ~text:" velocity: " ~packing:arg_input_hbox#add () in
+        let velo_adj =
+          GData.adjustment ~value:(-1.0) ~lower:(-1.0) ~upper:256.0
+          ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+        let spin =
+          GEdit.spin_button ~adjustment:velo_adj
+          ~packing:(arg_input_hbox#add) () in
+        ignore (spin#connect#changed ~callback:( fun () ->
+          rest_of_input.(4) <- int_of_float velo_adj#value ;
+        ));
+        current_input := S.midi_evt ;
+        if get_values then (
+          (fst stat_entry)#set_active (S.int_of_midi_status rest_of_input.(1));
+          (fst chan_entry)#set_active (rest_of_input.(2)+1) ;
+          note_adj#set_value (float rest_of_input.(3)) ;
+          velo_adj#set_value (float rest_of_input.(4)) ;
+        );
+      )
+      | _ -> Log.p "Problem... in b_aw_add_iact\n" ;
+      end;
+    );
   in
   ignore(the_input_box#connect#changed 
   ~callback:(on_changed_callback ~get_values:values_to_get));
@@ -839,18 +837,14 @@ let  add_or_edit_iact ?to_edit () = (
       | `stop                  ->  (fst action_combo)#set_active 10 ;
       | `mute_all              ->  (fst action_combo)#set_active 11 ;
     in
-    let _ =
-      match arg with
-      | `direct_int i  -> (
+    begin match arg with
+    | `direct_int i  ->
         (fst arg_combo)#set_active 0 ; act_adj#set_value (float i)
-      )
-      | `midi_status   -> (fst arg_combo)#set_active 1 ;
-      | `midi_channel  -> (fst arg_combo)#set_active 2 ;
-      | `midi_note     -> (fst arg_combo)#set_active 3 ;
-      | `midi_velocity -> (fst arg_combo)#set_active 4 ;
-    in
-
-    ()
+    | `midi_status   -> (fst arg_combo)#set_active 1 ;
+    | `midi_channel  -> (fst arg_combo)#set_active 2 ;
+    | `midi_note     -> (fst arg_combo)#set_active 3 ;
+    | `midi_velocity -> (fst arg_combo)#set_active 4 
+    end;
   );
 
   ignore(iw#button_ok#connect#clicked ~callback:( fun () ->
@@ -890,11 +884,11 @@ let  add_or_edit_iact ?to_edit () = (
           raise Not_found;
         )
       );
-      let _ = 
-        match to_edit with 
-        | None -> App.basic_add_handler (get_app ()) (input, (action,argument)) ;
-        | Some (i,m) -> App.replace_handler (get_app ()) i (input, (action,argument)) ;
-      in
+      begin match to_edit with 
+      | None -> App.basic_add_handler (get_app ()) (input, (action,argument)) ;
+      | Some (i,m) ->
+          App.replace_handler (get_app ()) i (input, (action,argument)) ;
+      end;
       tv_aw_update_iact_view ();
       iw#iact_window#destroy () ;
     ) with Not_found -> () ;
@@ -909,12 +903,11 @@ let b_aw_edit_iact   () = (
   let iact_model = info.imv_model in
   let index_col = info.imv_nbrs_col in
   let str_col = info.imv_dscr_col in
-  List.iter (
-    fun x ->
-      let iter = iact_model#get_iter x in
-      let index = iact_model#get ~row:iter ~column:index_col in
-      let str = iact_model#get ~row:iter ~column:str_col in
-      add_or_edit_iact ~to_edit:(index,str) () ;
+  List.iter ( fun x ->
+    let iter = iact_model#get_iter x in
+    let index = iact_model#get ~row:iter ~column:index_col in
+    let str = iact_model#get ~row:iter ~column:str_col in
+    add_or_edit_iact ~to_edit:(index,str) () ;
   ) (get_aw ())#treeview_iact#selection#get_selected_rows ;
   tv_aw_update_iact_view () ;
 )
@@ -936,7 +929,9 @@ let b_aw_suppr_iact  () = (
   tv_aw_update_iact_view () ;
 )
 
-(* Buttons for settings ant "file" actions: *)
+(******************************************************************************)
+(** {3 Main buttons} *)
+
 let b_aw_saveas ?(and_then=fun () -> ()) () = (
   let file_ok_sel fw () =
     App.save_to_file (get_app ()) fw#filename;
@@ -962,34 +957,32 @@ let b_aw_save   ?(and_then=fun ()->())  () = (
   );
 )
 
+(** Generic automata for asking user if he needs to save before acting *)
 let util_make_achtung_notsaved_dialog ~msg ~and_then ~save ~dont ~cancel = (
 
   let dlg = new GenGui.dialog_notsaved () in
   dlg#dialog_notsaved#set_title S.notsaved_title ;
   dlg#button_ok#set_label save ;
-  ignore(dlg#button_ok#connect#clicked ~callback:(
-    fun () ->
-      Log.p "but ok\n" ;
-      dlg#dialog_notsaved#destroy () ;
-      b_aw_save ~and_then () ;
+  ignore(dlg#button_ok#connect#clicked ~callback:( fun () ->
+    Log.p "but ok\n" ;
+    dlg#dialog_notsaved#destroy () ;
+    b_aw_save ~and_then () ;
   ));
   dlg#button_dsq#set_label dont ;
-  ignore(dlg#button_dsq#connect#clicked ~callback:(
-    fun () ->
-      Log.p "bye...\n" ;
-      dlg#dialog_notsaved#destroy () ;
-      and_then () ;
+  ignore(dlg#button_dsq#connect#clicked ~callback:( fun () ->
+    Log.p "bye...\n" ;
+    dlg#dialog_notsaved#destroy () ;
+    and_then () ;
   ));
   dlg#button_cancel#set_label cancel ;
-  ignore(dlg#button_cancel#connect#clicked ~callback:(
-    fun () ->
-      dlg#dialog_notsaved#destroy () ;
+  ignore(dlg#button_cancel#connect#clicked ~callback:( fun () ->
+    dlg#dialog_notsaved#destroy () ;
   ));
   dlg#label_msg#set_text msg ;
   dlg#dialog_notsaved#show ();
 )
-let quit_app () = (
 
+let quit_app () = (
   Log.p "quit_app : %b\n" (App.is_saved (get_app ()));
   if not (App.is_saved (get_app ())) then (
     util_make_achtung_notsaved_dialog ~msg:S.save_before_quit_msg
@@ -1081,7 +1074,9 @@ let b_aw_update_sngnam   () = (
 )
 
 (******************************************************************************)
-(* ON KEYPRESS: *)
+(** {3 On keypress} *)
+
+(** Callback for keyboard input *)
 let k_aw_on_key_press x = (
   try (
     (* Log.p "Key %s -> %d Pressed !!\n" (GdkEvent.Key.string x)  *)
@@ -1092,17 +1087,17 @@ let k_aw_on_key_press x = (
 )
 
 (******************************************************************************)
-let start ?open_file () = (
+(** {3 Start the GUI}*)
 
+let start ?open_file () = (
   let count_calls = ref 0 in
   global_app := Some (
     App.make_app
-    ~visitor:(
-      fun () ->
-        incr count_calls ;
-        if (!count_calls mod 64) = 0 then (
-          update_during_play () ;
-        );
+    ~visitor:( fun () ->
+      incr count_calls ;
+      if (!count_calls mod 64) = 0 then (
+        update_during_play () ;
+      );
     ) ()
   ) ;
   let app = get_app () in
@@ -1146,7 +1141,7 @@ let start ?open_file () = (
 
   mw#entry_sngnam#set_text (App.get_song_name app) ;
   aw_update_title ();
-  ignore(mw#button_update_sngnam  #connect#clicked ~callback:b_aw_update_sngnam );
+  ignore(mw#button_update_sngnam#connect#clicked ~callback:b_aw_update_sngnam);
 
   aw_update_qd_tt ();
 
