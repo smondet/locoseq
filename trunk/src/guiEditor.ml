@@ -37,12 +37,10 @@ module S = StringServer
 (** {3 Internal GUI utilities} *)
 
 (** append a label to a box *)
-let util_append_label text (box:GPack.box) = (
-  let _ =
-    GMisc.label ~text
-    ~packing:(box#pack ~expand:false ~fill:false ~padding:0) () in
-  ()
+let util_append_label text (box:GPack.box) = ignore (
+  GMisc.label ~text ~packing:(box#pack ~expand:false ~fill:false ~padding:0) ()
 )
+
 
 (** Append a vertical separator to a box *)
 let util_append_vertsepar (box:GPack.box) = (
@@ -51,7 +49,6 @@ let util_append_vertsepar (box:GPack.box) = (
     ~packing:(box#pack ~expand:false ~fill:false ~padding:0) 
     ~show:true () in
   sep#misc#set_size_request ~width:30 ();
-  ()
 )
 
 (** Append an horizontal separator to a box *)
@@ -60,21 +57,27 @@ let util_append_horzsepar (box:GPack.box) = (
     GMisc.separator `HORIZONTAL
     ~packing:(box#pack ~expand:false ~fill:false ~padding:0) ~show:true () in
   sep#misc#set_size_request ~width:10 ();
-  ()
 )
+
+(** Make a text mono-stable button and append it to a box *)
 let util_append_button text (box:GPack.box) = (
   GButton.button ~label:text
   ~packing:(box#pack ~expand:false ~fill:false ~padding:0)  ~show:true ()
 )
+
+(** Make a text bi-stable button and append it to a box *)
 let util_append_toggle text (box:GPack.box) = (
   GButton.toggle_button ~label:text ~active:false ~relief:`NORMAL
   ~packing:(box#pack ~expand:false ~fill:false ~padding:0)  ~show:true ()
 )
 
+(** Make an horizontal box (1 row) *)
 let util_append_hbox (box:GPack.box) = (
   GPack.hbox  ~homogeneous:false
   ~packing:(box#pack ~expand:false ~fill:false ~padding:0) ~show:true ()
 )
+
+(** Make a [spin_button] for an integer value *)
 let util_int_spin_button min max box = (
   let adj =
     GData.adjustment ~value:min ~lower:min ~upper:max
@@ -111,18 +114,20 @@ type track_type = MIDI_TRACK | META_TRACK
 
 type editable_event =
   | EE_None
+  (** The [editable_event] is a kind of [option] *)
   | EE_Midi of Midi.midi_event
+  (** Generic midi event *)
   | EE_MidiNote of (Midi.midi_event * Midi.midi_event) list
+  (** One midi note, and its instances in the track (NoteOn, NoteOff) *)
   | EE_MetaSpec of Tracker.meta_action_spec
 
 
 (** An {i ugly} mapping structure that encloses both midi and meta tracks for
  the editor  *)
 type track_values = {
-  mutable tv_app: SeqApp.seq_app;
-  mutable tv_tk_id: int;
-  mutable tv_type : track_type;
-  mutable tv_type_str: string;
+  mutable tv_app: SeqApp.seq_app; (** The {i application} handle *)
+  mutable tv_tk_id: int; (** The track ID *)
+  mutable tv_type : track_type; (** Midi or Meta *)
   mutable tv_name: string;
   mutable tv_length_b: int;
   mutable tv_length_q: int;
@@ -212,7 +217,6 @@ let tv_make_track_values app tk_ref = (
         tv_app = app;
         tv_tk_id = tk;
         tv_type = MIDI_TRACK;
-        tv_type_str = "MIDI";
         tv_name = name; 
         tv_length_b = b; 
         tv_length_q = q; 
@@ -233,7 +237,6 @@ let tv_make_track_values app tk_ref = (
         tv_app = app;
         tv_tk_id = tk;
         tv_type = META_TRACK;
-        tv_type_str = "META";
         tv_name = name; 
         tv_length_b = b; 
         tv_length_q = q; 
@@ -508,6 +511,7 @@ let ef_on_mouse_drag ef x y = (
   | _ -> ();
   end;
 )
+
 let ef_on_mouse_release ef x y = (
   Log.p "ef_on_mouse_release is called: (%d,%d) on event: %d !!\n"
   x y (ef_y_to_event ef y);
@@ -519,7 +523,8 @@ let ef_on_mouse_release ef x y = (
   end;
 )
 
-
+(** Given a [edit_pointer_tool], set [ef]'s pointer and update the
+ graphical cursor *)
 let ef_set_tool ef tool_type = (
   let cursor_type =
     match tool_type with
@@ -532,6 +537,7 @@ let ef_set_tool ef tool_type = (
   ef.ef_set_cursor cursor_type;
 )
 
+(** Build an editor {i draw} frame *)
 let ef_make (box:GPack.box) values ~on_selection = (
 
   let scrolled_window = GBin.scrolled_window ~border_width:10
@@ -614,7 +620,7 @@ let rec util_update_add_edit_line box ef = (
   List.iter (fun x -> x#destroy ()) box#all_children;
   let add_button = util_append_button "Add event" box in
   ignore(add_button#connect#clicked ~callback:(
-    fun () -> Log.p "Clicked !\n" ;
+    fun () -> Log.warn "Not implemented !\n" ;
   ));
   if ef.ef_current_selection >= 0 then (
     let event = ef.ef_model.tv_edit_evts.(ef.ef_current_selection) in
@@ -753,18 +759,21 @@ let rec util_update_add_edit_line box ef = (
 (******************************************************************************)
 (** {3 The "public" constructor} *)
 
-(** Launch the editor *)
+(** Build an editor instance *)
 let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
 
   let tk_values = tv_make_track_values app to_edit in
 
-  let te = GWindow.window ~title:(tk_values.tv_type_str ^ " Track Editor") () in
+  let te = 
+    GWindow.window ~title:(
+      match to_edit with
+      | `MIDI tk -> Printf.sprintf "Midi-Track Editor [%d]" tk
+      | `META tk -> Printf.sprintf "Meta-Track Editor [%d]" tk
+    ) () in
 
   ignore(te#connect#destroy ~callback:te#destroy);
 
   let main_vbox = GPack.vbox ~homogeneous:false
-  (* ~spacing:int *) (* ~border_width:int -> *)
-  (* ~width:int -> *) (* ~height:int -> *)
   ~packing:te#add  ~show:true () in
 
   let track_settings_hbox = util_append_hbox main_vbox in
@@ -800,12 +809,8 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
     util_append_vertsepar track_settings_hbox ;
     util_append_label " Port: " track_settings_hbox ;
     let port_combo =
-      GEdit.combo_box_text
-      ~strings:(Array.to_list S.out_put_ports)
-      ~add_tearoffs:false
-      (* ~active:1 *)
-      (* ~allow_empty:false ~value_in_list:true *)
-      ~packing:track_settings_hbox#add () in
+      GEdit.combo_box_text ~strings:(Array.to_list S.out_put_ports)
+      ~add_tearoffs:false ~packing:track_settings_hbox#add () in
     (fst port_combo)#set_active tk_values.tv_port ;
     Some port_combo
   ) 
@@ -839,22 +844,15 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   let snap_combo = 
     GEdit.combo_box_text
     ~strings:["1"; "1/2"; "1/4"; "1/16"; "none"]
-    ~add_tearoffs:false
-    (* ~active:1 *)
-    (* ~allow_empty:false ~value_in_list:true *)
+    ~add_tearoffs:false (* ~active:1 *)
     ~packing:(tools_hbox#pack ~expand:false ~fill:false ~padding:0) ()
   in
   (fst snap_combo)#set_active 0;
 
   util_append_horzsepar main_vbox;
 
-  let add_edit_hbox = util_append_hbox main_vbox in
   (* The "edit" line: *)
-  let add_button = util_append_button "Add" add_edit_hbox in
-
-  (* Current edited event goes there: *)
-
-  util_append_vertsepar tools_hbox;
+  let add_edit_hbox = util_append_hbox main_vbox in
 
   util_append_horzsepar main_vbox;
 
@@ -863,6 +861,7 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
     ~on_selection:(util_update_add_edit_line add_edit_hbox)
   in
 
+  util_update_add_edit_line add_edit_hbox ev_frame;
 
   (* Connections: *)
   ignore(zoom_scale#connect#value_changed ~callback:( fun () -> 
@@ -940,14 +939,6 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
       ));
   | _ -> ()
   end;
-    
-
-  let _ = (* NOTE:
-  Avoiding "not-used" warnings during development,
-  allows to distinguish REAL warnings !!
-  *)
-    add_button in
-
 
   te#show ();
 )
