@@ -281,8 +281,10 @@ type edit_pointer_tool =
   | EPTool_Erase
   | EPTool_Resize
 
+(** The current status of the pointer *)
 type edit_pointer_status =
   | EPStatus_Idle
+  | EPStatus_DragStarted of int * int * int (** event_id, x, y *)
 
 type edit_pointer = {
   mutable ep_tool: edit_pointer_tool;
@@ -477,7 +479,8 @@ let ef_cmd_redraw ef = (
 
 let ef_y_to_event ef y = (
   let ev_size = (ef.ef_h - 1) / (ef_event_number ef) in
-  if (y / ev_size) < (ef_event_number ef) then
+  let ev = y / ev_size in
+  if (0 <= ev) && (ev < (ef_event_number ef)) then
     y / ev_size
   else 
     -1
@@ -491,11 +494,29 @@ let ef_on_mouse_press ef x y = (
     ef_cmd_redraw ef;
     ef.ef_on_selection ef;
   );
+  if (ef.ef_pointer.ep_tool <> EPTool_None && x > ef.ef_grid_begin_x) then (
+    let event = (ef_y_to_event ef y) in
+    ef.ef_pointer.ep_status <- EPStatus_DragStarted (event, x, y);
+  );
 )
 
+let ef_on_mouse_drag ef x y = (
+  begin match ef.ef_pointer.ep_status with
+  | EPStatus_DragStarted (event, xb, yb) ->
+      Log.p "Dragged, on event %d, from (%d,%d) currently (%d,%d)\n"
+      event xb yb x y;
+  | _ -> ();
+  end;
+)
 let ef_on_mouse_release ef x y = (
   Log.p "ef_on_mouse_release is called: (%d,%d) on event: %d !!\n"
   x y (ef_y_to_event ef y);
+  begin match ef.ef_pointer.ep_status with
+  | EPStatus_DragStarted (event, xb, yb) ->
+      Log.p "Dragged, on event %d, from (%d,%d) to (%d,%d)\n" event xb yb x y;
+      ef.ef_pointer.ep_status <- EPStatus_Idle;
+  | _ -> ();
+  end;
 )
 
 
@@ -559,17 +580,24 @@ let ef_make (box:GPack.box) values ~on_selection = (
     fun ev ->
       let x = int_of_float (GdkEvent.Button.x ev) in
     	let y = int_of_float (GdkEvent.Button.y ev) in
-      ef_on_mouse_press the_event_frame x y ;
+      ef_on_mouse_press the_event_frame x y;
       true
   ));
   ignore(event_box#event#connect#button_release ~callback:(
     fun ev ->
       let x = int_of_float (GdkEvent.Button.x ev) in
     	let y = int_of_float (GdkEvent.Button.y ev) in
-      ef_on_mouse_release the_event_frame x y ;
+      ef_on_mouse_release the_event_frame x y;
       true
   ));
-    
+  ignore(event_box#event#connect#motion_notify ~callback:(
+    fun ev ->
+      let x = int_of_float (GdkEvent.Motion.x ev) in
+    	let y = int_of_float (GdkEvent.Motion.y ev) in
+      ef_on_mouse_drag the_event_frame x y;
+      true
+  ));
+
   the_event_frame
 )
 
