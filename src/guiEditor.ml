@@ -288,11 +288,15 @@ type edit_pointer_tool =
 type edit_pointer_status =
   | EPStatus_Idle
   | EPStatus_DragStarted of int * int * int (** event_id, x, y *)
+  (* going deprecated ? *)
+  | EPStatus_XDrag of (int -> bool) * (int -> unit)
+  (** dragging callback X -> continue?, mouse release callback: gets X *)
 
 type edit_pointer = {
   mutable ep_tool: edit_pointer_tool;
   mutable ep_status: edit_pointer_status;
 
+  mutable ep_precision: int;
 }
 
 
@@ -359,6 +363,7 @@ let ef_set_font ef  str = (
 let ef_event_number ef = ( Array.length ef.ef_model.tv_edit_evts ;)
 
 let ef_ticks_to_pixels ef ticks = (ef.ef_zoom * ticks / 50 )
+let ef_pixels_to_ticks ef pixels = (pixels * 50 / ef.ef_zoom)
 
 let ef_draw_background ef = (
 
@@ -489,6 +494,14 @@ let ef_y_to_event ef y = (
     -1
 )
 
+let ef_pointer_touches_ticks ef x_point ticks = (
+  let x_of_ticks = ef_ticks_to_pixels ef ticks in
+  let ep = ef.ef_pointer in
+  let x = x_point - ef.ef_grid_begin_x in
+  Log.p "--- ticks:%d(%d) x:%d\n" ticks x_of_ticks x;
+  (x - ep.ep_precision < x_of_ticks ) && (x_of_ticks < x + ep.ep_precision)
+)
+
 let ef_on_mouse_press ef x y = (
   Log.p "ef_on_mouse_press is called: (%d,%d) on event: %d !!\n"
   x y (ef_y_to_event ef y);
@@ -498,8 +511,32 @@ let ef_on_mouse_press ef x y = (
     ef.ef_on_selection ef;
   );
   if (ef.ef_pointer.ep_tool <> EPTool_None && x > ef.ef_grid_begin_x) then (
-    let event = (ef_y_to_event ef y) in
-    ef.ef_pointer.ep_status <- EPStatus_DragStarted (event, x, y);
+    let event_id = (ef_y_to_event ef y) in
+    if (event_id <> -1) then (
+      let event = ef.ef_model.tv_edit_evts.(event_id) in
+      begin match event with
+      | EE_Midi mev ->
+          if (ef_pointer_touches_ticks ef x mev.Midi.ticks) then (
+            Log.p "Event touched\n";
+            begin match ef.ef_pointer.ep_tool with
+            | EPTool_Resize ->
+                let on_drag x =
+                  (ef.ef_grid_begin_x < x) && (x < ef.ef_w) in
+                let on_release x_release =
+                  let x_ticks = 
+                    ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
+                  Log.p "released on %d (ie %d ticks)\n" x_release x_ticks;
+                  mev.Midi.ticks <- x_ticks;
+                  ef_cmd_redraw ef;
+                in
+                ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+            | _ -> Log.warn "ef_on_mouse_press: Tool not implemented\n";
+            end;
+          );
+      | _ -> Log.warn "ef_on_mouse_press: NOT IMPLEMENTED\n";
+      ef.ef_pointer.ep_status <- EPStatus_DragStarted (event_id, x, y);
+      end;
+    );
   );
 )
 
@@ -508,6 +545,10 @@ let ef_on_mouse_drag ef x y = (
   | EPStatus_DragStarted (event, xb, yb) ->
       Log.p "Dragged, on event %d, from (%d,%d) currently (%d,%d)\n"
       event xb yb x y;
+  | EPStatus_XDrag (on_drag, _) -> 
+      if not (on_drag x) then (
+        ef.ef_pointer.ep_status <- EPStatus_Idle;
+      );
   | _ -> ();
   end;
 )
@@ -518,9 +559,10 @@ let ef_on_mouse_release ef x y = (
   begin match ef.ef_pointer.ep_status with
   | EPStatus_DragStarted (event, xb, yb) ->
       Log.p "Dragged, on event %d, from (%d,%d) to (%d,%d)\n" event xb yb x y;
-      ef.ef_pointer.ep_status <- EPStatus_Idle;
+  | EPStatus_XDrag (_, on_release) -> on_release x;
   | _ -> ();
   end;
+  ef.ef_pointer.ep_status <- EPStatus_Idle;
 )
 
 (** Given a [edit_pointer_tool], set [ef]'s pointer and update the
@@ -561,6 +603,7 @@ let ef_make (box:GPack.box) values ~on_selection = (
     ef_pointer = {
       ep_tool = EPTool_None;
       ep_status = EPStatus_Idle;
+      ep_precision = 5;
     };
     ef_grid_begin_x = 200;
     ef_zoom = 1;
