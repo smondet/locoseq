@@ -510,31 +510,56 @@ let ef_on_mouse_press ef x y = (
     ef_cmd_redraw ef;
     ef.ef_on_selection ef;
   );
+
+  let util_start_resize_midi_ticks ef midi_ev ~valid_interval = (
+    let (x_min,x_max) = valid_interval in
+    let on_drag x = (x_min <= x) && (x <= x_max) in
+    let on_release x_release =
+      let x_ticks = 
+        ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
+      midi_ev.Midi.ticks <- x_ticks;
+      ef_cmd_redraw ef;
+    in
+    ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+  ) in
+
+  let x_min = ef.ef_grid_begin_x in
+  let x_max = ef.ef_w in
+  let pixelize ticks = x_min + (ef_ticks_to_pixels ef ticks) in
+
   if (ef.ef_pointer.ep_tool <> EPTool_None && x > ef.ef_grid_begin_x) then (
     let event_id = (ef_y_to_event ef y) in
     if (event_id <> -1) then (
-      let event = ef.ef_model.tv_edit_evts.(event_id) in
-      begin match event with
-      | EE_Midi mev ->
-          if (ef_pointer_touches_ticks ef x mev.Midi.ticks) then (
-            Log.p "Event touched\n";
-            begin match ef.ef_pointer.ep_tool with
-            | EPTool_Resize ->
-                let on_drag x =
-                  (ef.ef_grid_begin_x < x) && (x < ef.ef_w) in
-                let on_release x_release =
-                  let x_ticks = 
-                    ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
-                  Log.p "released on %d (ie %d ticks)\n" x_release x_ticks;
-                  mev.Midi.ticks <- x_ticks;
-                  ef_cmd_redraw ef;
-                in
-                ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
-            | _ -> Log.warn "ef_on_mouse_press: Tool not implemented\n";
-            end;
-          );
-      | _ -> Log.warn "ef_on_mouse_press: NOT IMPLEMENTED\n";
-      ef.ef_pointer.ep_status <- EPStatus_DragStarted (event_id, x, y);
+      begin match ef.ef_pointer.ep_tool with
+      | EPTool_Resize ->
+          let event = ef.ef_model.tv_edit_evts.(event_id) in
+          begin match event with
+          | EE_Midi mev ->
+              if (ef_pointer_touches_ticks ef x mev.Midi.ticks) then (
+                util_start_resize_midi_ticks ef mev
+                ~valid_interval:(x_min, x_max);
+              );
+          | EE_MidiNote ev_list ->
+              let rec iter_on_list = function
+                | [] -> ()
+                | (ev_b, ev_e) :: q ->
+                    if (ef_pointer_touches_ticks ef x ev_b.Midi.ticks) then (
+                      util_start_resize_midi_ticks ef ev_b
+                      ~valid_interval:(x_min, pixelize ev_e.Midi.ticks);
+                    ) else if (ef_pointer_touches_ticks ef x ev_e.Midi.ticks)
+                    then (
+                      util_start_resize_midi_ticks ef ev_e
+                      ~valid_interval:(pixelize ev_b.Midi.ticks, x_max);
+                    ) else (
+                      iter_on_list q;
+                    )
+              in
+              iter_on_list ev_list;
+          | _ ->
+              Log.warn "ef_on_mouse_press: NOT IMPLEMENTED\n";
+              ef.ef_pointer.ep_status <- EPStatus_DragStarted (event_id, x, y);
+          end;
+      | _ -> Log.warn "ef_on_mouse_press: Tool not implemented\n";
       end;
     );
   );
