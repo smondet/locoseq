@@ -522,6 +522,20 @@ let ef_on_mouse_press ef x y = (
     in
     ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
   ) in
+  let util_start_removing_midi_event ef midi_ev  = (
+    let on_drag x = true in
+    let on_release x =
+      Log.p "Released !\n" ;
+      if (ef.ef_grid_begin_x <= x && x <= ef.ef_w) then (
+        Log.p "Removed ???\n" ;
+        App.remove_midi_event_from_track
+        ef.ef_model.tv_app ef.ef_model.tv_tk_id midi_ev;
+        tv_rebuild_editables ef.ef_model;
+        ef_cmd_redraw ef;
+      );
+    in
+    ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+  ) in
 
   let x_min = ef.ef_grid_begin_x in
   let x_max = ef.ef_w in
@@ -558,6 +572,17 @@ let ef_on_mouse_press ef x y = (
           | _ ->
               Log.warn "ef_on_mouse_press: NOT IMPLEMENTED\n";
               ef.ef_pointer.ep_status <- EPStatus_DragStarted (event_id, x, y);
+          end;
+      | EPTool_Erase ->
+          let event = ef.ef_model.tv_edit_evts.(event_id) in
+          begin match event with
+          | EE_Midi mev ->
+              if (ef_pointer_touches_ticks ef x mev.Midi.ticks) then (
+                Log.p "Touched !!\n" ;
+                util_start_removing_midi_event ef mev;
+              );
+          | _ ->
+              Log.warn "ef_on_mouse_press: NOT IMPLEMENTED\n";
           end;
       | _ -> Log.warn "ef_on_mouse_press: Tool not implemented\n";
       end;

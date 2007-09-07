@@ -207,6 +207,8 @@ let remove_meta_track app id = (
 let get_meta_track app id = Tracker.get_meta_track_actions app.a_tracker id 
 let get_midi_track app id = Tracker.get_midi_track_events app.a_tracker id 
 
+let remove_midi_event_from_track app tk_id midi_event =
+  (Tracker.remove_midi_event_from_track  app.a_tracker tk_id midi_event)
 
 (******************************************************************************)
 (** {3 Input Management} *)
