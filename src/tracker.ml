@@ -1,46 +1,46 @@
-(**************************************************************************)
-(*  Copyright (c) 2007, Sebastien MONDET                                  *)
-(*                                                                        *)
-(*  Permission is hereby granted, free of charge, to any person           *)
-(*  obtaining a copy of this software and associated documentation        *)
-(*  files (the "Software"), to deal in the Software without               *)
-(*  restriction, including without limitation the rights to use,          *)
-(*  copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
-(*  copies of the Software, and to permit persons to whom the             *)
-(*  Software is furnished to do so, subject to the following              *)
-(*  conditions:                                                           *)
-(*                                                                        *)
-(*  The above copyright notice and this permission notice shall be        *)
-(*  included in all copies or substantial portions of the Software.       *)
-(*                                                                        *)
-(*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
-(*  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
-(*  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
-(*  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
-(*  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
-(*  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
-(*  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
-(*  OTHER DEALINGS IN THE SOFTWARE.                                       *)
-(**************************************************************************)
+(******************************************************************************)
+(*      Copyright (c) 2007, Sebastien MONDET                                  *)
+(*                                                                            *)
+(*      Permission is hereby granted, free of charge, to any person           *)
+(*      obtaining a copy of this software and associated documentation        *)
+(*      files (the "Software"), to deal in the Software without               *)
+(*      restriction, including without limitation the rights to use,          *)
+(*      copy, modify, merge, publish, distribute, sublicense, and/or sell     *)
+(*      copies of the Software, and to permit persons to whom the             *)
+(*      Software is furnished to do so, subject to the following              *)
+(*      conditions:                                                           *)
+(*                                                                            *)
+(*      The above copyright notice and this permission notice shall be        *)
+(*      included in all copies or substantial portions of the Software.       *)
+(*                                                                            *)
+(*      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       *)
+(*      EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES       *)
+(*      OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND              *)
+(*      NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT           *)
+(*      HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,          *)
+(*      WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING          *)
+(*      FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR         *)
+(*      OTHER DEALINGS IN THE SOFTWARE.                                       *)
+(******************************************************************************)
 
-module Seq = AlsaSequencer ;;
-module Tim = AlsaSequencer ;;
-module HT = Hashtbl ;;
-(* module Midi = Midi ;; *)
+(** The {b Engine}
+ @author S. Mondet
+ *)
 
-
+module Seq = AlsaSequencer
+module Tim = AlsaSequencer
+module HT = Hashtbl
 
 type meta_action = 
   | TrackOn of int
   | TrackOff of int
   | SetBPM of int
   | TrackKeepOn of int
-;;
 
 type meta_event = {
   mutable m_ticks : int * int ;
   mutable action : meta_action ;
-} ;;
+}
 
 
 type meta_track = {
@@ -53,14 +53,14 @@ type meta_track = {
 
   mutable m_stop_scheduled : bool ;
   mutable m_play_scheduled : bool ;
-};;
+}
 
 type meta_action_spec = [
   | `track_set_on of int * int 
   | `track_set_off of int * int 
   | `set_bpm of int * int
   | `track_on of int * int * int 
-];;
+]
 
 type midi_track = {
   mutable midi_events: Midi.midi_event list ;
@@ -76,7 +76,7 @@ type midi_track = {
   mutable i_play_scheduled : bool ;
   mutable i_stop_scheduled : bool ;
 
-};;
+}
 let empty_track () = {
   midi_events = [] ;
   i_name = "" ;
@@ -87,7 +87,7 @@ let empty_track () = {
   i_set_play = false ;
   i_play_scheduled = false ;
   i_stop_scheduled = false ;
-};;
+}
 
 
 type tracker = {
@@ -106,9 +106,9 @@ type tracker = {
 
   mutable do_before : tracker -> unit ;
   mutable do_after  : tracker -> unit ;
-};;
+}
 
-let meta_events_of_meta_actions action_list =
+let meta_events_of_meta_actions action_list = (
   List.rev (
     List.rev_map (
       function
@@ -122,7 +122,8 @@ let meta_events_of_meta_actions action_list =
             { m_ticks = b,e ; action = TrackKeepOn tk ; }
           (* | _ -> failwith "MetaAction Not Implemented" *)
     ) action_list
-  );;
+  )
+)
 let make_meta_track name tick_nb (action_list:meta_action_spec list) =
   let actions = meta_events_of_meta_actions action_list in
   {
@@ -134,9 +135,6 @@ let make_meta_track name tick_nb (action_list:meta_action_spec list) =
     m_stop_scheduled = false ;
     m_play_scheduled = false ;
   }
-;;
-
-
 
 let new_HT () =  HT.create 50
 
@@ -155,7 +153,6 @@ ppqn bpm  sequencer before after =
     do_before    = before     ;
     do_after     = after      ;
   }
-;;
 
 (* Transformations:  *)
 let is_midi index = (index > 0)
@@ -476,7 +473,7 @@ end
 (******************************************************************************)
 (* PRINTF's: (debug) *)
 
-let print_info chan tr =
+let print_info chan tr = (
   let pr = Printf.fprintf chan in
   let l = get_midi_tracks_number tr in
   pr 
@@ -496,9 +493,9 @@ let print_info chan tr =
       "  [TK %3d] [ meta  ] [%-.20s] [%5d events, %4d ticks]\n%!" 
       (meta_index_to_id i) tk.m_name (List.length tk.meta_events) tk.m_tick_nb ;
   );
-  ();;
+)
 
-let util_track_status_to_string tr trk =
+let util_track_status_to_string tr trk = (
   if is_midi trk then (
     let tk = (midi_get_track tr trk) in
     "[MIDI]{playing: " ^ (string_of_bool tk.i_playing) ^
@@ -513,12 +510,13 @@ let util_track_status_to_string tr trk =
     ", just_stopped: " ^ (string_of_bool tk.m_stopped) ^
     ", scheduled_play: " ^ (string_of_bool tk.m_stop_scheduled) ^
     ", scheduled_stop: " ^ (string_of_bool tk.m_play_scheduled) ^ "}"
-  );;
+  )
+)
 
 
 (******************************************************************************)
-let set_ppqn tr ppqn = tr.ppqn <- ppqn ; ;;
-let get_ppqn tr = tr.ppqn ;;
+let set_ppqn tr ppqn = tr.ppqn <- ppqn
+let get_ppqn tr = tr.ppqn
 
 let get_midi_track_infos tr id = (
   let tk = midi_get_track tr id in
@@ -555,7 +553,7 @@ let get_track_stat trkr id =
 
 
 
-let toggle_playing_track tr tk =
+let toggle_playing_track tr tk = (
   if is_midi tk then (
     let tk = midi_get_track tr tk in
     if not tk.i_playing then (
@@ -575,9 +573,9 @@ let toggle_playing_track tr tk =
       tk.m_stopped <- true ;
     );
   );
-;; 
+)
 
-let set_playing_track tr tk =
+let set_playing_track tr tk = (
   if is_midi tk then (
     let tk = midi_get_track tr tk in
     if not tk.i_playing || tk.i_stopped
@@ -595,9 +593,9 @@ let set_playing_track tr tk =
       tk.m_play_scheduled <- false ;
     );
   );
-;;
+)
 
-let set_stopping_track tr tk =
+let set_stopping_track tr tk = (
   if is_midi tk then (
     let tk = midi_get_track tr tk in
     if tk.i_playing && not tk.i_set_play
@@ -614,7 +612,7 @@ let set_stopping_track tr tk =
       tk.m_play_scheduled <- false ;
     );
   );
-;; 
+)
 
 
 let schedule_play tr tk = (
@@ -648,7 +646,7 @@ let schedule_stop tr tk = (
   );
 )
 
-let is_track_playing tr tk =
+let is_track_playing tr tk = (
   if is_midi tk then (
     let tk = midi_get_track tr tk in
     tk.i_playing 
@@ -656,16 +654,16 @@ let is_track_playing tr tk =
     let tk = meta_get_track tr tk in
     tk.m_playing
   )
-;;
+)
 
 
-let schedule_toggle tr tk =
+let schedule_toggle tr tk = (
   if (is_track_playing tr tk) then (
     schedule_stop tr tk ;
   ) else (
     schedule_play tr tk ;
   )
-;;
+)
 
 let set_all_stopping tr = (
   midi_iteri tr ( fun i _ -> set_stopping_track tr i) ;
@@ -691,7 +689,7 @@ let add_to_bpm tr value = (
   );
 )
 
-let util_meta_ev_intersects_tick_interval (m_b,m_e) lgth (t_b,t_e) =
+let util_meta_ev_intersects_tick_interval (m_b,m_e) lgth (t_b,t_e) = (
   let t_bm = t_b mod lgth in
   let t_em = t_e mod lgth in
   if t_em < t_bm then (
@@ -703,24 +701,22 @@ let util_meta_ev_intersects_tick_interval (m_b,m_e) lgth (t_b,t_e) =
     (* [t_bm,t_em] is in the meta track interval *)
     ( t_bm <= m_b && m_b <= t_em ) || ( t_bm <= m_e && m_e <= t_em ) ||
     ( m_b <= t_bm && t_bm <= m_e ) || ( m_b <= t_em && t_em <= m_e ) 
-  );;
+  );
+)
 
 let util_meta_tick_in_interval tick lgth (t_b,t_e) =
   util_meta_ev_intersects_tick_interval (tick,tick) lgth (t_b,t_e) 
   (* Could be optimized !! *)
-;;
 
-let util_do_we_cross_the_end lgth (t_b,t_e) =
+let util_do_we_cross_the_end lgth (t_b,t_e) = (
   (* Log.p "util_do_we_cross_the_end %d (%d,%d)\n" lgth t_b t_e ; *)
   let t_bm = t_b mod lgth in
   let t_em = t_e mod lgth in
   (t_em < t_bm) || (t_bm = 0)
-;;
+)
 
 
-
-let play_meta_events send_ev tr previous_tick cur_tk = 
-
+let play_meta_events send_ev tr previous_tick cur_tk = (
   (* Managing META tracks *)
   meta_iteri tr (
     fun i tk ->
@@ -795,9 +791,9 @@ let play_meta_events send_ev tr previous_tick cur_tk =
         end tk.meta_events ;
       );
   );
-  ();;
+)
 
-let copy_and_queue_on_time ev send_ev seq port time =
+let copy_and_queue_on_time ev send_ev seq port time = (
   send_ev.Midi.ticks   <- time ;
   send_ev.Midi.status  <- ev.Midi.status ;
   send_ev.Midi.channel <- ev.Midi.channel ;
@@ -805,9 +801,9 @@ let copy_and_queue_on_time ev send_ev seq port time =
   send_ev.Midi.data_2  <- ev.Midi.data_2  ;
   (* Seq.output_event_direct tr.sequencer 0 send_ev ; *)
   Seq.put_event_in_queue seq port send_ev ;
-;;
+)
 
-let play_midi_events send_ev tr previous_tick cur_tk = 
+let play_midi_events send_ev tr previous_tick cur_tk = (
   (* Playing MIDI tracks: *)
   let should_send_noteoffs = ref true in
   midi_iteri tr (
@@ -864,14 +860,12 @@ let play_midi_events send_ev tr previous_tick cur_tk =
         ) tk.midi_events ;
       );
   );
-  ();;
+)
 
 
 
 
 let play on_end tr = (
-
-
   tr.is_playing <- true ;
 
   Seq.set_queue_tempo tr.sequencer tr.bpm tr.ppqn ;
