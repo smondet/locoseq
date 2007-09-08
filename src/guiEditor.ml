@@ -137,7 +137,7 @@ type track_values = {
   mutable tv_edit_evts : editable_event array;
 }
 
-let util_make_midi_editables midi_events = (
+let util_make_midi_editables midi_events track_length = (
 
   let module HT = Hashtbl in
 
@@ -153,6 +153,12 @@ let util_make_midi_editables midi_events = (
 
   List.iter (
     fun midi_ev ->
+      if midi_ev.Midi.ticks >= track_length then (
+        Log.warn "Detected a midi event with ticks after end of track\n";
+        let old = midi_ev.Midi.ticks in
+        midi_ev.Midi.ticks <- midi_ev.Midi.ticks mod track_length;
+        Log.log "Corrected with modulo: %d -> %d\n" old midi_ev.Midi.ticks;
+      );
       match midi_ev.Midi.status with
       | rs when ((0x80<= rs) && (rs <= 0x8F)) ->
           HT.add note_offs midi_ev.Midi.data_1 midi_ev;
@@ -175,14 +181,23 @@ let util_make_midi_editables midi_events = (
       let ons_iter = ref (List.length !ons) in
       let ofs_iter = ref (List.length !ofs) in
       while !ons_iter > 0 && !ofs_iter > 0 do
-        let tuple = List.hd !ons , List.hd !ofs in
-        for_this_note := tuple::!for_this_note;
-        ons := List.tl !ons;
-        ofs := List.tl !ofs;
-        decr ons_iter;
-        decr ofs_iter;
+        let the_on,the_of = List.hd !ons , List.hd !ofs in
+        if the_on.Midi.ticks < the_of.Midi.ticks
+        then (
+          (* "normal" case: *)
+          for_this_note := (the_on, the_of) :: !for_this_note;
+          ons := List.tl !ons; decr ons_iter;
+          ofs := List.tl !ofs; decr ofs_iter;
+        ) else (
+          Log.p "Not off (%d) before note on (%d)\n"
+          the_of.Midi.ticks the_on.Midi.ticks;
+          other_list := (EE_Midi the_of)::!other_list;
+          ofs := List.tl !ofs; decr ofs_iter;
+        );
       done;
-      notes_list :=  (EE_MidiNote !for_this_note)::!notes_list;
+      if !for_this_note <> [] then (
+        notes_list :=  (EE_MidiNote !for_this_note)::!notes_list;
+      );
       List.iter (
         fun x ->  other_list := (EE_Midi x)::!other_list;
       ) !ons;
@@ -209,7 +224,7 @@ let tv_make_track_values app tk_ref = (
       let _,p = App.get_bpm_ppqn app in
       let b,q,t = S.unitize_length_tuple length p in
       let midi_events = App.get_midi_track app tk in
-      let editables_list = util_make_midi_editables midi_events in
+      let editables_list = util_make_midi_editables midi_events length in
         (* List.rev (List.rev_map ( *)
         (* fun midi_ev -> EE_Midi midi_ev) midi_events) in *)
       let editables_array = Array.of_list editables_list in
@@ -247,11 +262,18 @@ let tv_make_track_values app tk_ref = (
       }
 )
 
+let tv_ticks_length tv = (
+  let b,q,t =
+    tv.tv_length_b, tv.tv_length_q, tv.tv_length_t in
+  let p = tv.tv_pqn in
+  b * 4 * p + q * p + t
+)
 let tv_rebuild_editables tv = (
   begin match tv.tv_type with
   | MIDI_TRACK ->
       let midi_events = App.get_midi_track tv.tv_app tv.tv_tk_id in
-      let editables_list = util_make_midi_editables midi_events in
+      let length = tv_ticks_length tv in
+      let editables_list = util_make_midi_editables midi_events length in
       let editables_array = Array.of_list editables_list in
       tv.tv_edit_evts <- editables_array;
   | META_TRACK ->
@@ -368,10 +390,7 @@ let ef_pixels_to_ticks ef pixels = (pixels * 50 / ef.ef_zoom)
 let ef_draw_background ef = (
 
   (* The Width *)
-  let b,q,t =
-    ef.ef_model.tv_length_b, ef.ef_model.tv_length_q, ef.ef_model.tv_length_t in
-  let p = ef.ef_model.tv_pqn in
-  let ticks_length = (b * 4 * p + q * p + t) in
+  let ticks_length = tv_ticks_length ef.ef_model in
   let pixel_length = ef_ticks_to_pixels ef ticks_length in
   ef.ef_w <- ef.ef_grid_begin_x + pixel_length;
 
@@ -404,13 +423,13 @@ let ef_draw_background ef = (
 
   (* Vertical lines: *)
   for i = 0 to ticks_length do
-    if ( i mod p ) = 0 then (
+    if ( i mod ef.ef_model.tv_pqn) = 0 then (
       let x = ef_ticks_to_pixels ef i in
       ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x + x) ~y:0
       ~width:!global_vert_quarter_width
       ~height:ef.ef_h ~filled:true ();
     ) else (
-      if ( i mod (p / ef.ef_cut_quarters) ) = 0 then (
+      if ( i mod (ef.ef_model.tv_pqn / ef.ef_cut_quarters) ) = 0 then (
         let x = ef_ticks_to_pixels ef i in
         ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x + x) ~y:0
         ~width:!global_vert_cut_quarter_width
