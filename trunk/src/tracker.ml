@@ -211,6 +211,23 @@ let add_or_replace_meta_track tr id mtk = (
   HT.remove tr.meta_tracks id ; HT.add tr.meta_tracks id mtk;
 )
 
+
+(** Do some controls and optimizations *)
+let compile trkr = (
+
+  midi_iteri trkr (fun id track ->
+    List.iter (fun midi_ev ->
+      if midi_ev.Midi.ticks >= track.i_tick_nb then (
+        Log.warn "Detected a midi event with ticks after end of track %d\n" id;
+        let old = midi_ev.Midi.ticks in
+        midi_ev.Midi.ticks <- midi_ev.Midi.ticks mod track.i_tick_nb;
+        Log.log "Corrected with modulo: %d -> %d\n" old midi_ev.Midi.ticks;
+      );
+    ) track.midi_events;
+  );
+
+)
+
 let get_midi_tracks_infos tr = (
   let res = Array.create (HT.length tr.midi_tracks) (0,"",0,0) in
   let index = ref 0 in
@@ -289,78 +306,76 @@ let add_midi_tracks  trkr midi_tracks = (
       result.midi_events <- List.rev !tmp_list ;
       HT.add trkr.midi_tracks (midi_new_id trkr) result ;
   ) midi_tracks ;
+  compile trkr;
 )
 
 let clear_tracker trkr = (
   trkr.midi_tracks <- new_HT () ;
   trkr.meta_tracks <- new_HT () ;
 )
-
-
 (******************************************************************************)
 (* SERIALIZATION TO XML: *)
-module X = Xml 
-let soi = string_of_int
-let ios = int_of_string 
+module XmlSerialization = struct
+  module X = Xml 
+  let soi = string_of_int
+  let ios = int_of_string 
 
-let xml_tracker = "tracker"
-let xml_meta_tracks = "meta_tracks"
-let xml_pqn = "pqn"
-let xml_bpm = "bpm"
-let xml_queue_delay = "queue_delay"
-let xml_timer_ticks = "timer_ticks"
+  let xml_tracker = "tracker"
+  let xml_meta_tracks = "meta_tracks"
+  let xml_pqn = "pqn"
+  let xml_bpm = "bpm"
+  let xml_queue_delay = "queue_delay"
+  let xml_timer_ticks = "timer_ticks"
 
-let xml_midi_event = "midi_event" 
-let xml_midi_track = "midi_track" 
-let xml_midi_tracks= "midi_tracks"
-let xml_meta_event = "meta_event" 
+  let xml_midi_event = "midi_event" 
+  let xml_midi_track = "midi_track" 
+  let xml_midi_tracks= "midi_tracks"
+  let xml_meta_event = "meta_event" 
 
-let xml_id = "id"
-let xml_name = "name"
-let xml_length = "length"
-let xml_outport = "outport"
+  let xml_id = "id"
+  let xml_name = "name"
+  let xml_length = "length"
+  let xml_outport = "outport"
 
-let xml_tcks = "tcks"
-let xml_stat = "stat"
-let xml_chan = "chan"
-let xml_dat1 = "dat1"
-let xml_dat2 = "dat2"
+  let xml_tcks = "tcks"
+  let xml_stat = "stat"
+  let xml_chan = "chan"
+  let xml_dat1 = "dat1"
+  let xml_dat2 = "dat2"
 
-let xml_begin          = "begin"
-let xml_end            = "end"
-let xml_action         = "action"
-let xml_arg1           = "arg1"
-let xml_track_set_on   = "track_set_on"
-let xml_track_set_off  = "track_set_off"
-let xml_set_bpm        = "set_bpm"
-let xml_track_keep_on  = "track_keep_on"
+  let xml_begin          = "begin"
+  let xml_end            = "end"
+  let xml_action         = "action"
+  let xml_arg1           = "arg1"
+  let xml_track_set_on   = "track_set_on"
+  let xml_track_set_off  = "track_set_off"
+  let xml_set_bpm        = "set_bpm"
+  let xml_track_keep_on  = "track_keep_on"
 
-
-let to_xml tr = (
-  let l_xml_midi_tracks = ref [] in
-  midi_iteri tr (
-    fun id tk ->
-      let xml_events = List.rev_map (
-        fun event ->
-          X.Element ( xml_midi_event , [
-            (xml_tcks,soi event.Midi.ticks  ) ;
-            (xml_stat,soi event.Midi.status ) ;
-            (xml_chan,soi event.Midi.channel) ;
-            (xml_dat1,soi event.Midi.data_1 ) ;
-            (xml_dat2,soi event.Midi.data_2 ) ; 
-          ] , [] )
-      ) tk.midi_events in
-      let xml_track = X.Element ( xml_midi_track , [
-        (xml_id,soi id); (xml_name , tk.i_name); (xml_length,soi tk.i_tick_nb);
-        (xml_outport,soi tk.i_outport) ;
-      ] , List.rev xml_events ) in
-      l_xml_midi_tracks := xml_track::!l_xml_midi_tracks ;
-  );
-  let xml_all_midi_tracks =
-    X.Element (xml_midi_tracks, [], List.rev !l_xml_midi_tracks) in
-  let l_xml_meta_tracks = ref [] in
-  meta_iteri tr (
-    fun id tk ->
+  let to_xml tr = (
+    let l_xml_midi_tracks = ref [] in
+    midi_iteri tr (
+      fun id tk ->
+        let xml_events = List.rev_map (
+          fun event ->
+            X.Element ( xml_midi_event , [
+              (xml_tcks,soi event.Midi.ticks  ) ;
+              (xml_stat,soi event.Midi.status ) ;
+              (xml_chan,soi event.Midi.channel) ;
+              (xml_dat1,soi event.Midi.data_1 ) ;
+              (xml_dat2,soi event.Midi.data_2 ) ; 
+            ] , [] )
+        ) tk.midi_events in
+        let xml_track = X.Element ( xml_midi_track , [
+          (xml_id,soi id); (xml_name , tk.i_name); (xml_length,soi tk.i_tick_nb);
+          (xml_outport,soi tk.i_outport) ;
+        ] , List.rev xml_events ) in
+        l_xml_midi_tracks := xml_track::!l_xml_midi_tracks ;
+    );
+    let xml_all_midi_tracks =
+      X.Element (xml_midi_tracks, [], List.rev !l_xml_midi_tracks) in
+    let l_xml_meta_tracks = ref [] in
+    meta_iteri tr ( fun id tk ->
       let xml_events = List.rev_map (
         fun event ->
           let b,e = event.m_ticks in
@@ -387,22 +402,21 @@ let to_xml tr = (
     (xml_pqn,soi tr.ppqn) ; (xml_bpm,soi tr.bpm) ;
     (xml_queue_delay, soi tr.queue_delay) ; (xml_timer_ticks,soi  tr.timer_ticks) 
   ] , [ xml_all_midi_tracks ; xml_all_meta_tracks ])
-)
+  )
 
-let load_xml trkr xml = (
-  if (X.tag xml) <> xml_tracker then (
-    failwith ("Expecting a tracker tag and got: " ^ (X.tag xml))
-  );
+  let load_xml trkr xml = (
+    if (X.tag xml) <> xml_tracker then (
+      failwith ("Expecting a tracker tag and got: " ^ (X.tag xml))
+    );
 
-  trkr.ppqn        <- ios (X.attrib xml xml_pqn );
-  trkr.bpm         <- ios (X.attrib xml xml_bpm);
-  trkr.queue_delay <- ios (X.attrib xml xml_queue_delay);
-  trkr.timer_ticks <- ios (X.attrib xml xml_timer_ticks);
+    trkr.ppqn        <- ios (X.attrib xml xml_pqn );
+    trkr.bpm         <- ios (X.attrib xml xml_bpm);
+    trkr.queue_delay <- ios (X.attrib xml xml_queue_delay);
+    trkr.timer_ticks <- ios (X.attrib xml xml_timer_ticks);
 
-  trkr.midi_tracks <- new_HT () ;
-  trkr.meta_tracks <- new_HT () ;
-  X.iter (
-    fun child ->
+    trkr.midi_tracks <- new_HT () ;
+    trkr.meta_tracks <- new_HT () ;
+    X.iter ( fun child ->
       match X.tag child with
       | s when s = xml_midi_tracks -> (
         X.iter (
@@ -454,9 +468,10 @@ let load_xml trkr xml = (
       )
       | s ->
           failwith ("Unknown tag while expecting (midi_ or meta_)tracks: "^s);
-  ) xml ;
-
-)
+    ) xml ;
+    compile trkr;
+  )
+end
 
 (******************************************************************************)
 (* PRINTF's: (debug) *)

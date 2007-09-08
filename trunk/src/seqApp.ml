@@ -302,7 +302,7 @@ let xml_stop=                 "stop"
 let xml_mute_all=             "mute_all"             
 
 let save_to_file_xml app filename = (
-  let xml_tracker = Tracker.to_xml app.a_tracker in
+  let xml_tracker = Tracker.XmlSerialization.to_xml app.a_tracker in
   let xml_inpact =
     X.Element ( xml_inputmgr , [] ,
     List.rev (List.rev_map (
@@ -367,8 +367,8 @@ let load_of_file_xml app filename = (
       X.iter (
         fun child ->
           match X.tag child with
-          | s when s = Tracker.xml_tracker ->
-              Tracker.load_xml app.a_tracker child ;
+          | s when s = Tracker.XmlSerialization.xml_tracker ->
+              Tracker.XmlSerialization.load_xml app.a_tracker child ;
           | s when s = xml_inputmgr -> (
             X.iter (
               fun hdlr ->
