@@ -137,6 +137,7 @@ module Settings = struct
   let global_vert_cut_quarter_width = ref 1
   let global_vert_quarter_width = ref 2
 
+  let midi_note_minimum_tick_size = ref 15
 end
 open Settings
 
@@ -580,7 +581,6 @@ let ef_on_mouse_press ef x y = (
       in
       let on_release x =
         if (ef.ef_grid_begin_x <= x && x <= ef.ef_w) then (
-          Log.p "Removed ???\n" ;
           App.remove_midi_event_from_track
           ef.ef_model.tv_app ef.ef_model.tv_tk_id ev_b;
           App.remove_midi_event_from_track
@@ -588,6 +588,40 @@ let ef_on_mouse_press ef x y = (
           tv_rebuild_editables ef.ef_model;
           ef_cmd_redraw ef;
         );
+      in
+      ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+    )
+    let start_adding_note_instance ef x_start ev_list = (
+      let on_drag x = (ef.ef_grid_begin_x <= x && x <= ef.ef_w) in
+      let on_release x_release =
+        let x_start_ticks = 
+          ef_pixels_to_ticks ef (x_start - ef.ef_grid_begin_x) in
+        let x_release_ticks =
+          ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
+        if (
+          (abs (x_start_ticks - x_release_ticks)) 
+          >= !Settings.midi_note_minimum_tick_size
+        ) then (
+          let example_on, example_of = List.hd ev_list in
+          let note_on, note_of =
+            Midi.copy_midi_event example_on, Midi.copy_midi_event example_of
+          in
+          if (x_start_ticks < x_release_ticks) then (
+            note_on.Midi.ticks <- x_start_ticks;
+            note_of.Midi.ticks <- x_release_ticks;
+          ) else (
+            note_on.Midi.ticks <- x_release_ticks;
+            note_of.Midi.ticks <- x_start_ticks;
+          );
+          App.add_midi_event_to_track 
+          ef.ef_model.tv_app ef.ef_model.tv_tk_id note_on;
+          App.add_midi_event_to_track
+          ef.ef_model.tv_app ef.ef_model.tv_tk_id note_of;
+          tv_rebuild_editables ef.ef_model;
+          ef_cmd_redraw ef;
+        ) else (
+          Log.warn "Event too small !\n";
+        )
       in
       ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
     )
@@ -653,6 +687,17 @@ let ef_on_mouse_press ef x y = (
               );
           | EE_MidiNote  ev_list ->
               LocalUtil.iter_note_instances_for_erase ev_list;
+          | _ ->
+              Log.warn "ef_on_mouse_press: NOT IMPLEMENTED\n";
+          end;
+      | EPTool_Write ->
+          let event = ef.ef_model.tv_edit_evts.(event_id) in
+          begin match event with
+          | EE_Midi mev ->
+              Log.warn "ef_on_mouse_press: %s\n"
+              "Write action on generic midi events is not allowed";
+          | EE_MidiNote  ev_list ->
+              LocalUtil.start_adding_note_instance ef x ev_list;
           | _ ->
               Log.warn "ef_on_mouse_press: NOT IMPLEMENTED\n";
           end;
