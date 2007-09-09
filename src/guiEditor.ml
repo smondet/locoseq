@@ -30,81 +30,115 @@
  @author S. Mondet
  *)
 
+(** {3 Practical Renamings} *)
 
 module App = SeqApp
 module S = StringServer
 
-(** {3 Internal GUI utilities} *)
+(** {3 Internal modules} *)
 
-(** append a label to a box *)
-let util_append_label text (box:GPack.box) = ignore (
-  GMisc.label ~text ~packing:(box#pack ~expand:false ~fill:false ~padding:0) ()
-)
+(** GUI simple generic utilities *)
+module GuiUtil = struct
+
+  (** append a label to a box *)
+  let append_label text (box:GPack.box) = ignore (
+    GMisc.label ~text
+    ~packing:(box#pack ~expand:false ~fill:false ~padding:0) ()
+  )
 
 
-(** Append a vertical separator to a box *)
-let util_append_vertsepar (box:GPack.box) = (
-  let sep =
-    GMisc.separator `VERTICAL
-    ~packing:(box#pack ~expand:false ~fill:false ~padding:0) 
-    ~show:true () in
-  sep#misc#set_size_request ~width:30 ();
-)
+  (** Append a vertical separator to a box *)
+  let append_vertsepar (box:GPack.box) = (
+    let sep =
+      GMisc.separator `VERTICAL
+      ~packing:(box#pack ~expand:false ~fill:false ~padding:0) 
+      ~show:true () in
+    sep#misc#set_size_request ~width:30 ();
+  )
 
-(** Append an horizontal separator to a box *)
-let util_append_horzsepar (box:GPack.box) = (
-  let sep =
-    GMisc.separator `HORIZONTAL
-    ~packing:(box#pack ~expand:false ~fill:false ~padding:0) ~show:true () in
-  sep#misc#set_size_request ~width:10 ();
-)
+  (** Append an horizontal separator to a box *)
+  let append_horzsepar (box:GPack.box) = (
+    let sep =
+      GMisc.separator `HORIZONTAL
+      ~packing:(box#pack ~expand:false ~fill:false ~padding:0) ~show:true () in
+    sep#misc#set_size_request ~width:10 ();
+  )
 
-(** Make a text mono-stable button and append it to a box *)
-let util_append_button text (box:GPack.box) = (
-  GButton.button ~label:text
-  ~packing:(box#pack ~expand:false ~fill:false ~padding:0)  ~show:true ()
-)
+  (** Make a text mono-stable button and append it to a box *)
+  let append_button text (box:GPack.box) = (
+    GButton.button ~label:text
+    ~packing:(box#pack ~expand:false ~fill:false ~padding:0)  ~show:true ()
+  )
 
-(** Make a text bi-stable button and append it to a box *)
-let util_append_toggle text (box:GPack.box) = (
-  GButton.toggle_button ~label:text ~active:false ~relief:`NORMAL
-  ~packing:(box#pack ~expand:false ~fill:false ~padding:0)  ~show:true ()
-)
+  (** Make a text bi-stable button and append it to a box *)
+  let append_toggle text (box:GPack.box) = (
+    GButton.toggle_button ~label:text ~active:false ~relief:`NORMAL
+    ~packing:(box#pack ~expand:false ~fill:false ~padding:0)  ~show:true ()
+  )
 
-(** Make an horizontal box (1 row) *)
-let util_append_hbox (box:GPack.box) = (
-  GPack.hbox  ~homogeneous:false
-  ~packing:(box#pack ~expand:false ~fill:false ~padding:0) ~show:true ()
-)
+  (** Make an horizontal box (1 row) *)
+  let append_hbox (box:GPack.box) = (
+    GPack.hbox  ~homogeneous:false
+    ~packing:(box#pack ~expand:false ~fill:false ~padding:0) ~show:true ()
+  )
 
-(** Make a [spin_button] for an integer value *)
-let util_int_spin_button min max box = (
-  let adj =
-    GData.adjustment ~value:min ~lower:min ~upper:max
-    ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-  GEdit.spin_button ~adjustment:adj ~packing:(box#add) ()
-)
+  (** Make a [spin_button] for an integer value *)
+  let int_spin_button min max box = (
+    let adj =
+      GData.adjustment ~value:min ~lower:min ~upper:max
+      ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+    GEdit.spin_button ~adjustment:adj ~packing:(box#add) ()
+  )
+end
+
 
 (******************************************************************************)
-(** {3 More generic utilities} *)
+(** Midi related utilities *)
+module MidiUtil = struct
 
-let util_note_octave_of_event ev = (
-  ev.Midi.data_1 mod 12 , (ev.Midi.data_1 / 12) + 1
-)
-let util_note_of_val_octave value octave = (octave - 1) * 12 + value
+  let note_octave_of_event ev = (
+    ev.Midi.data_1 mod 12 , (ev.Midi.data_1 / 12) + 1
+  )
 
-let util_note_to_string note = (
-  let value,octave = util_note_octave_of_event note in
-  let virtual_note = StringServer.note_names.(value) in
-  let chan = note.Midi.channel in
-  Printf.sprintf "NOTE: %s%d -> %d" virtual_note octave chan
-)
+  let note_of_val_and_oct value octave = (octave - 1) * 12 + value
 
-let util_midi_event_to_string midi_ev = (
-  let cmd = Midi.midi_cmd_of_event midi_ev in
-  let chan = midi_ev.Midi.channel in
-  Printf.sprintf "%s -> %d" (Midi.midi_cmd_to_string cmd) chan
-)
+  let note_to_string note = (
+    let value,octave = note_octave_of_event note in
+    let virtual_note = StringServer.note_names.(value) in
+    let chan = note.Midi.channel in
+    Printf.sprintf "NOTE: %s%d -> %d" virtual_note octave chan
+  )
+
+  let midi_event_to_string midi_ev = (
+    let cmd = Midi.midi_cmd_of_event midi_ev in
+    let chan = midi_ev.Midi.channel in
+    Printf.sprintf "%s -> %d" (Midi.midi_cmd_to_string cmd) chan
+  )
+end
+
+(** Editor global settings (colors, fonts...) *)
+module Settings = struct
+
+  (** The editor font: *)
+  let global_main_font = ref "Monospace 6"
+
+  let make_color str = (`NAME str : GDraw.color)
+  let global_bg_color   = ref (make_color "#4A00DD")
+  let global_grid_color = ref (make_color "#E8B500")
+  let global_text_color = ref (make_color "#B9FFB1")
+  let global_selected_text_color = ref (make_color "#FF0C00")
+  let global_text_velocity_color = ref (make_color "#D40000")
+  let global_midi_event_tick_color = ref (make_color "#BB006A")
+  let global_midi_event_range_color = ref (make_color "#5AFE00")
+
+  let global_separ_width = ref 3
+  let global_horiz_lines_width = ref 2
+
+  let global_vert_cut_quarter_width = ref 1
+  let global_vert_quarter_width = ref 2
+
+end
+open Settings
 
 (******************************************************************************)
 (** {3 The model} *)
@@ -337,26 +371,6 @@ type event_frame = {
   ef_on_selection: event_frame -> unit;
 }
 
-
-(** The editor font: *)
-let global_main_font = ref "Monospace 6"
-
-
-let make_color str = (`NAME str : GDraw.color)
-let global_bg_color   = ref (make_color "#4A00DD")
-let global_grid_color = ref (make_color "#E8B500")
-let global_text_color = ref (make_color "#B9FFB1")
-let global_selected_text_color = ref (make_color "#FF0C00")
-let global_text_velocity_color = ref (make_color "#D40000")
-let global_midi_event_tick_color = ref (make_color "#BB006A")
-let global_midi_event_range_color = ref (make_color "#5AFE00")
-
-let global_separ_width = ref 3
-let global_horiz_lines_width = ref 2
-
-let global_vert_cut_quarter_width = ref 1
-let global_vert_quarter_width = ref 2
-
 let ef_update_size ef = (
   (* we add some pixels to have an elegant drawing... *)
   (* ef.ef_area#set_size ~width:(ef.ef_w+2) ~height:(ef.ef_h+2); *)
@@ -443,7 +457,7 @@ let ef_draw_event ef index event = (
   in
   begin match event with
   | EE_Midi ev ->
-      let str = util_midi_event_to_string ev in
+      let str = MidiUtil.midi_event_to_string ev in
       let lo = ef_make_layout ef str in
       let _, l_y = Pango.Layout.get_pixel_size lo in
       let cur_y = 2 + (index * l_y) in
@@ -459,7 +473,7 @@ let ef_draw_event ef index event = (
   | EE_MidiNote [] -> Log.p "An empty midi note...\n" ;
   | EE_MidiNote ev_list ->
       let ev_on, _ = List.hd ev_list in
-      let str = util_note_to_string ev_on in
+      let str = MidiUtil.note_to_string ev_on in
       let lo = ef_make_layout ef str in
       let _, l_y = Pango.Layout.get_pixel_size lo in
       let cur_y = 2 + (index * l_y) in
@@ -702,7 +716,6 @@ let ef_make (box:GPack.box) values ~on_selection = (
 
   let the_event_frame = {
     ef_model = values;
-    (* ef_area = draw_area; *)
     ef_imag = draw_area;
     ef_draw = pixmap;
     ef_pointer = {
@@ -766,7 +779,7 @@ let rec util_update_add_edit_line box ef = (
   let module S = StringServer in
 
   List.iter (fun x -> x#destroy ()) box#all_children;
-  let add_button = util_append_button "Add event" box in
+  let add_button = GuiUtil.append_button "Add event" box in
   ignore(add_button#connect#clicked ~callback:(
     fun () -> Log.warn "Not implemented !\n" ;
   ));
@@ -775,11 +788,11 @@ let rec util_update_add_edit_line box ef = (
     begin match event with
     | EE_MidiNote ((mev_b,mev_e)::t as ev_list) ->
         Log.p "editing a note\n" ;
-        util_append_label "NOTE: " box;
+        GuiUtil.append_label "NOTE: " box;
 
-        let note_value, octave = util_note_octave_of_event mev_b in
+        let note_value, octave = MidiUtil.note_octave_of_event mev_b in
         (* The note: *)
-        util_append_label "Value:" box;
+        GuiUtil.append_label "Value:" box;
         let note_entry = 
           GEdit.combo_box_text ~strings:(Array.to_list S.note_names)
           ~packing:box#add () in
@@ -787,12 +800,12 @@ let rec util_update_add_edit_line box ef = (
         cbo#set_active note_value;
         ignore(cbo#connect#changed ~callback:( fun () ->
           Log.p "The active is: %d\n" cbo#active;
-          let _, octave = util_note_octave_of_event mev_b in
+          let _, octave = MidiUtil.note_octave_of_event mev_b in
           let new_note = cbo#active in
           List.iter (
             fun (evb, eve) ->
-              evb.Midi.data_1 <- util_note_of_val_octave new_note octave;
-              eve.Midi.data_1 <- util_note_of_val_octave new_note octave;
+              evb.Midi.data_1 <- MidiUtil.note_of_val_and_oct new_note octave;
+              eve.Midi.data_1 <- MidiUtil.note_of_val_and_oct new_note octave;
           ) ev_list;
           tv_rebuild_editables ef.ef_model;
           ef.ef_current_selection <- -1;
@@ -801,20 +814,20 @@ let rec util_update_add_edit_line box ef = (
         ));
 
         (* The octave: *)
-        util_append_label "Octave:" box;
+        GuiUtil.append_label "Octave:" box;
         let octave_adj =
           GData.adjustment ~value:(float octave) ~lower:(1.0) ~upper:22.0
           ~step_incr:1.0 ~page_incr:5.0 ~page_size:0.0 () in
         let octave_spin =
           GEdit.spin_button ~adjustment:octave_adj ~packing:(box#add) () in
         ignore (octave_spin#connect#changed ~callback:(fun () ->
-          let note, _ = util_note_octave_of_event mev_b in
+          let note, _ = MidiUtil.note_octave_of_event mev_b in
           let new_octave = int_of_float octave_adj#value in
           (* TODO verify that data_1 < 255 *)
           List.iter (
             fun (evb, eve) ->
-              evb.Midi.data_1 <- util_note_of_val_octave note new_octave;
-              eve.Midi.data_1 <- util_note_of_val_octave note new_octave;
+              evb.Midi.data_1 <- MidiUtil.note_of_val_and_oct note new_octave;
+              eve.Midi.data_1 <- MidiUtil.note_of_val_and_oct note new_octave;
           ) ev_list;
           tv_rebuild_editables ef.ef_model;
           ef.ef_current_selection <- -1;
@@ -823,7 +836,7 @@ let rec util_update_add_edit_line box ef = (
         ));
 
         (* The channel: *)
-        util_append_label "Channel:" box;
+        GuiUtil.append_label "Channel:" box;
         let chan_entry = 
           GEdit.combo_box_text ~strings:S.midi_channel_strings
           ~packing:box#add () in
@@ -840,7 +853,7 @@ let rec util_update_add_edit_line box ef = (
           ef_cmd_redraw ef;
         ));
     | EE_Midi ev ->
-        util_append_label "MIDI EVENT: " box;
+        GuiUtil.append_label "MIDI EVENT: " box;
         let stat_entry = 
           GEdit.combo_box_text ~strings:(List.tl S.global_available_midi_events)
           ~packing:box#add () in
@@ -859,7 +872,7 @@ let rec util_update_add_edit_line box ef = (
           util_update_add_edit_line box ef;
           ef_cmd_redraw ef;
         ));
-        util_append_label " Channel:" box;
+        GuiUtil.append_label " Channel:" box;
         let chan_entry = 
           GEdit.combo_box_text ~strings:S.midi_channel_strings
             ~packing:box#add () in
@@ -870,7 +883,7 @@ let rec util_update_add_edit_line box ef = (
           util_update_add_edit_line box ef;
           ef_cmd_redraw ef;
         ));
-        util_append_label " Data 1:" box;
+        GuiUtil.append_label " Data 1:" box;
         let note_adj =
           GData.adjustment ~value:(float ev.Midi.data_1) ~lower:(0.)
           ~upper:255.0 ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
@@ -884,7 +897,7 @@ let rec util_update_add_edit_line box ef = (
         (* for 2-arg midi events: *)
         let rs = ev.Midi.status land 0xF0 in
         if not ((0xC0 <= rs) && (rs <= 0xDF)) then (
-          util_append_label " Data 2:" box;
+          GuiUtil.append_label " Data 2:" box;
           let velo_adj =
             GData.adjustment ~value:(float ev.Midi.data_2) ~lower:(0.0)
             ~upper:255.0 ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
@@ -924,59 +937,58 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   let main_vbox = GPack.vbox ~homogeneous:false
   ~packing:te#add  ~show:true () in
 
-  let track_settings_hbox = util_append_hbox main_vbox in
+  let track_settings_hbox = GuiUtil.append_hbox main_vbox in
 
   (* The name: *)
-  util_append_label "Name: " track_settings_hbox ;
+  GuiUtil.append_label "Name: " track_settings_hbox ;
   let name_entry = GEdit.entry ~text:tk_values.tv_name ~max_length:256
   ~editable:true ~has_frame:true ~width_chars:16
   ~packing:track_settings_hbox#add ~show:true () in
 
   (* The length (bar,quarter,tick): *)
-  util_append_vertsepar track_settings_hbox ;
-  util_append_label "Length: " track_settings_hbox ;
+  GuiUtil.append_vertsepar track_settings_hbox ;
+  GuiUtil.append_label "Length: " track_settings_hbox ;
 
-  let length_b_spin = util_int_spin_button 0. 20000. track_settings_hbox in
+  let length_b_spin = GuiUtil.int_spin_button 0. 20000. track_settings_hbox in
   length_b_spin#adjustment#set_value (float tk_values.tv_length_b);
 
-  util_append_label " 4/4 bars, " track_settings_hbox ;
+  GuiUtil.append_label " 4/4 bars, " track_settings_hbox ;
   
-  let length_q_spin = util_int_spin_button 0. 20000. track_settings_hbox in
+  let length_q_spin = GuiUtil.int_spin_button 0. 20000. track_settings_hbox in
   length_q_spin#adjustment#set_value (float tk_values.tv_length_q);
 
-  util_append_label " quarters and " track_settings_hbox ;
+  GuiUtil.append_label " quarters and " track_settings_hbox ;
   
-  let length_t_spin = util_int_spin_button 0. 200. track_settings_hbox in
+  let length_t_spin = GuiUtil.int_spin_button 0. 200. track_settings_hbox in
   length_t_spin#adjustment#set_value (float tk_values.tv_length_t);
 
-  util_append_label " ticks" track_settings_hbox ;
+  GuiUtil.append_label " ticks" track_settings_hbox ;
 
   (* The only MIDI ouput port: *)
   let port_combo = match tk_values.tv_type with
-  | MIDI_TRACK -> (
-    util_append_vertsepar track_settings_hbox ;
-    util_append_label " Port: " track_settings_hbox ;
-    let port_combo =
-      GEdit.combo_box_text ~strings:(Array.to_list S.out_put_ports)
-      ~add_tearoffs:false ~packing:track_settings_hbox#add () in
-    (fst port_combo)#set_active tk_values.tv_port ;
-    Some port_combo
-  ) 
+  | MIDI_TRACK ->
+      GuiUtil.append_vertsepar track_settings_hbox ;
+      GuiUtil.append_label " Port: " track_settings_hbox ;
+      let port_combo =
+        GEdit.combo_box_text ~strings:(Array.to_list S.out_put_ports)
+        ~add_tearoffs:false ~packing:track_settings_hbox#add () in
+      (fst port_combo)#set_active tk_values.tv_port ;
+      Some port_combo
   | _ -> None
   in
   
   (* next line: *)
-  util_append_horzsepar main_vbox ;
-  let tools_hbox = util_append_hbox main_vbox in
+  GuiUtil.append_horzsepar main_vbox ;
+  let tools_hbox = GuiUtil.append_hbox main_vbox in
 
   (* "Tools" buttons: *)
-  let write_toggle = util_append_toggle "Write" tools_hbox in
-  let erase_toggle = util_append_toggle "Erase" tools_hbox in
-  let resiz_toggle = util_append_toggle "Resize" tools_hbox in
-  util_append_vertsepar tools_hbox ;
+  let write_toggle = GuiUtil.append_toggle "Write" tools_hbox in
+  let erase_toggle = GuiUtil.append_toggle "Erase" tools_hbox in
+  let resiz_toggle = GuiUtil.append_toggle "Resize" tools_hbox in
+  GuiUtil.append_vertsepar tools_hbox ;
 
   (* Zoom: *)
-  util_append_label "Zoom:" tools_hbox ;
+  GuiUtil.append_label "Zoom:" tools_hbox ;
   let zoom_adj = 
     GData.adjustment ~value:(1.0) ~lower:(1.0) ~upper:200.0
     ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
@@ -985,10 +997,10 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
     ~draw_value:false ~update_policy:`CONTINUOUS
     ~packing:(tools_hbox#pack ~expand:true ~fill:true ~padding:0)
     ~show:true () in
-  util_append_vertsepar tools_hbox ;
+  GuiUtil.append_vertsepar tools_hbox ;
 
   (* Mouse behaviour: *)
-  util_append_label "Snap:" tools_hbox ;
+  GuiUtil.append_label "Snap:" tools_hbox ;
   let snap_combo = 
     GEdit.combo_box_text
     ~strings:["1"; "1/2"; "1/4"; "1/16"; "none"]
@@ -997,12 +1009,12 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   in
   (fst snap_combo)#set_active 0;
 
-  util_append_horzsepar main_vbox;
+  GuiUtil.append_horzsepar main_vbox;
 
   (* The "edit" line: *)
-  let add_edit_hbox = util_append_hbox main_vbox in
+  let add_edit_hbox = GuiUtil.append_hbox main_vbox in
 
-  util_append_horzsepar main_vbox;
+  GuiUtil.append_horzsepar main_vbox;
 
   let ev_frame =
     ef_make main_vbox tk_values
@@ -1083,7 +1095,7 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   | Some (pc, _) -> 
       ignore( pc#connect#changed ~callback:( fun () ->
         tk_values.tv_port <- pc#active;
-          tv_update_track_info tk_values; change_callback ();
+        tv_update_track_info tk_values; change_callback ();
       ));
   | _ -> ()
   end;
