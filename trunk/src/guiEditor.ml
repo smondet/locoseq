@@ -524,7 +524,7 @@ let ef_pointer_in_ticks_interval ef x_point (t_min, t_max) = (
 
 let ef_on_mouse_press ef x y = (
   (* Log.p "ef_on_mouse_press is called: (%d,%d) on event: %d !!\n" *)
-  x y (ef_y_to_event ef y);
+  (* x y (ef_y_to_event ef y); *)
   if (ef.ef_pointer.ep_tool = EPTool_None && x < ef.ef_grid_begin_x) then (
     ef.ef_current_selection <- (ef_y_to_event ef y);
     ef_cmd_redraw ef;
