@@ -270,6 +270,11 @@ let remove_midi_event_from_track trkr id midi_ev = (
   track.midi_events <- List.filter (fun m -> m <> midi_ev) track.midi_events;
 )
 
+let add_midi_event_to_track trkr id midi_ev = (
+  let track = (midi_get_track trkr id) in
+  track.midi_events  <- midi_ev :: track.midi_events;
+)
+
 
 let add_midi_tracks  trkr midi_tracks = (
   Array.iteri (

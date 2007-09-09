@@ -150,6 +150,16 @@ let empty_midi_event () = {
   data_2  = 0 ;
 };;
 
+(** Copy make a new instance equal to the given midi event *)
+let copy_midi_event mev = (
+  let res = empty_midi_event () in
+  res.ticks   <- mev.ticks  ;
+  res.status  <- mev.status ;
+  res.channel <- mev.channel;
+  res.data_1  <- mev.data_1 ;
+  res.data_2  <- mev.data_2 ;
+  res
+)
 (******************************************************************************)
 (* 
  * Higher-levelizing the midi events:
