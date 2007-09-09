@@ -153,12 +153,6 @@ let util_make_midi_editables midi_events track_length = (
 
   List.iter (
     fun midi_ev ->
-      if midi_ev.Midi.ticks >= track_length then (
-        Log.warn "Detected a midi event with ticks after end of track\n";
-        let old = midi_ev.Midi.ticks in
-        midi_ev.Midi.ticks <- midi_ev.Midi.ticks mod track_length;
-        Log.log "Corrected with modulo: %d -> %d\n" old midi_ev.Midi.ticks;
-      );
       match midi_ev.Midi.status with
       | rs when ((0x80<= rs) && (rs <= 0x8F)) ->
           HT.add note_offs midi_ev.Midi.data_1 midi_ev;
@@ -520,9 +514,16 @@ let ef_pointer_touches_ticks ef x_point ticks = (
   Log.p "--- ticks:%d(%d) x:%d\n" ticks x_of_ticks x;
   (x - ep.ep_precision < x_of_ticks ) && (x_of_ticks < x + ep.ep_precision)
 )
+let ef_pointer_in_ticks_interval ef x_point (t_min, t_max) = (
+  let x_min = ef_ticks_to_pixels ef t_min in
+  let x_max = ef_ticks_to_pixels ef t_max in
+  let x = x_point - ef.ef_grid_begin_x in
+  (* Log.p "--- ticks:%d(%d) in [%d, %d] ?\n" x x_point x_min x_max; *)
+  (x_min <= x ) && (x <= x_max)
+)
 
 let ef_on_mouse_press ef x y = (
-  Log.p "ef_on_mouse_press is called: (%d,%d) on event: %d !!\n"
+  (* Log.p "ef_on_mouse_press is called: (%d,%d) on event: %d !!\n" *)
   x y (ef_y_to_event ef y);
   if (ef.ef_pointer.ep_tool = EPTool_None && x < ef.ef_grid_begin_x) then (
     ef.ef_current_selection <- (ef_y_to_event ef y);
@@ -530,31 +531,54 @@ let ef_on_mouse_press ef x y = (
     ef.ef_on_selection ef;
   );
 
-  let util_start_resize_midi_ticks ef midi_ev ~valid_interval = (
-    let (x_min,x_max) = valid_interval in
-    let on_drag x = (x_min <= x) && (x <= x_max) in
-    let on_release x_release =
-      let x_ticks = 
-        ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
-      midi_ev.Midi.ticks <- x_ticks;
-      ef_cmd_redraw ef;
-    in
-    ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
-  ) in
-  let util_start_removing_midi_event ef midi_ev  = (
-    let on_drag x = true in
-    let on_release x =
-      Log.p "Released !\n" ;
-      if (ef.ef_grid_begin_x <= x && x <= ef.ef_w) then (
-        Log.p "Removed ???\n" ;
-        App.remove_midi_event_from_track
-        ef.ef_model.tv_app ef.ef_model.tv_tk_id midi_ev;
-        tv_rebuild_editables ef.ef_model;
+  (* Utilities for this automata: *)
+  let module LocalUtil = struct
+    let start_resize_midi_ticks ef midi_ev ~valid_interval = (
+      let (x_min,x_max) = valid_interval in
+      let on_drag x = (x_min <= x) && (x <= x_max) in
+      let on_release x_release =
+        let x_ticks = 
+          ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
+        midi_ev.Midi.ticks <- x_ticks;
         ef_cmd_redraw ef;
-      );
-    in
-    ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
-  ) in
+      in
+      ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+    )
+    let start_removing_midi_event ef midi_ev  = (
+      let on_drag x = true in
+      let on_release x =
+        Log.p "Released !\n" ;
+        if (ef.ef_grid_begin_x <= x && x <= ef.ef_w) then (
+          Log.p "Removed ???\n" ;
+          App.remove_midi_event_from_track
+          ef.ef_model.tv_app ef.ef_model.tv_tk_id midi_ev;
+          tv_rebuild_editables ef.ef_model;
+          ef_cmd_redraw ef;
+        );
+      in
+      ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+    )
+    let start_removing_midi_note ef (ev_b, ev_e) = (
+      let on_drag x =
+        ef_pointer_in_ticks_interval ef x
+        (ev_b.Midi.ticks,ev_e.Midi.ticks)
+      in
+      let on_release x =
+        if (ef.ef_grid_begin_x <= x && x <= ef.ef_w) then (
+          Log.p "Removed ???\n" ;
+          App.remove_midi_event_from_track
+          ef.ef_model.tv_app ef.ef_model.tv_tk_id ev_b;
+          App.remove_midi_event_from_track
+          ef.ef_model.tv_app ef.ef_model.tv_tk_id ev_e;
+          tv_rebuild_editables ef.ef_model;
+          ef_cmd_redraw ef;
+        );
+      in
+      ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+
+    )
+  end
+  in
 
   let x_min = ef.ef_grid_begin_x in
   let x_max = ef.ef_w in
@@ -569,25 +593,23 @@ let ef_on_mouse_press ef x y = (
           begin match event with
           | EE_Midi mev ->
               if (ef_pointer_touches_ticks ef x mev.Midi.ticks) then (
-                util_start_resize_midi_ticks ef mev
+                LocalUtil.start_resize_midi_ticks ef mev
                 ~valid_interval:(x_min, x_max);
               );
           | EE_MidiNote ev_list ->
               let rec iter_on_list = function
-                | [] -> ()
-                | (ev_b, ev_e) :: q ->
+                | [] -> () | (ev_b, ev_e) :: q ->
                     if (ef_pointer_touches_ticks ef x ev_b.Midi.ticks) then (
-                      util_start_resize_midi_ticks ef ev_b
+                      LocalUtil.start_resize_midi_ticks ef ev_b
                       ~valid_interval:(x_min, pixelize ev_e.Midi.ticks);
                     ) else if (ef_pointer_touches_ticks ef x ev_e.Midi.ticks)
                     then (
-                      util_start_resize_midi_ticks ef ev_e
+                      LocalUtil.start_resize_midi_ticks ef ev_e
                       ~valid_interval:(pixelize ev_b.Midi.ticks, x_max);
                     ) else (
                       iter_on_list q;
                     )
-              in
-              iter_on_list ev_list;
+              in (iter_on_list ev_list);
           | _ ->
               Log.warn "ef_on_mouse_press: NOT IMPLEMENTED\n";
               ef.ef_pointer.ep_status <- EPStatus_DragStarted (event_id, x, y);
@@ -598,8 +620,22 @@ let ef_on_mouse_press ef x y = (
           | EE_Midi mev ->
               if (ef_pointer_touches_ticks ef x mev.Midi.ticks) then (
                 Log.p "Touched !!\n" ;
-                util_start_removing_midi_event ef mev;
+                LocalUtil.start_removing_midi_event ef mev;
               );
+          | EE_MidiNote  ev_list ->
+              let rec iter_on_list = function
+                | [] -> () | (ev_b, ev_e) :: q ->
+                    Log.p "Touched ??\n" ;
+                    if (
+                      ef_pointer_in_ticks_interval ef x
+                      (ev_b.Midi.ticks,ev_e.Midi.ticks)
+                    ) then (
+                      Log.p "Touched !!\n" ;
+                      LocalUtil.start_removing_midi_note ef (ev_b,ev_e);
+                    ) else (
+                      iter_on_list q;
+                    )
+              in (iter_on_list ev_list);
           | _ ->
               Log.warn "ef_on_mouse_press: NOT IMPLEMENTED\n";
           end;
