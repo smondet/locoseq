@@ -537,6 +537,11 @@ let set_midi_track_infos tr id name port ticks = (
 let get_meta_track_infos tr id = (
   let tk = meta_get_track tr id in tk.m_name , tk.m_tick_nb
 )
+let set_meta_track_infos tr id name ticks = (
+  let tk = meta_get_track tr id in
+  tk.m_name <- name;
+  tk.m_tick_nb <- ticks;
+)
 
 let replace_meta_track tr id mtk = meta_set_track tr id mtk 
 

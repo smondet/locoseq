@@ -678,7 +678,10 @@ let b_aw_add_meta () = (
 )
 let b_aw_edit_meta   () = (
   if (!global_tv_aw_metaview_selction <> 0) then ( 
-    add_or_edit_meta (Some !global_tv_aw_metaview_selction) ;
+    (* NOTE: TESTING *)
+    let tk_id = !global_tv_aw_metaview_selction in
+    GuiEditor.track_editor (get_app()) (`META tk_id) tv_aw_update_meta_view;
+    (* add_or_edit_meta (Some !global_tv_aw_metaview_selction) ; *)
   ) else (
     aw_append_msg `ERR "You should select one track before..."
   );
