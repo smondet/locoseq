@@ -159,11 +159,8 @@ module Settings = struct
   let global_selected_text_color = ref (make_color "#FF0C00")
   let global_text_velocity_color = ref (make_color "#D40000")
 
-  let global_midi_event_tick_color = ref (make_color "#BB006A")
-  let global_midi_event_range_color = ref (make_color "#5AFE00")
-
-  let meta_event_tick_color = ref (make_color "#1BBB00")
-  let meta_event_range_color = ref (make_color "#CA8400")
+  let event_tick_color = ref (make_color "#CB000A")
+  let event_range_color = ref (make_color "#2DCB00")
 
   let global_separ_width = ref 3
   let global_horiz_lines_width = ref 2
@@ -504,8 +501,7 @@ let ef_draw_event ef index event = (
       ef.ef_draw#set_foreground !global_text_color;
     );
   in
-  let make_meta_event_label spec = (
-    let str =  (MetaUtil.spec_to_string spec) in
+  let make_event_label str = (
     let lo = ef_make_layout ef str in
     let _, l_y = Pango.Layout.get_pixel_size lo in
     let cur_y = 2 + (index * l_y) in
@@ -513,65 +509,53 @@ let ef_draw_event ef index event = (
     ef.ef_draw#put_layout ~x:10 ~y:cur_y lo;
     (cur_y, l_y)
   ) in
+  let draw_range_event ~start_t ~end_t ~current_y ~unit_y = 
+    let x_on_in_grid = ef.ef_grid_begin_x + (ef_ticks_to_pixels ef start_t) in
+    let x_off_in_grid = ef.ef_grid_begin_x + (ef_ticks_to_pixels ef end_t) in
+    ef.ef_draw#set_foreground !Settings.event_range_color;
+    ef.ef_draw#rectangle ~x:x_on_in_grid ~y:(current_y + 2)
+    ~width:(x_off_in_grid - x_on_in_grid) ~height:(unit_y - 3)
+    ~filled:true ();
+  in
+  let draw_tick_event ~t_value  ~current_y ~unit_y =
+    let x_in_grid =
+      ef.ef_grid_begin_x + 
+      (ef_ticks_to_pixels ef t_value) in
+    ef.ef_draw#set_foreground !Settings.event_tick_color;
+    ef.ef_draw#rectangle ~x:x_in_grid ~y:(current_y + 1)
+    ~width:3 ~height:(unit_y - 2) ~filled:true ();
+  in
   begin match event with
   | EE_Midi ev ->
-      let str = MidiUtil.midi_event_to_string ev in
-      let lo = ef_make_layout ef str in
-      let _, l_y = Pango.Layout.get_pixel_size lo in
-      let cur_y = 2 + (index * l_y) in
-      choose_text_color ();
-      ef.ef_draw#put_layout ~x:10 ~y:cur_y lo;
-      
-      let x_in_grid =
-        ef.ef_grid_begin_x + 
-        (ef_ticks_to_pixels ef ev.Midi.ticks) in
-      ef.ef_draw#set_foreground !global_midi_event_tick_color;
-      ef.ef_draw#rectangle ~x:x_in_grid ~y:(cur_y + 1)
-      ~width:3 ~height:(l_y - 2) ~filled:true ();
+      let cur_y, unit_y = make_event_label (MidiUtil.midi_event_to_string ev) in
+      draw_tick_event ~t_value:ev.Midi.ticks ~current_y:cur_y ~unit_y;
+
   | EE_MidiNote [] -> Log.p "An empty midi note...\n";
   | EE_MidiNote ev_list ->
-      let ev_on, _ = List.hd ev_list in
-      let str = MidiUtil.note_to_string ev_on in
-      let lo = ef_make_layout ef str in
-      let _, l_y = Pango.Layout.get_pixel_size lo in
-      let cur_y = 2 + (index * l_y) in
-      choose_text_color ();
-      ef.ef_draw#put_layout ~x:10 ~y:cur_y lo;
+      let ev, _ = List.hd ev_list in
+      let cur_y, unit_y = make_event_label (MidiUtil.midi_event_to_string ev) in
       
       List.iter (
         fun (ev_on , ev_off) ->
-          let x_on_in_grid =
-            ef.ef_grid_begin_x + (ef_ticks_to_pixels ef ev_on.Midi.ticks) in
-          let x_off_in_grid =
-            ef.ef_grid_begin_x + (ef_ticks_to_pixels ef ev_off.Midi.ticks) in
-          ef.ef_draw#set_foreground !global_midi_event_range_color;
-          ef.ef_draw#rectangle ~x:x_on_in_grid ~y:(cur_y + 2)
-          ~width:(x_off_in_grid - x_on_in_grid) ~height:(l_y - 3)
-          ~filled:true ();
+          let start_t, end_t = ev_on.Midi.ticks, ev_off.Midi.ticks in
+          draw_range_event ~start_t ~end_t ~current_y:cur_y ~unit_y;
 
           let str = Printf.sprintf "[%d]" ev_on.Midi.data_2 in
+          let x_on_in_grid =
+            ef.ef_grid_begin_x + (ef_ticks_to_pixels ef start_t) in
           ef.ef_draw#set_foreground !global_text_velocity_color;
           ef.ef_draw#put_layout ~x:(x_on_in_grid  + 3)
           ~y:(cur_y + 1) (ef_make_layout ef str);
      
       ) ev_list;
   | EE_MetaSpecOneTick spec -> 
-      let cur_y, l_y = make_meta_event_label spec in
-      let x_in_grid =
-        ef.ef_grid_begin_x + 
-        (ef_ticks_to_pixels ef (MetaUtil.spec_to_tick spec)) in
-      ef.ef_draw#set_foreground !Settings.meta_event_tick_color;
-      ef.ef_draw#rectangle ~x:x_in_grid ~y:(cur_y + 1)
-      ~width:3 ~height:(l_y - 2) ~filled:true ();
+      let cur_y, unit_y = make_event_label (MetaUtil.spec_to_string spec) in
+      let t_value = (MetaUtil.spec_to_tick spec) in
+      draw_tick_event ~t_value ~current_y:cur_y ~unit_y;
   | EE_MetaSpecRange spec -> 
-      let cur_y, l_y = make_meta_event_label spec in
-      let t_beg, t_end = MetaUtil.spec_to_range spec in
-      let x_on_in_grid = ef.ef_grid_begin_x + (ef_ticks_to_pixels ef t_beg) in
-      let x_off_in_grid = ef.ef_grid_begin_x + (ef_ticks_to_pixels ef t_end) in
-      ef.ef_draw#set_foreground !global_midi_event_range_color;
-      ef.ef_draw#rectangle ~x:x_on_in_grid ~y:(cur_y + 2)
-      ~width:(x_off_in_grid - x_on_in_grid) ~height:(l_y - 3)
-      ~filled:true ();
+      let cur_y, unit_y = make_event_label (MetaUtil.spec_to_string spec) in
+      let start_t, end_t = MetaUtil.spec_to_range spec in
+      draw_range_event ~start_t ~end_t ~current_y:cur_y ~unit_y;
   | _ -> Log.warn "NOT IMPLEMENTED\n";
   end
 )
