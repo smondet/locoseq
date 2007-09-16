@@ -537,6 +537,30 @@ let ef_pointer_in_ticks_interval ef x_point (t_min, t_max) = (
   (x_min <= x ) && (x <= x_max)
 )
 
+let ef_set_editable_selected ef editable = (
+  let module M = Midi in
+  let idx = ref 0 in
+  let ended = ref false in
+  while !idx < (Array.length ef.ef_model.tv_edit_evts) && not !ended do
+    if (
+      match ef.ef_model.tv_edit_evts.(!idx) with
+      | EE_Midi mev ->  editable = EE_Midi mev 
+      | EE_MidiNote ((b,_) :: _) -> (
+          match editable with
+          | EE_MidiNote ((bb,_) :: _) when b.M.data_1 = bb.M.data_1 -> true
+          | _ -> false
+      )
+      | _ -> false
+    ) then (
+      ended := true;
+    ) else (
+      incr idx;
+    );
+  done;
+  ef.ef_current_selection <- if !ended then !idx else (-1);
+)
+
+
 let ef_on_mouse_press ef x y = (
   (* Log.p "ef_on_mouse_press is called: (%d,%d) on event: %d !!\n" *)
   (* x y (ef_y_to_event ef y); *)
@@ -828,8 +852,47 @@ let rec util_update_add_edit_line box ef = (
 
   List.iter (fun x -> x#destroy ()) box#all_children;
   let add_button = GuiUtil.append_button "Add event" box in
-  ignore(add_button#connect#clicked ~callback:(
-    fun () -> Log.warn "Not implemented !\n" ;
+  ignore(add_button#connect#clicked ~callback:(fun () ->
+    let menu = GMenu.menu () in
+    begin match ef.ef_model.tv_type with
+    | MIDI_TRACK -> 
+        let menuitem_note =  
+          GMenu.menu_item ~label:"Midi Note" ~packing:menu#append () in
+        ignore(menuitem_note#connect#activate ~callback:(fun () ->
+          (* add the event, rebuild,  set it to selected, set tool to none *)
+          let the_event_on = Midi.empty_midi_event () in
+          let the_event_of = Midi.empty_midi_event () in
+          the_event_on.Midi.status <- 0x90;
+          the_event_of.Midi.status <- 0x80;
+          the_event_of.Midi.ticks <- ef.ef_model.tv_pqn;
+          App.add_midi_event_to_track 
+          ef.ef_model.tv_app ef.ef_model.tv_tk_id the_event_on;
+          App.add_midi_event_to_track 
+          ef.ef_model.tv_app ef.ef_model.tv_tk_id the_event_of;
+          tv_rebuild_editables ef.ef_model;
+          ef_set_editable_selected ef (
+            EE_MidiNote [(the_event_on,the_event_of)] 
+          );
+          util_update_add_edit_line box ef;
+          ef_cmd_redraw ef;
+        ));
+        let menuitem_midi =  
+          GMenu.menu_item ~label:"Midi Generic Event" ~packing:menu#append () in
+        ignore(menuitem_midi#connect#activate ~callback:(fun () ->
+          let the_event = Midi.empty_midi_event () in
+          App.add_midi_event_to_track 
+          ef.ef_model.tv_app ef.ef_model.tv_tk_id the_event;
+          tv_rebuild_editables ef.ef_model;
+          ef_set_editable_selected ef (EE_Midi the_event);
+          util_update_add_edit_line box ef;
+          ef_cmd_redraw ef;
+        ));
+    | META_TRACK -> 
+        Log.warn "Add meta event Not implemented\n";
+    end;
+    menu#popup  ~button:1 ~time:0l;
+          
+
   ));
   if ef.ef_current_selection >= 0 then (
     let event = ef.ef_model.tv_edit_evts.(ef.ef_current_selection) in
@@ -869,18 +932,20 @@ let rec util_update_add_edit_line box ef = (
         let octave_spin =
           GEdit.spin_button ~adjustment:octave_adj ~packing:(box#add) () in
         ignore (octave_spin#connect#changed ~callback:(fun () ->
-          let note, _ = MidiUtil.note_octave_of_event mev_b in
+          let note, old_octave = MidiUtil.note_octave_of_event mev_b in
           let new_octave = int_of_float octave_adj#value in
           (* TODO verify that data_1 < 255 *)
-          List.iter (
-            fun (evb, eve) ->
-              evb.Midi.data_1 <- MidiUtil.note_of_val_and_oct note new_octave;
-              eve.Midi.data_1 <- MidiUtil.note_of_val_and_oct note new_octave;
-          ) ev_list;
-          tv_rebuild_editables ef.ef_model;
-          ef.ef_current_selection <- -1;
-          util_update_add_edit_line box ef;
-          ef_cmd_redraw ef;
+          if old_octave <> new_octave then (
+            List.iter (
+              fun (evb, eve) ->
+                evb.Midi.data_1 <- MidiUtil.note_of_val_and_oct note new_octave;
+                eve.Midi.data_1 <- MidiUtil.note_of_val_and_oct note new_octave;
+            ) ev_list;
+            tv_rebuild_editables ef.ef_model;
+            ef.ef_current_selection <- -1;
+            util_update_add_edit_line box ef;
+            ef_cmd_redraw ef;
+          );
         ));
 
         (* The channel: *)
@@ -907,11 +972,14 @@ let rec util_update_add_edit_line box ef = (
           ~packing:box#add () in
         let cbo,_ = stat_entry in
         let active_index = ref (-1) in
-        let _ =
-          List.find (fun (_,b) -> 
-            incr active_index ; ev.Midi.status land 0xF0 = b
-          ) S.midi_status_string_value in
-        cbo#set_active !active_index;
+        begin try
+          let _ =
+            List.find (fun (_,b) -> 
+              incr active_index ; ev.Midi.status land 0xF0 = b
+            ) S.midi_status_string_value in
+          cbo#set_active !active_index;
+          with Not_found -> ()
+        end;
         ignore(cbo#connect#changed ~callback:( fun () ->
           begin match GEdit.text_combo_get_active stat_entry with
           | Some c -> ev.Midi.status <- S.midi_status_of_string c
@@ -938,9 +1006,11 @@ let rec util_update_add_edit_line box ef = (
         let spin =
           GEdit.spin_button ~adjustment:note_adj ~packing:(box#add) () in
         ignore (spin#connect#changed ~callback:( fun () ->
-          ev.Midi.data_1 <- int_of_float note_adj#value ;
-          util_update_add_edit_line box ef;
-          ef_cmd_redraw ef;
+          if ev.Midi.data_1 <> (int_of_float note_adj#value) then (
+            ev.Midi.data_1 <- int_of_float note_adj#value ;
+            util_update_add_edit_line box ef;
+            ef_cmd_redraw ef;
+          );
         ));
         (* for 2-arg midi events: *)
         let rs = ev.Midi.status land 0xF0 in
@@ -952,9 +1022,11 @@ let rec util_update_add_edit_line box ef = (
           let spin =
             GEdit.spin_button ~adjustment:velo_adj ~packing:(box#add) () in
           ignore (spin#connect#changed ~callback:( fun () ->
-            ev.Midi.data_2 <- int_of_float velo_adj#value ;
-            util_update_add_edit_line box ef;
-            ef_cmd_redraw ef;
+            if ev.Midi.data_2 <> (int_of_float velo_adj#value) then (
+              ev.Midi.data_2 <- int_of_float velo_adj#value ;
+              util_update_add_edit_line box ef;
+              ef_cmd_redraw ef;
+            );
           ));
         );
     | _ ->
