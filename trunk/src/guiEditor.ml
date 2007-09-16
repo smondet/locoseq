@@ -116,6 +116,36 @@ module MidiUtil = struct
   )
 end
 
+(******************************************************************************)
+(** Meta events related utilities *)
+module MetaUtil = struct
+
+  let spec_to_string spec = ( 
+    let spr = Printf.sprintf in
+    match spec with
+    | `track_set_on  (_,id) -> spr "Track %d On" id
+    | `track_set_off (_,id) -> spr "Track %d Off" id
+    | `set_bpm       (_,b ) -> spr "Set BPM = %d" b
+    | `track_on    (_,_,id) -> spr "Keep Track [%d] ON " id
+  )
+  
+  let spec_to_tick = (function
+    | `track_set_on  (t, _) | `track_set_off (t, _) | `set_bpm (t, _) -> t
+    | `track_on       _     ->
+        failwith "MetaUtil.spec_to_tick does not accept track_on meta-events!"
+  )
+  let spec_to_range = (function
+    | `track_on       (b,e,_) -> (b,e)
+    | spec -> failwith ( 
+      "MetaUtil.spec_to_range does not accept" ^
+      (spec_to_string spec) ^ " meta-event"
+    )
+  )
+
+
+
+end
+
 (** Editor global settings (colors, fonts...) *)
 module Settings = struct
 
@@ -128,8 +158,12 @@ module Settings = struct
   let global_text_color = ref (make_color "#B9FFB1")
   let global_selected_text_color = ref (make_color "#FF0C00")
   let global_text_velocity_color = ref (make_color "#D40000")
+
   let global_midi_event_tick_color = ref (make_color "#BB006A")
   let global_midi_event_range_color = ref (make_color "#5AFE00")
+
+  let meta_event_tick_color = ref (make_color "#1BBB00")
+  let meta_event_range_color = ref (make_color "#CA8400")
 
   let global_separ_width = ref 3
   let global_horiz_lines_width = ref 2
@@ -147,6 +181,8 @@ open Settings
 (** A {i minimalistic} variant to optimize matching *)
 type track_type = MIDI_TRACK | META_TRACK
 
+
+(** Type of midi or meta events for the editor*)
 type editable_event =
   | EE_None
   (** The [editable_event] is a kind of [option] *)
@@ -154,7 +190,10 @@ type editable_event =
   (** Generic midi event *)
   | EE_MidiNote of (Midi.midi_event * Midi.midi_event) list
   (** One midi note, and its instances in the track (NoteOn, NoteOff) *)
-  | EE_MetaSpec of Tracker.meta_action_spec
+  | EE_MetaSpecOneTick of Tracker.meta_action_spec
+  (** Meta-event based on one-tick-date *)
+  | EE_MetaSpecRange of Tracker.meta_action_spec
+  (** Meta-event based on two ticks range *)
 
 
 (** An {i ugly} mapping structure that encloses both midi and meta tracks for
@@ -244,6 +283,15 @@ let util_make_midi_editables midi_events track_length = (
   ) !notes_list) (List.rev (!other_list)))
 )
 
+let util_make_meta_editables meta_events = (
+  List.rev (List.rev_map (fun meta_ev ->
+    match meta_ev with
+    | `track_set_on  _ -> EE_MetaSpecOneTick meta_ev
+    | `track_set_off _ -> EE_MetaSpecOneTick meta_ev
+    | `set_bpm       _ -> EE_MetaSpecOneTick meta_ev
+    | `track_on      _ -> EE_MetaSpecRange meta_ev
+  ) meta_events)
+)
 (** [track_values] constructor *)
 let tv_make_track_values app tk_ref = (
   match tk_ref with
@@ -274,8 +322,7 @@ let tv_make_track_values app tk_ref = (
       let _,p = App.get_bpm_ppqn app in
       let b,q,t = S.unitize_length_tuple length p in
       let meta_events = App.get_meta_track app tk in
-      let editables_list = List.rev (List.rev_map (
-        fun meta_ev -> EE_MetaSpec meta_ev) meta_events) in
+      let editables_list = util_make_meta_editables meta_events in
       let editables_array = Array.of_list editables_list in
       {
         tv_app = app;
@@ -307,8 +354,7 @@ let tv_rebuild_editables tv = (
       tv.tv_edit_evts <- editables_array;
   | META_TRACK ->
       let meta_events = App.get_meta_track tv.tv_app tv.tv_tk_id in
-      let editables_list = List.rev (List.rev_map (
-        fun meta_ev -> EE_MetaSpec meta_ev) meta_events) in
+      let editables_list = util_make_meta_editables meta_events in
       let editables_array = Array.of_list editables_list in
       tv.tv_edit_evts <- editables_array;
   end;
@@ -322,7 +368,9 @@ let tv_update_track_info tv = (
       ( (tv.tv_length_b * tv.tv_pqn * 4)
       + (tv.tv_length_q * tv.tv_pqn) + tv.tv_length_t);
   | META_TRACK ->
-      Log.warn "tv_update_track_info (META) NOT IMPLEMENTED\n";
+      App.set_meta_track_information tv.tv_app tv.tv_tk_id tv.tv_name
+      ( (tv.tv_length_b * tv.tv_pqn * 4)
+      + (tv.tv_length_q * tv.tv_pqn) + tv.tv_length_t);
   end
 
 )
@@ -456,6 +504,15 @@ let ef_draw_event ef index event = (
       ef.ef_draw#set_foreground !global_text_color;
     );
   in
+  let make_meta_event_label spec = (
+    let str =  (MetaUtil.spec_to_string spec) in
+    let lo = ef_make_layout ef str in
+    let _, l_y = Pango.Layout.get_pixel_size lo in
+    let cur_y = 2 + (index * l_y) in
+    choose_text_color ();
+    ef.ef_draw#put_layout ~x:10 ~y:cur_y lo;
+    (cur_y, l_y)
+  ) in
   begin match event with
   | EE_Midi ev ->
       let str = MidiUtil.midi_event_to_string ev in
@@ -498,6 +555,23 @@ let ef_draw_event ef index event = (
           ~y:(cur_y + 1) (ef_make_layout ef str);
      
       ) ev_list;
+  | EE_MetaSpecOneTick spec -> 
+      let cur_y, l_y = make_meta_event_label spec in
+      let x_in_grid =
+        ef.ef_grid_begin_x + 
+        (ef_ticks_to_pixels ef (MetaUtil.spec_to_tick spec)) in
+      ef.ef_draw#set_foreground !Settings.meta_event_tick_color;
+      ef.ef_draw#rectangle ~x:x_in_grid ~y:(cur_y + 1)
+      ~width:3 ~height:(l_y - 2) ~filled:true ();
+  | EE_MetaSpecRange spec -> 
+      let cur_y, l_y = make_meta_event_label spec in
+      let t_beg, t_end = MetaUtil.spec_to_range spec in
+      let x_on_in_grid = ef.ef_grid_begin_x + (ef_ticks_to_pixels ef t_beg) in
+      let x_off_in_grid = ef.ef_grid_begin_x + (ef_ticks_to_pixels ef t_end) in
+      ef.ef_draw#set_foreground !global_midi_event_range_color;
+      ef.ef_draw#rectangle ~x:x_on_in_grid ~y:(cur_y + 2)
+      ~width:(x_off_in_grid - x_on_in_grid) ~height:(l_y - 3)
+      ~filled:true ();
   | _ -> Log.warn "NOT IMPLEMENTED\n";
   end
 )
@@ -550,7 +624,9 @@ let ef_set_editable_selected ef editable = (
           | EE_MidiNote ((bb,_) :: _) when b.M.data_1 = bb.M.data_1 -> true
           | _ -> false
       )
-      | _ -> false
+      | event ->
+          Log.p "Using default equality...\n";
+          event = editable
     ) then (
       ended := true;
     ) else (
@@ -1184,19 +1260,23 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
     Log.p "Name changed: %s\n" name_entry#text;
     tk_values.tv_name <- name_entry#text;
     tv_update_track_info tk_values; change_callback ();
+    ef_cmd_redraw ev_frame;
   ));
   (* Set the length: *)
   ignore(length_b_spin#connect#changed ~callback:(fun () ->
     tk_values.tv_length_b <- int_of_float length_b_spin#adjustment#value;
     tv_update_track_info tk_values; change_callback ();
+    ef_cmd_redraw ev_frame;
   ));
   ignore(length_q_spin#connect#changed ~callback:(fun () ->
     tk_values.tv_length_q <- int_of_float length_q_spin#adjustment#value;
     tv_update_track_info tk_values; change_callback ();
+    ef_cmd_redraw ev_frame;
   ));
   ignore(length_t_spin#connect#changed ~callback:(fun () ->
     tk_values.tv_length_t <- int_of_float length_t_spin#adjustment#value;
     tv_update_track_info tk_values; change_callback ();
+    ef_cmd_redraw ev_frame;
   ));
   (* Set the port (MIDI) *)
   begin match port_combo with
@@ -1204,6 +1284,7 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
       ignore( pc#connect#changed ~callback:( fun () ->
         tk_values.tv_port <- pc#active;
         tv_update_track_info tk_values; change_callback ();
+        ef_cmd_redraw ev_frame;
       ));
   | _ -> ()
   end;

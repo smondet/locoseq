@@ -179,6 +179,11 @@ let set_midi_track_information app id name port ticks= (
 let get_meta_tracks_information app = (
   Tracker.get_meta_tracks_infos app.a_tracker
 )
+let set_meta_track_information app id name ticks= (
+  Tracker.set_meta_track_infos app.a_tracker id name ticks;
+  app.a_is_saved <- false ;
+)
+
 let get_meta_track_information app id = (
   Tracker.get_meta_track_infos app.a_tracker id
 )
