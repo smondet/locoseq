@@ -1,4 +1,3 @@
-
 === Bugs: ===
 
  * portability issues: on one machine, I see that RTC timer is not well openned ('time out on poll')
@@ -42,6 +41,7 @@
  * optimize gui space for lists of tracks and interactions.
  * import/collapse songs
  * save "playing" state of a track (if not save on file, allow set before play)
+ * undo stack
 
 *-> 0.3*
 
@@ -67,3 +67,4 @@
 *-> 2.0*
 
 
+ 
