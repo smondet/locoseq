@@ -167,7 +167,7 @@ type track_values = {
   mutable tv_length_b: int;
   mutable tv_length_q: int;
   mutable tv_length_t: int;
-  mutable tv_pqn : int ;
+  mutable tv_pqn : int;
   mutable tv_port: int;
   mutable tv_edit_evts : editable_event array;
 }
@@ -265,7 +265,7 @@ let tv_make_track_values app tk_ref = (
         tv_length_b = b; 
         tv_length_q = q; 
         tv_length_t = t; 
-        tv_pqn = p ;
+        tv_pqn = p;
         tv_port = port;
         tv_edit_evts = editables_array;
       }
@@ -285,7 +285,7 @@ let tv_make_track_values app tk_ref = (
         tv_length_b = b; 
         tv_length_q = q; 
         tv_length_t = t; 
-        tv_pqn = p ;
+        tv_pqn = p;
         tv_port = 0;
         tv_edit_evts = editables_array;
       }
@@ -320,9 +320,9 @@ let tv_update_track_info tv = (
       App.set_midi_track_information tv.tv_app tv.tv_tk_id
       tv.tv_name tv.tv_port 
       ( (tv.tv_length_b * tv.tv_pqn * 4)
-      + (tv.tv_length_q * tv.tv_pqn) + tv.tv_length_t) ;
+      + (tv.tv_length_q * tv.tv_pqn) + tv.tv_length_t);
   | META_TRACK ->
-      Log.warn "tv_update_track_info (META) NOT IMPLEMENTED\n" ;
+      Log.warn "tv_update_track_info (META) NOT IMPLEMENTED\n";
   end
 
 )
@@ -391,7 +391,7 @@ let ef_set_font ef  str = (
   Pango.Context.set_font_description ctx font;
 )
 
-let ef_event_number ef = ( Array.length ef.ef_model.tv_edit_evts ;)
+let ef_event_number ef = ( Array.length ef.ef_model.tv_edit_evts)
 
 let ef_ticks_to_pixels ef ticks = (ef.ef_zoom * ticks / 50 )
 let ef_pixels_to_ticks ef pixels = (pixels * 50 / ef.ef_zoom)
@@ -409,7 +409,7 @@ let ef_draw_background ef = (
   let ev_nb = ef_event_number ef in
   ef.ef_h <- 1 + (ly * ev_nb);
 
-  ef_update_size ef ;
+  ef_update_size ef;
 
   (* The background: *)
   ef.ef_draw#set_foreground !global_bg_color;
@@ -463,7 +463,7 @@ let ef_draw_event ef index event = (
       let _, l_y = Pango.Layout.get_pixel_size lo in
       let cur_y = 2 + (index * l_y) in
       choose_text_color ();
-      ef.ef_draw#put_layout ~x:10 ~y:cur_y lo ;
+      ef.ef_draw#put_layout ~x:10 ~y:cur_y lo;
       
       let x_in_grid =
         ef.ef_grid_begin_x + 
@@ -471,7 +471,7 @@ let ef_draw_event ef index event = (
       ef.ef_draw#set_foreground !global_midi_event_tick_color;
       ef.ef_draw#rectangle ~x:x_in_grid ~y:(cur_y + 1)
       ~width:3 ~height:(l_y - 2) ~filled:true ();
-  | EE_MidiNote [] -> Log.p "An empty midi note...\n" ;
+  | EE_MidiNote [] -> Log.p "An empty midi note...\n";
   | EE_MidiNote ev_list ->
       let ev_on, _ = List.hd ev_list in
       let str = MidiUtil.note_to_string ev_on in
@@ -479,7 +479,7 @@ let ef_draw_event ef index event = (
       let _, l_y = Pango.Layout.get_pixel_size lo in
       let cur_y = 2 + (index * l_y) in
       choose_text_color ();
-      ef.ef_draw#put_layout ~x:10 ~y:cur_y lo ;
+      ef.ef_draw#put_layout ~x:10 ~y:cur_y lo;
       
       List.iter (
         fun (ev_on , ev_off) ->
@@ -498,7 +498,7 @@ let ef_draw_event ef index event = (
           ~y:(cur_y + 1) (ef_make_layout ef str);
      
       ) ev_list;
-  | _ -> Log.warn "NOT IMPLEMENTED\n" ;
+  | _ -> Log.warn "NOT IMPLEMENTED\n";
   end
 )
 
@@ -509,7 +509,7 @@ let ef_make_draw ef = (
 )
 
 let ef_cmd_redraw ef = (
-  (* GtkBase.Widget.queue_draw ef.ef_imag#as_widget ; *)
+  (* GtkBase.Widget.queue_draw ef.ef_imag#as_widget *)
   ef_make_draw ef;
 )
 
@@ -587,9 +587,7 @@ let ef_on_mouse_press ef x y = (
     let start_removing_midi_event ef midi_ev  = (
       let on_drag x = true in
       let on_release x =
-        Log.p "Released !\n" ;
         if (ef.ef_grid_begin_x <= x && x <= ef.ef_w) then (
-          Log.p "Removed ???\n" ;
           App.remove_midi_event_from_track
           ef.ef_model.tv_app ef.ef_model.tv_tk_id midi_ev;
           tv_rebuild_editables ef.ef_model;
@@ -669,11 +667,9 @@ let ef_on_mouse_press ef x y = (
     let rec iter_note_instances_for_erase = function
       | [] -> ()
       | (ev_b, ev_e) :: q ->
-          Log.p "Touched ??\n" ;
           if (
             ef_pointer_in_ticks_interval ef x (ev_b.Midi.ticks,ev_e.Midi.ticks)
           ) then (
-            Log.p "Touched !!\n" ;
             start_removing_midi_note ef (ev_b,ev_e);
           ) else (
             iter_note_instances_for_erase q;
@@ -706,7 +702,6 @@ let ef_on_mouse_press ef x y = (
           begin match event with
           | EE_Midi mev ->
               if (ef_pointer_touches_ticks ef x mev.Midi.ticks) then (
-                Log.p "Touched !!\n" ;
                 LocalUtil.start_removing_midi_event ef mev;
               );
           | EE_MidiNote  ev_list ->
@@ -859,7 +854,7 @@ let rec util_update_add_edit_line box ef = (
         let menuitem_note =  
           GMenu.menu_item ~label:"Midi Note" ~packing:menu#append () in
         ignore(menuitem_note#connect#activate ~callback:(fun () ->
-          (* add the event, rebuild,  set it to selected, set tool to none *)
+          (* add the event, rebuild,  set it to selected *)
           let the_event_on = Midi.empty_midi_event () in
           let the_event_of = Midi.empty_midi_event () in
           the_event_on.Midi.status <- 0x90;
@@ -898,7 +893,6 @@ let rec util_update_add_edit_line box ef = (
     let event = ef.ef_model.tv_edit_evts.(ef.ef_current_selection) in
     begin match event with
     | EE_MidiNote ((mev_b,mev_e)::t as ev_list) ->
-        Log.p "editing a note\n" ;
         GuiUtil.append_label "NOTE: " box;
 
         let note_value, octave = MidiUtil.note_octave_of_event mev_b in
@@ -919,7 +913,7 @@ let rec util_update_add_edit_line box ef = (
               eve.Midi.data_1 <- MidiUtil.note_of_val_and_oct new_note octave;
           ) ev_list;
           tv_rebuild_editables ef.ef_model;
-          ef.ef_current_selection <- -1;
+          ef_set_editable_selected ef (EE_MidiNote [(mev_b,mev_e)]);
           util_update_add_edit_line box ef;
           ef_cmd_redraw ef;
         ));
@@ -942,7 +936,7 @@ let rec util_update_add_edit_line box ef = (
                 eve.Midi.data_1 <- MidiUtil.note_of_val_and_oct note new_octave;
             ) ev_list;
             tv_rebuild_editables ef.ef_model;
-            ef.ef_current_selection <- -1;
+            ef_set_editable_selected ef (EE_MidiNote [(mev_b,mev_e)]);
             util_update_add_edit_line box ef;
             ef_cmd_redraw ef;
           );
@@ -975,7 +969,7 @@ let rec util_update_add_edit_line box ef = (
         begin try
           let _ =
             List.find (fun (_,b) -> 
-              incr active_index ; ev.Midi.status land 0xF0 = b
+              incr active_index; ev.Midi.status land 0xF0 = b
             ) S.midi_status_string_value in
           cbo#set_active !active_index;
           with Not_found -> ()
@@ -1007,7 +1001,7 @@ let rec util_update_add_edit_line box ef = (
           GEdit.spin_button ~adjustment:note_adj ~packing:(box#add) () in
         ignore (spin#connect#changed ~callback:( fun () ->
           if ev.Midi.data_1 <> (int_of_float note_adj#value) then (
-            ev.Midi.data_1 <- int_of_float note_adj#value ;
+            ev.Midi.data_1 <- int_of_float note_adj#value;
             util_update_add_edit_line box ef;
             ef_cmd_redraw ef;
           );
@@ -1023,7 +1017,7 @@ let rec util_update_add_edit_line box ef = (
             GEdit.spin_button ~adjustment:velo_adj ~packing:(box#add) () in
           ignore (spin#connect#changed ~callback:( fun () ->
             if ev.Midi.data_2 <> (int_of_float velo_adj#value) then (
-              ev.Midi.data_2 <- int_of_float velo_adj#value ;
+              ev.Midi.data_2 <- int_of_float velo_adj#value;
               util_update_add_edit_line box ef;
               ef_cmd_redraw ef;
             );
@@ -1060,55 +1054,55 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   let track_settings_hbox = GuiUtil.append_hbox main_vbox in
 
   (* The name: *)
-  GuiUtil.append_label "Name: " track_settings_hbox ;
+  GuiUtil.append_label "Name: " track_settings_hbox;
   let name_entry = GEdit.entry ~text:tk_values.tv_name ~max_length:256
   ~editable:true ~has_frame:true ~width_chars:16
   ~packing:track_settings_hbox#add ~show:true () in
 
   (* The length (bar,quarter,tick): *)
-  GuiUtil.append_vertsepar track_settings_hbox ;
-  GuiUtil.append_label "Length: " track_settings_hbox ;
+  GuiUtil.append_vertsepar track_settings_hbox;
+  GuiUtil.append_label "Length: " track_settings_hbox;
 
   let length_b_spin = GuiUtil.int_spin_button 0. 20000. track_settings_hbox in
   length_b_spin#adjustment#set_value (float tk_values.tv_length_b);
 
-  GuiUtil.append_label " 4/4 bars, " track_settings_hbox ;
+  GuiUtil.append_label " 4/4 bars, " track_settings_hbox;
   
   let length_q_spin = GuiUtil.int_spin_button 0. 20000. track_settings_hbox in
   length_q_spin#adjustment#set_value (float tk_values.tv_length_q);
 
-  GuiUtil.append_label " quarters and " track_settings_hbox ;
+  GuiUtil.append_label " quarters and " track_settings_hbox;
   
   let length_t_spin = GuiUtil.int_spin_button 0. 200. track_settings_hbox in
   length_t_spin#adjustment#set_value (float tk_values.tv_length_t);
 
-  GuiUtil.append_label " ticks" track_settings_hbox ;
+  GuiUtil.append_label " ticks" track_settings_hbox;
 
   (* The only MIDI ouput port: *)
   let port_combo = match tk_values.tv_type with
   | MIDI_TRACK ->
-      GuiUtil.append_vertsepar track_settings_hbox ;
-      GuiUtil.append_label " Port: " track_settings_hbox ;
+      GuiUtil.append_vertsepar track_settings_hbox;
+      GuiUtil.append_label " Port: " track_settings_hbox;
       let port_combo =
         GEdit.combo_box_text ~strings:(Array.to_list S.out_put_ports)
         ~add_tearoffs:false ~packing:track_settings_hbox#add () in
-      (fst port_combo)#set_active tk_values.tv_port ;
+      (fst port_combo)#set_active tk_values.tv_port;
       Some port_combo
   | _ -> None
   in
   
   (* next line: *)
-  GuiUtil.append_horzsepar main_vbox ;
+  GuiUtil.append_horzsepar main_vbox;
   let tools_hbox = GuiUtil.append_hbox main_vbox in
 
   (* "Tools" buttons: *)
   let write_toggle = GuiUtil.append_toggle "Write" tools_hbox in
   let erase_toggle = GuiUtil.append_toggle "Erase" tools_hbox in
   let resiz_toggle = GuiUtil.append_toggle "Resize" tools_hbox in
-  GuiUtil.append_vertsepar tools_hbox ;
+  GuiUtil.append_vertsepar tools_hbox;
 
   (* Zoom: *)
-  GuiUtil.append_label "Zoom:" tools_hbox ;
+  GuiUtil.append_label "Zoom:" tools_hbox;
   let zoom_adj = 
     GData.adjustment ~value:(1.0) ~lower:(1.0) ~upper:200.0
     ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
@@ -1117,10 +1111,10 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
     ~draw_value:false ~update_policy:`CONTINUOUS
     ~packing:(tools_hbox#pack ~expand:true ~fill:true ~padding:0)
     ~show:true () in
-  GuiUtil.append_vertsepar tools_hbox ;
+  GuiUtil.append_vertsepar tools_hbox;
 
   (* Mouse behaviour: *)
-  GuiUtil.append_label "Snap:" tools_hbox ;
+  GuiUtil.append_label "Snap:" tools_hbox;
   let snap_combo = 
     GEdit.combo_box_text
     ~strings:["1"; "1/2"; "1/4"; "1/16"; "none"]
@@ -1155,11 +1149,9 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
       ef_set_tool ev_frame EPTool_Write;
       erase_toggle#set_active false;
       resiz_toggle#set_active false;
-      Log.p "now write !\n" ;
     ) else (
       if (ev_frame.ef_pointer.ep_tool = EPTool_Write) then (
         ef_set_tool ev_frame EPTool_None;
-        Log.p "now none (from write)\n" ;
       );
     );
   ));
@@ -1168,11 +1160,9 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
       ef_set_tool ev_frame EPTool_Erase;
       write_toggle#set_active false;
       resiz_toggle#set_active false;
-      Log.p "now erase !\n" ;
     ) else (
       if (ev_frame.ef_pointer.ep_tool = EPTool_Erase) then (
         ef_set_tool ev_frame EPTool_None;
-        Log.p "now none (from erase)\n" ;
       );
     );
   ));
@@ -1181,11 +1171,9 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
       ef_set_tool ev_frame EPTool_Resize;
       erase_toggle#set_active false;
       write_toggle#set_active false;
-      Log.p "now resize !\n" ;
     ) else (
       if (ev_frame.ef_pointer.ep_tool = EPTool_Resize) then (
         ef_set_tool ev_frame EPTool_None;
-        Log.p "now none (from resize)\n" ;
       );
     );
   ));
