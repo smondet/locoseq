@@ -108,22 +108,22 @@ type tracker = {
   mutable do_after  : tracker -> unit ;
 }
 
+let meta_event_of_action_spec (spec:meta_action_spec) = 
+  match spec with
+  | `track_set_on (i , tk) ->
+      { m_ticks = i,i ; action = TrackOn tk ; }
+  | `track_set_off  (i , tk) ->
+      { m_ticks = i,i ; action = TrackOff tk ; }
+  | `set_bpm  (i , bpm) ->
+      { m_ticks = i,i ; action = SetBPM bpm ; }
+  | `track_on  (b, e, tk) ->
+      { m_ticks = b,e ; action = TrackKeepOn tk ; }
+      (* | _ -> failwith "MetaAction Not Implemented" *)
+
 let meta_events_of_meta_actions action_list = (
-  List.rev (
-    List.rev_map (
-      function
-        | `track_set_on (i , tk) ->
-            { m_ticks = i,i ; action = TrackOn tk ; }
-        | `track_set_off  (i , tk) ->
-            { m_ticks = i,i ; action = TrackOff tk ; }
-        | `set_bpm  (i , bpm) ->
-            { m_ticks = i,i ; action = SetBPM bpm ; }
-        | `track_on  (b, e, tk) ->
-            { m_ticks = b,e ; action = TrackKeepOn tk ; }
-          (* | _ -> failwith "MetaAction Not Implemented" *)
-    ) action_list
-  )
+  List.rev (List.rev_map meta_event_of_action_spec action_list)
 )
+
 let make_meta_track name tick_nb (action_list:meta_action_spec list) =
   let actions = meta_events_of_meta_actions action_list in
   {
@@ -300,6 +300,13 @@ let add_midi_event_to_track trkr id midi_ev = (
   let track = (midi_get_track trkr id) in
   track.midi_events  <- midi_ev :: track.midi_events;
 )
+let add_meta_event_to_track trkr id meta_ev_spec = (
+  let track = (meta_get_track trkr id) in
+  let meta_ev = meta_event_of_action_spec meta_ev_spec in
+  track.meta_events  <- meta_ev :: track.meta_events;
+)
+
+
 
 
 let add_midi_tracks  trkr midi_tracks = (

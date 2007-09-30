@@ -163,6 +163,13 @@ module MetaUtil = struct
     | SetTrOff -> "track"
     | KeepTrOn -> "track"
 
+  let new_virgin_spec = function
+    | SetBPM   -> `set_bpm       (0, 0)
+    | SetTrOn  -> `track_set_on  (0, 0)
+    | SetTrOff -> `track_set_off (0, 0)
+    | KeepTrOn -> `track_on (0, 100, 0)
+
+
 end
 
 (** Editor global settings (colors, fonts...) *)
@@ -299,16 +306,18 @@ let util_make_midi_editables midi_events track_length = (
   ) !notes_list) (List.rev (!other_list)))
 )
 
-let util_make_meta_editables meta_events = (
-  List.rev (List.rev_map (fun meta_ev ->
-    match meta_ev with
-    | `track_set_on  (tik,v) -> EE_MetaSpecOneTick (MetaUtil.SetTrOn, tik, v)
-    | `track_set_off (tik,v) -> EE_MetaSpecOneTick (MetaUtil.SetTrOff, tik, v)
-    | `set_bpm       (tik,v) -> EE_MetaSpecOneTick (MetaUtil.SetBPM, tik, v)
-    | `track_on      (t_b,t_e,v) -> 
-        EE_MetaSpecRange (MetaUtil.KeepTrOn, t_b, t_e, v)
-  ) meta_events)
+let util_meta_editable_of_spec meta_ev = (
+  match meta_ev with
+  | `track_set_on  (tik,v) -> EE_MetaSpecOneTick (MetaUtil.SetTrOn, tik, v)
+  | `track_set_off (tik,v) -> EE_MetaSpecOneTick (MetaUtil.SetTrOff, tik, v)
+  | `set_bpm       (tik,v) -> EE_MetaSpecOneTick (MetaUtil.SetBPM, tik, v)
+  | `track_on      (t_b,t_e,v) -> 
+      EE_MetaSpecRange (MetaUtil.KeepTrOn, t_b, t_e, v)
 )
+let util_make_meta_editables meta_events = (
+  List.rev (List.rev_map util_meta_editable_of_spec meta_events)
+)
+
 (** [track_values] constructor *)
 let tv_make_track_values app tk_ref = (
   match tk_ref with
@@ -981,7 +990,20 @@ let rec util_update_add_edit_line box ef = (
           ef_cmd_redraw ef;
         ));
     | META_TRACK -> 
-        Log.warn "Add meta event Not implemented\n";
+        List.iter (fun str ->
+          let current_item = 
+            GMenu.menu_item ~label:str ~packing:menu#append () in
+          ignore(current_item#connect#activate ~callback:(fun () ->
+            let typ = MetaUtil.string_to_type str in
+            let spec = MetaUtil.new_virgin_spec typ in
+            App.add_meta_event_to_track 
+            ef.ef_model.tv_app ef.ef_model.tv_tk_id spec;
+            tv_rebuild_editables ef.ef_model;
+            ef_set_editable_selected ef (util_meta_editable_of_spec spec);
+            util_update_add_edit_line box ef;
+            ef_cmd_redraw ef;
+          ));
+        ) MetaUtil.type_string_list;
     end;
     menu#popup  ~button:1 ~time:0l;
           
