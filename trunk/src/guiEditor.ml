@@ -1037,10 +1037,11 @@ let rec util_update_add_edit_line box ef = (
       ef_cmd_redraw ef;
     ));
     GuiUtil.append_label (MetaUtil.type_of_arg_string typ) box;
-    let upper = match typ with MetaUtil.SetBPM -> 255. | _ -> 20000.  in
+    let lower,upper = 
+      match typ with MetaUtil.SetBPM -> 0., 255. | _ -> (-20000., 20000.) in
     let adj =
-      GData.adjustment ~value:(float edit_val) ~lower:(0.)
-      ~upper ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+      GData.adjustment ~value:(float edit_val) ~lower ~upper
+      ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
     let spin =
       GEdit.spin_button ~adjustment:adj ~packing:(box#add) () in
     ignore (spin#connect#changed ~callback:( fun () ->
