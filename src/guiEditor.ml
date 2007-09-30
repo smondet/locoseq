@@ -119,28 +119,49 @@ end
 (******************************************************************************)
 (** Meta events related utilities *)
 module MetaUtil = struct
-
-  let spec_to_string spec = ( 
+  type meta_type = SetBPM | SetTrOn | SetTrOff | KeepTrOn
+  let type_and_val_to_str t v = (
     let spr = Printf.sprintf in
-    match spec with
-    | `track_set_on  (_,id) -> spr "Track %d On" id
-    | `track_set_off (_,id) -> spr "Track %d Off" id
-    | `set_bpm       (_,b ) -> spr "Set BPM = %d" b
-    | `track_on    (_,_,id) -> spr "Keep Track [%d] ON " id
+    match t with 
+    | SetBPM   -> spr "Set BPM = %d" v
+    | SetTrOn  -> spr "Track %d On" v
+    | SetTrOff -> spr "Track %d Off" v
+    | KeepTrOn -> spr "Keep Track [%d] ON " v
   )
-  
-  let spec_to_tick = (function
-    | `track_set_on  (t, _) | `track_set_off (t, _) | `set_bpm (t, _) -> t
-    | `track_on       _     ->
-        failwith "MetaUtil.spec_to_tick does not accept track_on meta-events!"
+  let type_tiks_val_to_spec t tik ?end_tik v = (
+    match t with 
+    | SetBPM   -> `set_bpm       (tik, v)
+    | SetTrOn  -> `track_set_on  (tik, v)
+    | SetTrOff -> `track_set_off (tik, v)
+    | KeepTrOn -> 
+        match end_tik with
+        | Some e -> `track_on    (tik,e, v)
+        | None -> failwith "type_tiks_val_to_spec: no end_tik provided !"
   )
-  let spec_to_range = (function
-    | `track_on       (b,e,_) -> (b,e)
-    | spec -> failwith ( 
-      "MetaUtil.spec_to_range does not accept" ^
-      (spec_to_string spec) ^ " meta-event"
-    )
-  )
+
+  let type_string_list = [
+    "Set BPM";
+    "Set Track On";
+    "Set Track Off";
+    "Keep Track On";
+  ]
+  let string_to_type = function
+    | "Set BPM"        -> SetBPM  
+    | "Set Track On"   -> SetTrOn 
+    | "Set Track Off"  -> SetTrOff
+    | "Keep Track On"  -> KeepTrOn
+    | _ -> failwith "MetaUtil.string_to_type: unknown string"
+
+  let type_to_index = function
+    | SetBPM   -> 0
+    | SetTrOn  -> 1
+    | SetTrOff -> 2
+    | KeepTrOn -> 3
+  let type_of_arg_string = function
+    | SetBPM   -> "value"
+    | SetTrOn  -> "track"
+    | SetTrOff -> "track"
+    | KeepTrOn -> "track"
 
 end
 
@@ -185,9 +206,9 @@ type editable_event =
   (** Generic midi event *)
   | EE_MidiNote of (Midi.midi_event * Midi.midi_event) list
   (** One midi note, and its instances in the track (NoteOn, NoteOff) *)
-  | EE_MetaSpecOneTick of Tracker.meta_action_spec
+  | EE_MetaSpecOneTick of MetaUtil.meta_type * int * int 
   (** Meta-event based on one-tick-date *)
-  | EE_MetaSpecRange of Tracker.meta_action_spec
+  | EE_MetaSpecRange of MetaUtil.meta_type * int * int * int
   (** Meta-event based on two ticks range *)
 
 
@@ -281,10 +302,11 @@ let util_make_midi_editables midi_events track_length = (
 let util_make_meta_editables meta_events = (
   List.rev (List.rev_map (fun meta_ev ->
     match meta_ev with
-    | `track_set_on  _ -> EE_MetaSpecOneTick meta_ev
-    | `track_set_off _ -> EE_MetaSpecOneTick meta_ev
-    | `set_bpm       _ -> EE_MetaSpecOneTick meta_ev
-    | `track_on      _ -> EE_MetaSpecRange meta_ev
+    | `track_set_on  (tik,v) -> EE_MetaSpecOneTick (MetaUtil.SetTrOn, tik, v)
+    | `track_set_off (tik,v) -> EE_MetaSpecOneTick (MetaUtil.SetTrOff, tik, v)
+    | `set_bpm       (tik,v) -> EE_MetaSpecOneTick (MetaUtil.SetBPM, tik, v)
+    | `track_on      (t_b,t_e,v) -> 
+        EE_MetaSpecRange (MetaUtil.KeepTrOn, t_b, t_e, v)
   ) meta_events)
 )
 (** [track_values] constructor *)
@@ -370,8 +392,10 @@ let tv_do_changes_for_meta_track tv = (
 
   let event_list = Array.to_list (
     Array.map (function
-      | EE_MetaSpecOneTick spec -> spec
-      | EE_MetaSpecRange spec -> spec
+      | EE_MetaSpecOneTick (typ, tik, v) -> 
+          MetaUtil.type_tiks_val_to_spec typ tik v
+      | EE_MetaSpecRange (typ, t_b, t_e, v) -> 
+          MetaUtil.type_tiks_val_to_spec typ t_b ~end_tik:t_e v
       | _ ->
           Log.warn "Not a meta event in tv_do_changes_for_meta_track\n";
           failwith "Not a meta event in tv_do_changes_for_meta_track";
@@ -562,13 +586,13 @@ let ef_draw_event ef index event = (
           ~y:(cur_y + 1) (ef_make_layout ef str);
      
       ) ev_list;
-  | EE_MetaSpecOneTick spec -> 
-      let cur_y, unit_y = make_event_label (MetaUtil.spec_to_string spec) in
-      let t_value = (MetaUtil.spec_to_tick spec) in
-      draw_tick_event ~t_value ~current_y:cur_y ~unit_y;
-  | EE_MetaSpecRange spec -> 
-      let cur_y, unit_y = make_event_label (MetaUtil.spec_to_string spec) in
-      let start_t, end_t = MetaUtil.spec_to_range spec in
+  | EE_MetaSpecOneTick (typ, tik, v) -> 
+      let cur_y, unit_y =
+        make_event_label (MetaUtil.type_and_val_to_str typ v) in
+      draw_tick_event ~t_value:tik ~current_y:cur_y ~unit_y;
+  | EE_MetaSpecRange (typ, start_t, end_t, v) -> 
+      let cur_y, unit_y =
+        make_event_label (MetaUtil.type_and_val_to_str typ v) in
       draw_range_event ~start_t ~end_t ~current_y:cur_y ~unit_y;
   | _ -> Log.warn "NOT IMPLEMENTED\n";
   end
@@ -963,6 +987,57 @@ let rec util_update_add_edit_line box ef = (
           
 
   ));
+  let make_bar_for_meta_event typ start_t end_t edit_val = 
+
+    GuiUtil.append_label "META EVENT: " box;
+    let stat_entry = 
+      GEdit.combo_box_text
+      ~strings:MetaUtil.type_string_list ~packing:box#add () in
+    let cbo,_ = stat_entry in
+    cbo#set_active (MetaUtil.type_to_index typ);
+    ignore(cbo#connect#changed ~callback:( fun () ->
+      begin match GEdit.text_combo_get_active stat_entry with
+      | Some c -> 
+          begin match MetaUtil.string_to_type c with
+          | MetaUtil.KeepTrOn ->
+              ef.ef_model.tv_edit_evts.(ef.ef_current_selection) <- (
+                EE_MetaSpecRange (MetaUtil.KeepTrOn, start_t, end_t, edit_val)
+              );
+          | new_typ -> 
+              ef.ef_model.tv_edit_evts.(ef.ef_current_selection) <- (
+                EE_MetaSpecOneTick (new_typ, start_t, edit_val)
+              );
+          end;
+      | None -> ()
+      end;
+      tv_do_changes_for_meta_track ef.ef_model;
+      util_update_add_edit_line box ef;
+      ef_cmd_redraw ef;
+    ));
+    GuiUtil.append_label (MetaUtil.type_of_arg_string typ) box;
+    let upper = match typ with MetaUtil.SetBPM -> 255. | _ -> 20000.  in
+    let adj =
+      GData.adjustment ~value:(float edit_val) ~lower:(0.)
+      ~upper ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+    let spin =
+      GEdit.spin_button ~adjustment:adj ~packing:(box#add) () in
+    ignore (spin#connect#changed ~callback:( fun () ->
+      let new_val = int_of_float adj#value in
+      begin match typ with
+      | MetaUtil.KeepTrOn ->
+          ef.ef_model.tv_edit_evts.(ef.ef_current_selection) <- (
+            EE_MetaSpecRange (MetaUtil.KeepTrOn, start_t, end_t, new_val)
+          );
+      | new_typ -> 
+          ef.ef_model.tv_edit_evts.(ef.ef_current_selection) <- (
+            EE_MetaSpecOneTick (new_typ, start_t, new_val)
+          );
+      end;
+      tv_do_changes_for_meta_track ef.ef_model;
+      util_update_add_edit_line box ef;
+      ef_cmd_redraw ef;
+    ));
+  in
   if ef.ef_current_selection >= 0 then (
     let event = ef.ef_model.tv_edit_evts.(ef.ef_current_selection) in
     begin match event with
@@ -1097,6 +1172,10 @@ let rec util_update_add_edit_line box ef = (
             );
           ));
         );
+    | EE_MetaSpecOneTick (typ, tik, edit_val) ->
+        make_bar_for_meta_event typ tik (tik + ef.ef_model.tv_pqn) edit_val;
+    | EE_MetaSpecRange (typ, tik, end_tik, edit_val) ->
+        make_bar_for_meta_event typ tik end_tik edit_val;
     | _ ->
         Log.warn "In util_update_add_edit_line, far from being implemented\n";
     end;
