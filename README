@@ -32,7 +32,7 @@ Current developers:
 ** Requirements:
 
 For the moment, let's talk about ubuntu packages as the project is developed
-under ubntustudio. 
+under ubuntustudio. 
 
 Those packages should make you download all needed dependencies to compile the
 application:
