@@ -209,6 +209,32 @@ let add_or_replace_meta_track tr id mtk = (
 )
 
 
+(** Some functions for input specification manipulation *)
+module MetaSpecs = struct
+  let spec_to_string spec = ( 
+    let spr = Printf.sprintf in
+    match spec with
+    | `track_set_on  (_,id) -> spr "Track %d On" id
+    | `track_set_off (_,id) -> spr "Track %d Off" id
+    | `set_bpm       (_,b ) -> spr "Set BPM = %d" b
+    | `track_on    (_,_,id) -> spr "Keep Track [%d] ON " id
+  )
+  
+  let spec_to_tick = (function
+    | `track_set_on  (t, _) | `track_set_off (t, _) | `set_bpm (t, _) -> t
+    | `track_on       _     ->
+        failwith "MetaUtil.spec_to_tick does not accept track_on meta-events!"
+  )
+  let spec_to_range = (function
+    | `track_on       (b,e,_) -> (b,e)
+    | spec -> failwith ( 
+      "MetaUtil.spec_to_range does not accept" ^
+      (spec_to_string spec) ^ " meta-event"
+    )
+  )
+end
+
+
 (** Do some controls and optimizations *)
 let compile trkr = (
 
