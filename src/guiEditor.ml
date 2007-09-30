@@ -142,8 +142,6 @@ module MetaUtil = struct
     )
   )
 
-
-
 end
 
 (** Editor global settings (colors, fonts...) *)
@@ -361,16 +359,32 @@ let tv_update_track_info tv = (
   begin match tv.tv_type with
   | MIDI_TRACK ->
       App.set_midi_track_information tv.tv_app tv.tv_tk_id
-      tv.tv_name tv.tv_port 
-      ( (tv.tv_length_b * tv.tv_pqn * 4)
-      + (tv.tv_length_q * tv.tv_pqn) + tv.tv_length_t);
+      tv.tv_name tv.tv_port (tv_ticks_length tv);
   | META_TRACK ->
-      App.set_meta_track_information tv.tv_app tv.tv_tk_id tv.tv_name
-      ( (tv.tv_length_b * tv.tv_pqn * 4)
-      + (tv.tv_length_q * tv.tv_pqn) + tv.tv_length_t);
+      App.set_meta_track_information tv.tv_app tv.tv_tk_id tv.tv_name 
+      (tv_ticks_length tv);
   end
-
 )
+
+let tv_do_changes_for_meta_track tv = (
+
+  let event_list = Array.to_list (
+    Array.map (function
+      | EE_MetaSpecOneTick spec -> spec
+      | EE_MetaSpecRange spec -> spec
+      | _ ->
+          Log.warn "Not a meta event in tv_do_changes_for_meta_track\n";
+          failwith "Not a meta event in tv_do_changes_for_meta_track";
+    ) tv.tv_edit_evts
+  ) in
+
+  App.replace_meta_track tv.tv_app tv.tv_tk_id tv.tv_name
+  (tv_ticks_length tv) event_list;
+
+  (* is it really necessary ? -> keep it *)
+  tv_rebuild_editables tv;
+)
+
 (******************************************************************************)
 (** {3 The event editor frame} *)
 
@@ -514,7 +528,7 @@ let ef_draw_event ef index event = (
     let x_off_in_grid = ef.ef_grid_begin_x + (ef_ticks_to_pixels ef end_t) in
     ef.ef_draw#set_foreground !Settings.event_range_color;
     ef.ef_draw#rectangle ~x:x_on_in_grid ~y:(current_y + 2)
-    ~width:(x_off_in_grid - x_on_in_grid) ~height:(unit_y - 3)
+    ~width:(x_off_in_grid - x_on_in_grid) ~height:(unit_y - 5)
     ~filled:true ();
   in
   let draw_tick_event ~t_value  ~current_y ~unit_y =

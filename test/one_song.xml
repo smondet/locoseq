@@ -217,10 +217,15 @@
         <meta_event begin="0" end="768" action="track_keep_on" arg1="2"/>
         <meta_event begin="0" end="768" action="track_keep_on" arg1="1"/>
       </meta_track>
+      <meta_track id="-2" name="DummyTest" length="576">
+        <meta_event begin="384" end="384" action="set_bpm" arg1="143"/>
+        <meta_event begin="125" end="125" action="track_set_off" arg1="2"/>
+        <meta_event begin="13" end="13" action="track_set_on" arg1="2"/>
+      </meta_track>
     </meta_tracks>
   </tracker>
   <input_manager>
-    <handler input_match="custom:18" action_type="schedule_toggle_track" action_arg="direct_int:3"/>
     <handler input_match="custom:0" action_type="toggle_track" action_arg="direct_int:4"/>
+    <handler input_match="custom:18" action_type="schedule_toggle_track" action_arg="direct_int:3"/>
   </input_manager>
 </song>
