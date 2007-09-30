@@ -218,6 +218,9 @@ let remove_midi_event_from_track app tk_id midi_event =
 let add_midi_event_to_track app tk_id midi_event =
   (Tracker.add_midi_event_to_track  app.a_tracker tk_id midi_event)
 
+let add_meta_event_to_track app tk_id meta_event =
+  (Tracker.add_meta_event_to_track  app.a_tracker tk_id meta_event)
+
 (******************************************************************************)
 (** {3 Input Management} *)
 
