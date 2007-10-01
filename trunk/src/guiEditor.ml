@@ -698,6 +698,8 @@ let ef_on_mouse_press ef x y = (
           App.remove_midi_event_from_track
           ef.ef_model.tv_app ef.ef_model.tv_tk_id midi_ev;
           tv_rebuild_editables ef.ef_model;
+          ef.ef_current_selection <- -1;
+          ef.ef_on_selection ef;
           ef_cmd_redraw ef;
         );
       in
@@ -715,6 +717,8 @@ let ef_on_mouse_press ef x y = (
           App.remove_midi_event_from_track
           ef.ef_model.tv_app ef.ef_model.tv_tk_id ev_e;
           tv_rebuild_editables ef.ef_model;
+          ef.ef_current_selection <- -1;
+          ef.ef_on_selection ef;
           ef_cmd_redraw ef;
         );
       in
@@ -781,6 +785,28 @@ let ef_on_mouse_press ef x y = (
           ) else (
             iter_note_instances_for_erase q;
           )
+    let start_removing_meta_event ef typ b_tik e_tik edit_val = (
+      let on_drag x =
+        if (typ = MetaUtil.KeepTrOn) then
+          ef_pointer_in_ticks_interval ef x (b_tik, e_tik)
+        else
+          true
+      in
+      let on_release x =
+        if (ef.ef_grid_begin_x <= x && x <= ef.ef_w) then (
+          Log.p "Removing \n" ;
+          App.remove_meta_event_from_track
+          ef.ef_model.tv_app ef.ef_model.tv_tk_id
+          (MetaUtil.type_tiks_val_to_spec typ b_tik ~end_tik:e_tik edit_val);
+          tv_rebuild_editables ef.ef_model;
+          ef.ef_current_selection <- -1;
+          ef.ef_on_selection ef;
+          ef_cmd_redraw ef;
+        );
+      in
+      ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+
+    )
 
   end
   in
@@ -813,6 +839,14 @@ let ef_on_mouse_press ef x y = (
               );
           | EE_MidiNote  ev_list ->
               LocalUtil.iter_note_instances_for_erase ev_list;
+          | EE_MetaSpecOneTick (typ, tik, edit_val) ->
+              if (ef_pointer_touches_ticks ef x tik) then (
+                LocalUtil.start_removing_meta_event ef typ tik tik edit_val;
+              );
+              Log.p "EE_MetaSpecOneTick\n";
+          | EE_MetaSpecRange (typ, tik, end_tik, edit_val) ->
+              LocalUtil.start_removing_meta_event ef typ tik end_tik edit_val;
+              Log.p "EE_MetaSpecRange\n";
           | _ ->
               Log.warn "ef_on_mouse_press: NOT IMPLEMENTED\n";
           end;

@@ -291,9 +291,25 @@ let get_meta_track_actions trkr id =
 let get_midi_track_events trkr id =
   (midi_get_track trkr id).midi_events 
 
+let remove_once l elt = (
+  let already = ref false in
+  List.filter (fun e ->
+    if !already then
+      true
+    else if elt = e then
+      (already := true; false)
+    else 
+      true
+  ) l
+)
 let remove_midi_event_from_track trkr id midi_ev = (
   let track = (midi_get_track trkr id) in
-  track.midi_events <- List.filter (fun m -> m <> midi_ev) track.midi_events;
+  track.midi_events <- remove_once track.midi_events midi_ev;
+)
+let remove_meta_event_from_track trkr id meta_ev_spec = (
+  let track = (meta_get_track trkr id) in
+  let meta_ev = meta_event_of_action_spec meta_ev_spec in
+  track.meta_events  <- remove_once track.meta_events meta_ev;
 )
 
 let add_midi_event_to_track trkr id midi_ev = (
