@@ -437,7 +437,6 @@ let b_aw_edit_midi   () = (
   if (tk_id = 0) then (
     aw_append_msg `ERR "You haven't selected any midi track..." ;
   ) else ( 
-    (* NOTE: Still TEST *) 
     GuiEditor.track_editor (get_app()) (`MIDI tk_id) tv_aw_update_midi_view;
   )
 )
@@ -451,237 +450,17 @@ let b_aw_suppr_midi  () = (
   );
 )
 
-let add_or_edit_meta (the_track: int option) = (
-  let ew = new GenGui.meta_window () in
-  ignore(ew#meta_window#connect#destroy ~callback:ew#meta_window#destroy);
-  ignore(ew#button_cancel#connect#clicked ~callback:ew#meta_window#destroy);
 
-  let meta_cols = new GTree.column_list in
-  let events_col = meta_cols#add Gobject.Data.string in
-  let index_col = meta_cols#add Gobject.Data.int in
-  let meta_model = GTree.list_store meta_cols in
-  let meta_renderer =  GTree.cell_renderer_text [
-    `FOREGROUND "White"; `FAMILY "Monospace" ; `FOREGROUND_SET true;
-    `CELL_BACKGROUND "Black"  ; `CELL_BACKGROUND_SET true ;
-  ] in
-  let events_vcol =
-    GTree.view_column ~title:"Track Description" 
-    ~renderer:(meta_renderer, ["text", events_col]) () in
-  ignore( ew#treeview#append_column events_vcol );
-
-  let real_events_input =
-    match the_track with
-    | None -> ref []
-    | Some tk_id -> ref (App.get_meta_track (get_app()) tk_id)
-  in
-
-  let update_model  () =
-    ew#treeview#set_model None;
-    meta_model#clear () ;
-    let index = ref 0 in
-    List.iter (
-      fun event ->
-        let iter = meta_model#append () in
-        meta_model#set ~row:iter ~column:events_col (
-          S.string_of_meta_event event (snd (App.get_bpm_ppqn (get_app())))) ;
-        meta_model#set ~row:iter ~column:index_col !index ;
-        incr index ;
-    ) !real_events_input ;
-    ew#treeview#set_model (Some meta_model#coerce);
-  in
-  update_model  () ;
-
-
-  let mult_combo = util_make_time_combo_box ew#hbox_name_lgth#add in
-
-  begin  match the_track with
-  | None -> () | Some tk_id -> (
-    let name,size = (App.get_meta_track_information (get_app ()) tk_id) in
-    ew#entry_name#set_text name ;
-    let _,p = App.get_bpm_ppqn (get_app()) in
-    let lgth,unity = S.unitize_length size p in
-    let cb,_ = mult_combo in
-    cb#set_active unity ;
-    ew#spinbutton_lgth#adjustment#set_value (float lgth) ;
-  ) end;
-
-  ignore(ew#button_add#connect#clicked ~callback:( fun () ->
-    let box = ew#hbox_edit in
-    List.iter (fun w -> w#destroy ()) box#children ;
-    let menu = GMenu.menu () in
-    let menuitem_tkson =
-      GMenu.menu_item ~label:"Set Track On" ~packing:menu#append () in
-    ignore(menuitem_tkson#connect#activate ~callback:( fun () ->
-      let _ =
-        GMisc.label ~text:("Track ON:  ID: ") ~packing:(box#add) () in
-      let track_adj =
-        GData.adjustment ~value:0.0 ~lower:(-2000.0) ~upper:2100.0
-        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-      let _ =
-        GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
-      let _ =
-        GMisc.label ~text:(" at ")  ~packing:(box#add) () in
-      let begin_adj =
-        GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
-        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-      let _ =
-        GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
-      let t_beg_mult = util_make_time_combo_box box#add in
-      let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
-      ignore(button_ok#connect#clicked ~callback:( fun () -> 
-        let tk_id = int_of_float track_adj#value in
-        let beg =
-          (int_of_float begin_adj#value)
-          * (util_time_of_combo_box t_beg_mult) in
-        real_events_input := (`track_set_on (beg,tk_id))::!real_events_input;
-        List.iter (fun w -> w#destroy ()) box#children ;
-        update_model ();
-      ));
-    ));
-    let menuitem_tksoff=
-      GMenu.menu_item ~label:"Set Track Off" ~packing:menu#append () in
-    ignore(menuitem_tksoff#connect#activate ~callback:( fun () ->
-      let _ =
-        GMisc.label ~text:("Track OFF:  ID: ") ~packing:(box#add) () in
-      let track_adj =
-        GData.adjustment ~value:0.0 ~lower:(-2000.0) ~upper:2100.0
-        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-      let _ =
-        GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
-      let _ =
-        GMisc.label ~text:(" at ")  ~packing:(box#add) () in
-      let begin_adj =
-        GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
-        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-      let _ =
-        GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
-      let t_beg_mult = util_make_time_combo_box box#add in
-      let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
-      ignore(button_ok#connect#clicked ~callback:( fun () -> 
-        let tk_id = int_of_float track_adj#value in
-        let beg =
-          (int_of_float begin_adj#value)
-          * (util_time_of_combo_box t_beg_mult) in
-        real_events_input := (`track_set_off (beg,tk_id))::!real_events_input;
-        List.iter (fun w -> w#destroy ()) box#children ;
-        update_model ();
-      ));
-    ));
-    let menuitem_sbpm  =
-      GMenu.menu_item ~label:"Set BPM" ~packing:menu#append () in
-    ignore(menuitem_sbpm#connect#activate ~callback:( fun () ->
-      let _ =
-        GMisc.label ~text:("Set BPM: ") ~packing:(box#add) () in
-      let track_adj =
-        GData.adjustment ~value:0.0 ~lower:(0.0) ~upper:2100.0
-        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-      let _ =
-        GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
-      let _ =
-        GMisc.label ~text:(" at ")  ~packing:(box#add) () in
-      let begin_adj =
-        GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
-        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-      let _ =
-        GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
-      let t_beg_mult = util_make_time_combo_box box#add in
-      let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
-      ignore(button_ok#connect#clicked ~callback:(
-        fun () -> 
-          let bpm = int_of_float track_adj#value in
-          let beg =
-            (int_of_float begin_adj#value)
-            * (util_time_of_combo_box t_beg_mult) in
-          real_events_input := (`set_bpm (beg,bpm))::!real_events_input;
-          List.iter (fun w -> w#destroy ()) box#children ;
-          update_model ();
-      ));
-    ));
-    let menuitem_tkon  =
-        GMenu.menu_item ~label:"Keep Track On" ~packing:menu#append () in
-    ignore(menuitem_tkon#connect#activate ~callback:( fun () ->
-      let _ =
-        GMisc.label ~text:("Keep Track ON:  ID: ") ~packing:(box#add) () in
-      let track_adj =
-        GData.adjustment ~value:0.0 ~lower:(-2000.0) ~upper:2100.0
-        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-      let _ =
-        GEdit.spin_button ~adjustment:track_adj ~packing:(box#add) () in
-      let _ =
-        GMisc.label ~text:(" from ")  ~packing:(box#add) () in
-      let begin_adj =
-        GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
-        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-      let _ =
-        GEdit.spin_button ~adjustment:begin_adj ~packing:(box#add) () in
-      let t_beg_mult = util_make_time_combo_box box#add in
-      let _ =
-        GMisc.label ~text:(" to ")  ~packing:(box#add) () in
-      let end_adj =
-        GData.adjustment ~value:0.0 ~lower:0.0 ~upper:10000.0
-        ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-      let _ =
-        GEdit.spin_button ~adjustment:end_adj ~packing:(box#add) () in
-      let t_end_mult = util_make_time_combo_box box#add in
-      let button_ok = GButton.button ~label:"Add"  ~packing:(box#add) () in
-      ignore(button_ok#connect#clicked ~callback:(
-        fun () -> 
-          let tk_id = int_of_float track_adj#value in
-          let beg =
-            (int_of_float begin_adj#value)
-            * (util_time_of_combo_box t_beg_mult) in
-          let e_d =
-            (int_of_float end_adj#value)
-            * (util_time_of_combo_box t_end_mult)  in
-          real_events_input := (`track_on (beg,e_d,tk_id))::!real_events_input;
-
-          List.iter (fun w -> w#destroy ()) box#children ;
-          update_model ();
-      ));
-    ));
-    menu#popup  ~button:1 ~time:0l ;
-  ));
-  ignore(ew#button_suppr#connect#clicked ~callback:( fun () ->
-    List.iter ( fun x ->
-      let index =
-        let iter = meta_model#get_iter x in
-        meta_model#get ~row:iter ~column:index_col
-      in
-      let cur =  ref (-1) in
-      real_events_input := List.filter (
-        fun _ -> 
-          incr cur ;
-          !cur <> index
-      ) !real_events_input;
-      update_model ();
-    ) ew#treeview#selection#get_selected_rows ;
-  ));
-
-  ignore(ew#button_ok#connect#clicked ~callback:( fun () ->
-    let what_to_call =
-      match the_track with
-      | None ->  App.add_meta_track (get_app ())
-      | Some tk_id -> App.replace_meta_track (get_app ()) tk_id
-    in
-    what_to_call ew#entry_name#text (
-      (int_of_float ew#spinbutton_lgth#value) *
-      (util_time_of_combo_box mult_combo)
-    ) !real_events_input;
-    tv_aw_update_meta_view () ;
-    ew#meta_window#destroy ();
-  ));
-
-  ew#meta_window#show () ;
-)
 let b_aw_add_meta () = (
-  add_or_edit_meta None ;
+  let the_id = App.add_meta_track (get_app ()) "Untitled" 0 [] in
+  tv_aw_update_meta_view () ;
+  GuiEditor.track_editor (get_app()) (`META the_id) tv_aw_update_meta_view;
 )
+
 let b_aw_edit_meta   () = (
   if (!global_tv_aw_metaview_selction <> 0) then ( 
-    (* NOTE: TESTING *)
     let tk_id = !global_tv_aw_metaview_selction in
     GuiEditor.track_editor (get_app()) (`META tk_id) tv_aw_update_meta_view;
-    (* add_or_edit_meta (Some !global_tv_aw_metaview_selction) ; *)
   ) else (
     aw_append_msg `ERR "You should select one track before..."
   );
