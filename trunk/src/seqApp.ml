@@ -192,8 +192,9 @@ let get_track_stat app = Tracker.get_track_stat app.a_tracker
 let add_meta_track app name size actions = (
   let mtk =
     Tracker.make_meta_track name size actions in
-  Tracker.add_meta_track app.a_tracker mtk ;
+  let tk_id = Tracker.add_meta_track app.a_tracker mtk in
   app.a_is_saved <- false ;
+  tk_id
 )
 let replace_meta_track app id name size actions  = (
   let mtk = Tracker.make_meta_track name size actions in
