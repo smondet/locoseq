@@ -805,9 +805,57 @@ let ef_on_mouse_press ef x y = (
         );
       in
       ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
-
     )
-
+    let start_resize_meta_ticks ef typ tik value event_index  = (
+      let (x_min,x_max) = ef.ef_grid_begin_x, ef.ef_w in
+      let on_drag x = (x_min <= x) && (x <= x_max) in
+      let on_release x_release =
+        let x_ticks = 
+          ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
+        ef.ef_model.tv_edit_evts.(event_index) <- EE_MetaSpecOneTick (
+          typ, x_ticks, value
+        );
+        tv_do_changes_for_meta_track ef.ef_model;
+        tv_rebuild_editables ef.ef_model;
+        ef.ef_on_selection ef;
+        ef_cmd_redraw ef;
+      in
+      ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+    )
+    type to_edit = Begining | TheEnd | Nothing
+    let start_resize_meta_range ef typ b_tik e_tik v event_index = (
+      let what_to_edit =
+        if (ef_pointer_touches_ticks ef x b_tik) then
+          Begining
+        else 
+          if (ef_pointer_touches_ticks ef x e_tik) then
+            TheEnd
+          else
+            Nothing
+      in
+      if what_to_edit <> Nothing then (
+        let (x_min,x_max) = ef.ef_grid_begin_x, ef.ef_w in
+        let on_drag x = (x_min <= x) && (x <= x_max) in
+        let on_release x_release =
+          let x_ticks = 
+            ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
+          if what_to_edit = Begining then (
+            ef.ef_model.tv_edit_evts.(event_index) <- EE_MetaSpecRange (
+              typ, x_ticks, e_tik, v
+            );
+          ) else (
+            ef.ef_model.tv_edit_evts.(event_index) <- EE_MetaSpecRange (
+              typ, b_tik, x_ticks, v
+            );
+          );
+          tv_do_changes_for_meta_track ef.ef_model;
+          tv_rebuild_editables ef.ef_model;
+          ef.ef_on_selection ef;
+          ef_cmd_redraw ef;
+        in
+        ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+      );
+    )
   end
   in
 
@@ -824,6 +872,12 @@ let ef_on_mouse_press ef x y = (
                 LocalUtil.start_resize_midi_ticks ef mev
                 ~valid_interval:(ef.ef_grid_begin_x, ef.ef_w);
               );
+          | EE_MetaSpecOneTick (typ, tik, edit_val) ->
+              if (ef_pointer_touches_ticks ef x tik) then (
+                LocalUtil.start_resize_meta_ticks ef typ tik edit_val event_id;
+              );
+          | EE_MetaSpecRange (typ, b_tik, e_tik, v) ->
+              LocalUtil.start_resize_meta_range ef typ b_tik e_tik v event_id;
           | EE_MidiNote ev_list ->
               LocalUtil.iter_note_instances_for_resize ev_list;
           | _ ->
