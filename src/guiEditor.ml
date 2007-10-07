@@ -37,9 +37,9 @@ module S = StringServer
 
 (** {3 Internal modules} *)
 
+(******************************************************************************)
 (** GUI simple generic utilities *)
 module GuiUtil = struct
-
   (** append a label to a box *)
   let append_label text (box:GPack.box) = ignore (
     GMisc.label ~text
@@ -168,35 +168,39 @@ module MetaUtil = struct
     | SetTrOn  -> `track_set_on  (0, 0)
     | SetTrOff -> `track_set_off (0, 0)
     | KeepTrOn -> `track_on (0, 100, 0)
-
-
 end
 
+(******************************************************************************)
 (** Editor global settings (colors, fonts...) *)
 module Settings = struct
 
   (** The editor font: *)
-  let global_main_font = ref "Monospace 6"
+  let main_font = ref "Monospace 6"
 
-  let make_color str = (`NAME str : GDraw.color)
-  let global_bg_color   = ref (make_color "#4A00DD")
-  let global_grid_color = ref (make_color "#E8B500")
-  let global_text_color = ref (make_color "#B9FFB1")
-  let global_selected_text_color = ref (make_color "#FF0C00")
-  let global_text_velocity_color = ref (make_color "#D40000")
+  (** The colors used: *)
+  module Colors = struct
+    let make_color str = (`NAME str : GDraw.color)
+    let background   = ref (make_color "#4A00DD")
+    let grid = ref (make_color "#E8B500")
+    let text = ref (make_color "#B9FFB1")
+    let selected_text = ref (make_color "#FF0C00")
+    let text_velocity = ref (make_color "#D40000")
 
-  let event_tick_color = ref (make_color "#CB000A")
-  let event_range_color = ref (make_color "#2DCB00")
+    let event_tick = ref (make_color "#CB000A")
+    let event_range = ref (make_color "#2DCB00")
+  end
 
-  let global_separ_width = ref 3
-  let global_horiz_lines_width = ref 2
+  let separator_width = ref 3
+  let horiz_lines_width = ref 2
 
-  let global_vert_cut_quarter_width = ref 1
-  let global_vert_quarter_width = ref 2
+  let vert_cut_quarter_width = ref 1
+  let vert_quarter_width = ref 2
 
   let midi_note_minimum_tick_size = ref 15
 end
-open Settings
+
+(** One more renaming *)
+module Col = Settings.Colors
 
 (******************************************************************************)
 (** {3 The model} *)
@@ -504,21 +508,21 @@ let ef_draw_background ef = (
   ef_update_size ef;
 
   (* The background: *)
-  ef.ef_draw#set_foreground !global_bg_color;
+  ef.ef_draw#set_foreground !Col.background;
   ef.ef_draw#rectangle ~x:0 ~y:0
   ~width:ef.ef_w ~height:ef.ef_h ~filled:true ();
-  ef.ef_draw#set_foreground !global_grid_color;
+  ef.ef_draw#set_foreground !Col.grid;
   ef.ef_draw#rectangle ~x:0 ~y:0
   ~width:ef.ef_w ~height:ef.ef_h ~filled:false ();
 
   (* The vertical separator: *)
-  ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x - !global_separ_width) ~y:0
-  ~width:!global_separ_width ~height:ef.ef_h ~filled:true ();
+  ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x - !Settings.separator_width) ~y:0
+  ~width:!Settings.separator_width ~height:ef.ef_h ~filled:true ();
 
   (* Horizontal lines: *)
   for i = 1 to ev_nb do
     ef.ef_draw#rectangle ~x:0 ~y:( 1 + (i * ly) )
-    ~width:ef.ef_w ~height:!global_horiz_lines_width ~filled:true ();
+    ~width:ef.ef_w ~height:!Settings.horiz_lines_width ~filled:true ();
   done;
 
 
@@ -527,14 +531,12 @@ let ef_draw_background ef = (
     if ( i mod ef.ef_model.tv_pqn) = 0 then (
       let x = ef_ticks_to_pixels ef i in
       ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x + x) ~y:0
-      ~width:!global_vert_quarter_width
-      ~height:ef.ef_h ~filled:true ();
+      ~width:!Settings.vert_quarter_width ~height:ef.ef_h ~filled:true ();
     ) else (
       if ( i mod (ef.ef_model.tv_pqn / ef.ef_cut_quarters) ) = 0 then (
         let x = ef_ticks_to_pixels ef i in
         ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x + x) ~y:0
-        ~width:!global_vert_cut_quarter_width
-        ~height:ef.ef_h ~filled:true ();
+        ~width:!Settings.vert_cut_quarter_width ~height:ef.ef_h ~filled:true ();
       )
     )
   done;
@@ -543,9 +545,9 @@ let ef_draw_background ef = (
 let ef_draw_event ef index event = (
   let choose_text_color () = 
     if (index = ef.ef_current_selection) then (
-      ef.ef_draw#set_foreground !global_selected_text_color;
+      ef.ef_draw#set_foreground !Col.selected_text;
     ) else (
-      ef.ef_draw#set_foreground !global_text_color;
+      ef.ef_draw#set_foreground !Col.text;
     );
   in
   let make_event_label str = (
@@ -559,7 +561,7 @@ let ef_draw_event ef index event = (
   let draw_range_event ~start_t ~end_t ~current_y ~unit_y = 
     let x_on_in_grid = ef.ef_grid_begin_x + (ef_ticks_to_pixels ef start_t) in
     let x_off_in_grid = ef.ef_grid_begin_x + (ef_ticks_to_pixels ef end_t) in
-    ef.ef_draw#set_foreground !Settings.event_range_color;
+    ef.ef_draw#set_foreground !Col.event_range;
     ef.ef_draw#rectangle ~x:x_on_in_grid ~y:(current_y + 2)
     ~width:(x_off_in_grid - x_on_in_grid) ~height:(unit_y - 5)
     ~filled:true ();
@@ -568,7 +570,7 @@ let ef_draw_event ef index event = (
     let x_in_grid =
       ef.ef_grid_begin_x + 
       (ef_ticks_to_pixels ef t_value) in
-    ef.ef_draw#set_foreground !Settings.event_tick_color;
+    ef.ef_draw#set_foreground !Col.event_tick;
     ef.ef_draw#rectangle ~x:x_in_grid ~y:(current_y + 1)
     ~width:3 ~height:(unit_y - 2) ~filled:true ();
   in
@@ -590,7 +592,7 @@ let ef_draw_event ef index event = (
           let str = Printf.sprintf "[%d]" ev_on.Midi.data_2 in
           let x_on_in_grid =
             ef.ef_grid_begin_x + (ef_ticks_to_pixels ef start_t) in
-          ef.ef_draw#set_foreground !global_text_velocity_color;
+          ef.ef_draw#set_foreground !Col.text_velocity;
           ef.ef_draw#put_layout ~x:(x_on_in_grid  + 3)
           ~y:(cur_y + 1) (ef_make_layout ef str);
      
@@ -1001,7 +1003,7 @@ let ef_make (box:GPack.box) values ~on_selection = (
     ef_on_selection = on_selection;
   } in
 
-  ef_set_font the_event_frame !global_main_font;
+  ef_set_font the_event_frame !Settings.main_font;
 
   ef_cmd_redraw the_event_frame;
 
