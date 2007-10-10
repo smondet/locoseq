@@ -24,22 +24,25 @@
 (**************************************************************************)
 
 
-let test_parse_and_print_midi_files () =
-  Array.iteri (
-    fun index file ->
-      if (index > 1 )
-      then try (
-        Printf.printf "File %d: %s\n" index file;
-        let midi_data = MidiFile.parse_smf file in
-        (*
-         let the_other_file = "copy_of_" ^ file in
-         MidiFile.write_smf midi_data the_other_file ;
-          let midi_data = MidiFile.parse_smf the_other_file in
-        *)
-        Printf.printf "%s" (Midi.midi_to_string midi_data) ;
-      ) with exc -> Log.p "Exception: %s\n" (Printexc.to_string exc);
-  ) Sys.argv ;
+(******************************************************************************)
+(** Test functions **)
+
+(* MIDI file parsing *)
+
+let test_parse_and_print_midi_file file =
+  try (
+    let midi_data = MidiFile.parse_smf file in
+    (*
+      let the_other_file = "copy_of_" ^ file in
+      MidiFile.write_smf midi_data the_other_file ;
+      let midi_data = MidiFile.parse_smf the_other_file in
+    *)
+    Printf.printf "File %s\n" file;
+    Printf.printf "%s" (Midi.midi_to_string midi_data) ;
+  ) with exc -> Printf.printf "Exception: %s\n" (Printexc.to_string exc);
 ;;
+
+(* Inspection functions *)
 
 module Seq = AlsaSequencer 
 module Tim = AlsaSequencer
@@ -193,40 +196,41 @@ let make_inspection file = (
 )
 
 
+(******************************************************************************)
+(** Command line functions **)
+
+let short_usage = "Arguments : -gui | -inspect <report file path> | -parse <MIDI file> [<MIDI file> ...]" ;;
+
+let gui = ref false ;;
+
+let options = [
+  ("-gui", Arg.Set gui, "Launch GUI");
+  ("-parse", Arg.Rest test_parse_and_print_midi_file, "Test, Parse and print MIDI file");
+  ("-inspect", Arg.String make_inspection, "Write inspection to file")
+]
+;;
+
+let ignore_unknown_arguments str = 
+  Printf.printf "%s: argument '%s' ignored.\n" Sys.argv.(0) str;
+;;
+
+
+(******************************************************************************)
+(** Main **)
+
 let main () =
+  Arg.parse options ignore_unknown_arguments short_usage;
+  if 1 >= !Arg.current 
+  then (
+    Arg.usage options short_usage;
+    exit 1;
+  );
 
-  let argc = Array.length Sys.argv in
-  if argc = 1 then (
-    Log.p "I want agrs: 'parse' or 'gui'\n" ;
-  ) else
-    begin
-      let _ = match Sys.argv.(1) with
-      | "parse" -> 
-          if argc = 2 then
-            failwith "Parse What ??"
-          else
-            test_parse_and_print_midi_files ()
-      | "gui" ->
-          if argc = 2 then (
-            Gui.start () ;
-          ) else (
-            Gui.start ~open_file:Sys.argv.(2) ();
-          )
-      | "inspection" -> 
-          if argc = 2 then
-            failwith "I need one more argument: the file to write"
-          else  
-            make_inspection Sys.argv.(2) ;
-      | _ -> failwith "Not Implemented"
-      in ()
-    end;
-
-
+  if !gui then Gui.start () ;
 
 ;;
 
 let _ =
   Printexc.print main () ;
 ;;
-
 
