@@ -24,12 +24,14 @@
 (**************************************************************************)
 
 
+(** The "main" (with some testing and portability code) *)
+
 (******************************************************************************)
-(** Test functions **)
+(** {3 Test functions} *)
 
 (* MIDI file parsing *)
 
-let test_parse_and_print_midi_file file =
+let test_parse_and_print_midi_file file = (
   try (
     let midi_data = MidiFile.parse_smf file in
     (*
@@ -40,9 +42,10 @@ let test_parse_and_print_midi_file file =
     Printf.printf "File %s\n" file;
     Printf.printf "%s" (Midi.midi_to_string midi_data) ;
   ) with exc -> Printf.printf "Exception: %s\n" (Printexc.to_string exc);
-;;
+)
 
-(* Inspection functions *)
+(******************************************************************************)
+(** {3 Inspection functions} *)
 
 module Seq = AlsaSequencer 
 module Tim = AlsaSequencer
@@ -177,7 +180,8 @@ let make_inspection file = (
   ) l;
 
   pr "= Alsa interface =\n\n";
-  let seq = Seq.make_sequencer "da_dummy_alsa_client" [| "one_in" |] [| "one_out" |] in
+  let seq =
+    Seq.make_sequencer "da_dummy_alsa_client" [| "one_in" |] [| "one_out" |] in
   let info = Seq.get_queue_timer_info seq in
 
   let cla = info.Tim.t_class in
@@ -197,28 +201,31 @@ let make_inspection file = (
 
 
 (******************************************************************************)
-(** Command line functions **)
+(** {3 Command line functions} *)
 
-let short_usage = "Arguments : -gui | -inspect <report file path> | -parse <MIDI file> [<MIDI file> ...]" ;;
+let short_usage = 
+  "Arguments : -gui | -inspect <report file path> | -parse <MIDI file>"
 
-let gui = ref false ;;
+let gui = ref false
 
 let options = [
   ("-gui", Arg.Set gui, "Launch GUI");
-  ("-parse", Arg.Rest test_parse_and_print_midi_file, "Test, Parse and print MIDI file");
-  ("-inspect", Arg.String make_inspection, "Write inspection to file")
+  ("-parse", Arg.Rest test_parse_and_print_midi_file,
+  "Test: Parse and print MIDI file");
+  ("-inspect", Arg.String make_inspection,
+  "Process portability inspection and write a report")
 ]
-;;
 
-let ignore_unknown_arguments str = 
+
+let ignore_unknown_arguments str = (
   Printf.printf "%s: argument '%s' ignored.\n" Sys.argv.(0) str;
-;;
+)
 
 
 (******************************************************************************)
-(** Main **)
+(** {3 Main} *)
 
-let main () =
+let main () = (
   Arg.parse options ignore_unknown_arguments short_usage;
   if 1 >= !Arg.current 
   then (
@@ -227,10 +234,7 @@ let main () =
   );
 
   if !gui then Gui.start () ;
+)
 
-;;
-
-let _ =
-  Printexc.print main () ;
-;;
+let () = Printexc.print main () ;
 
