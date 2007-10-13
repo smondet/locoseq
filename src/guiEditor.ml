@@ -542,6 +542,12 @@ let ef_draw_background ef = (
   done;
 )
 
+let ef_x_for_velocity_of_midi_note ef tik_start tik_end = (
+  (* for now we ignore 'tik_end' *)
+  ef.ef_grid_begin_x + (ef_ticks_to_pixels ef tik_start) + 5
+)
+
+
 let ef_draw_event ef index event = (
   let choose_text_color () = 
     if (index = ef.ef_current_selection) then (
@@ -579,7 +585,7 @@ let ef_draw_event ef index event = (
       let cur_y, unit_y = make_event_label (MidiUtil.midi_event_to_string ev) in
       draw_tick_event ~t_value:ev.Midi.ticks ~current_y:cur_y ~unit_y;
 
-  | EE_MidiNote [] -> Log.p "An empty midi note...\n";
+  | EE_MidiNote [] -> Log.warn "An empty midi note ??? keep going on\n";
   | EE_MidiNote ev_list ->
       let ev, _ = List.hd ev_list in
       let cur_y, unit_y = make_event_label (MidiUtil.midi_event_to_string ev) in
@@ -589,12 +595,10 @@ let ef_draw_event ef index event = (
           let start_t, end_t = ev_on.Midi.ticks, ev_off.Midi.ticks in
           draw_range_event ~start_t ~end_t ~current_y:cur_y ~unit_y;
 
-          let str = Printf.sprintf "[%d]" ev_on.Midi.data_2 in
-          let x_on_in_grid =
-            ef.ef_grid_begin_x + (ef_ticks_to_pixels ef start_t) in
+          let str = Printf.sprintf "v%d" ev_on.Midi.data_2 in
           ef.ef_draw#set_foreground !Col.text_velocity;
-          ef.ef_draw#put_layout ~x:(x_on_in_grid  + 3)
-          ~y:(cur_y + 1) (ef_make_layout ef str);
+          let x = ef_x_for_velocity_of_midi_note ef start_t end_t in
+          ef.ef_draw#put_layout ~x ~y:(cur_y + 1) (ef_make_layout ef str);
      
       ) ev_list;
   | EE_MetaSpecOneTick (typ, tik, v) -> 
@@ -686,9 +690,19 @@ let ef_on_mouse_press ef x y = (
       let (x_min,x_max) = valid_interval in
       let on_drag x = (x_min <= x) && (x <= x_max) in
       let on_release x_release =
-        let x_ticks = 
-          ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
+        let x_ticks = ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
         midi_ev.Midi.ticks <- x_ticks;
+        ef_cmd_redraw ef;
+      in
+      ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
+    )
+    let start_resize_midi_velocity ef midi_ev x_start = (
+      let (x_min,x_max) = 0, ef.ef_w + 100 in
+      let on_drag x = (x_min <= x) && (x <= x_max) in
+      let on_release x_release =
+        let distance = (float (x_release - x_start)) in
+        let new_velo = midi_ev.Midi.data_2 + (int_of_float (distance *. 0.4)) in
+        midi_ev.Midi.data_2 <- new_velo;
         ef_cmd_redraw ef;
       in
       ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
@@ -766,15 +780,22 @@ let ef_on_mouse_press ef x y = (
     let rec iter_note_instances_for_resize = function
       | [] -> () 
       | (ev_b, ev_e) :: q ->
-          if (ef_pointer_touches_ticks ef x ev_b.Midi.ticks) then (
+          let t_b,t_e = ev_b.Midi.ticks, ev_e.Midi.ticks in
+          if (ef_pointer_touches_ticks ef x t_b) then (
             start_resize_midi_ticks ef ev_b
-            ~valid_interval:(ef.ef_grid_begin_x, pixelize ev_e.Midi.ticks);
-          ) else if (ef_pointer_touches_ticks ef x ev_e.Midi.ticks)
+            ~valid_interval:(ef.ef_grid_begin_x, pixelize t_e);
+          ) else if (ef_pointer_touches_ticks ef x t_e)
           then (
             start_resize_midi_ticks ef ev_e
-            ~valid_interval:(pixelize ev_b.Midi.ticks, ef.ef_w);
+            ~valid_interval:(pixelize t_b, ef.ef_w);
           ) else (
-            iter_note_instances_for_resize q;
+            let x_v = (ef_x_for_velocity_of_midi_note ef t_b t_e) + 3 in
+            let preci = ef.ef_pointer.ep_precision in
+            if (x - preci < x_v) && (x_v < x + preci) then (
+              start_resize_midi_velocity ef ev_b x;
+            ) else (
+              iter_note_instances_for_resize q;
+            )
           )
 
     let rec iter_note_instances_for_erase = function
