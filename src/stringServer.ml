@@ -37,28 +37,28 @@ let app_name = "LoCoSEQ"
 
 let version () = "0.0.1" 
 
-let alsa_client_name () = "locoseq"
+let alsa_client_name = ref "locoseq"
 
 let out_put_ports = [|
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"   0) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"   1) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"   2) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"   3) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"   4) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"   5) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"   6) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"   7) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"   8) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"   9) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"  10) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"  11) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"  12) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"  13) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"  14) ;
-  (alsa_client_name ()) ^": out " ^ (spr "%2d"  15) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"   0) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"   1) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"   2) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"   3) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"   4) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"   5) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"   6) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"   7) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"   8) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"   9) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"  10) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"  11) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"  12) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"  13) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"  14) ;
+  !alsa_client_name ^":out_" ^ (spr "%02d"  15) ;
 |] 
 let in_put_ports = [|
-  (alsa_client_name ()) ^": in"
+  !alsa_client_name ^":ctrl"
 |]
 
 let gui_quarters () = "quarters"

@@ -212,13 +212,15 @@ let gui = ref false
 let g_file_to_open = ref None
 
 let options = Arg.align [
-  ("-gui", Arg.Set gui, " : Launch GUI");
+  ("-gui", Arg.Set gui, " Launch GUI");
   ("-parse", Arg.Rest test_parse_and_print_midi_file,
-  "<midi_file> : (Test) Parse and print MIDI file");
+  "<midi_file> (Test) Parse and print MIDI file");
   ("-inspect", Arg.String make_inspection,
-  "<target_file> : Process portability inspection and write a report");
+  "<target_file> Process portability inspection and write a report");
   ("-song", Arg.String (fun s -> g_file_to_open := Some s),
-  "<xml_file> : Open the file")
+  "<xml_file> Open the file");
+  ("-alsaname", Arg.Set_string S.alsa_client_name,
+  "<name> Sets alsa client identifier to <name>");
 ]
 
 
