@@ -203,17 +203,22 @@ let make_inspection file = (
 (******************************************************************************)
 (** {3 Command line functions} *)
 
+module S = StringServer
+
 let short_usage = 
-  "Arguments : -gui | -inspect <report file path> | -parse <MIDI file>"
+  "This is " ^ S.app_name ^ " v. " ^  (S.version ())
 
 let gui = ref false
+let g_file_to_open = ref None
 
-let options = [
-  ("-gui", Arg.Set gui, "Launch GUI");
+let options = Arg.align [
+  ("-gui", Arg.Set gui, " : Launch GUI");
   ("-parse", Arg.Rest test_parse_and_print_midi_file,
-  "Test: Parse and print MIDI file");
+  "<midi_file> : (Test) Parse and print MIDI file");
   ("-inspect", Arg.String make_inspection,
-  "Process portability inspection and write a report")
+  "<target_file> : Process portability inspection and write a report");
+  ("-song", Arg.String (fun s -> g_file_to_open := Some s),
+  "<xml_file> : Open the file")
 ]
 
 
@@ -233,7 +238,11 @@ let main () = (
     exit 1;
   );
 
-  if !gui then Gui.start () ;
+  if !gui then (
+    match !g_file_to_open with
+    | None -> Gui.start () ;
+    | Some open_file -> Gui.start ~open_file ();
+  );
 )
 
 let () = Printexc.print main () ;
