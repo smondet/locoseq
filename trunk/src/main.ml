@@ -29,8 +29,7 @@
 (******************************************************************************)
 (** {3 Test functions} *)
 
-(* MIDI file parsing *)
-
+(** MIDI file parsing *)
 let test_parse_and_print_midi_file file = (
   try (
     let midi_data = MidiFile.parse_smf file in
