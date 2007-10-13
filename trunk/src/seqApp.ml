@@ -62,7 +62,7 @@ let make_app  ?(visitor=fun () -> ()) () = (
 
   let my_seq =
     AlsaSequencer.make_sequencer
-    (StringServer.alsa_client_name ())
+    !StringServer.alsa_client_name
     StringServer.in_put_ports
     StringServer.out_put_ports ;
   in
