@@ -1502,6 +1502,35 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
       ));
   | _ -> ()
   end;
+  ignore(te#event#connect#key_press ~callback:(fun x ->
+    let key = (GdkEvent.Key.string x) in
+    begin match key with
+    | "w" -> 
+      ef_set_tool ev_frame EPTool_Write;
+      write_toggle#set_active true;
+      erase_toggle#set_active false;
+      resiz_toggle#set_active false;
+    | "e" -> 
+      ef_set_tool ev_frame EPTool_Erase;
+      write_toggle#set_active false;
+      erase_toggle#set_active true;
+      resiz_toggle#set_active false;
+    | "r" -> 
+      ef_set_tool ev_frame EPTool_Resize;
+      write_toggle#set_active false;
+      erase_toggle#set_active false;
+      resiz_toggle#set_active true;
+    | "a" | "q" -> 
+      ef_set_tool ev_frame EPTool_None;
+      write_toggle#set_active false;
+      erase_toggle#set_active false;
+      resiz_toggle#set_active false;
+    | _ ->
+        ()
+        (* Log.p "Key: %s\n" key; *)
+    end;
+    true
+  ));
 
   te#show ();
 )
