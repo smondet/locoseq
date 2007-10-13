@@ -1009,7 +1009,7 @@ let ef_make (box:GPack.box) values ~on_selection = (
       ep_precision = 5;
     };
     ef_grid_begin_x = 200;
-    ef_zoom = 1;
+    ef_zoom = 50;
     ef_h = 0;
     ef_w = 0;
     ef_cut_quarters = 8;
@@ -1327,7 +1327,9 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   let tk_values = tv_make_track_values app to_edit in
 
   let te = 
-    GWindow.window ~title:(
+    GWindow.window
+    ~width:500 ~height:300 ~allow_shrink:true
+    ~title:(
       match to_edit with
       | `MIDI tk -> Printf.sprintf "Midi-Track Editor [%d]" tk
       | `META tk -> Printf.sprintf "Meta-Track Editor [%d]" tk
@@ -1391,7 +1393,7 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   (* Zoom: *)
   GuiUtil.append_label "Zoom:" tools_hbox;
   let zoom_adj = 
-    GData.adjustment ~value:(1.0) ~lower:(1.0) ~upper:200.0
+    GData.adjustment ~value:(1.) ~lower:(1.0) ~upper:200.0
     ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
   let zoom_scale = 
     GRange.scale `HORIZONTAL ~adjustment:zoom_adj  
@@ -1425,6 +1427,7 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   util_update_add_edit_line add_edit_hbox ev_frame;
 
   (* Connections: *)
+  zoom_adj#set_value (float ev_frame.ef_zoom);
   ignore(zoom_scale#connect#value_changed ~callback:( fun () -> 
     ev_frame.ef_zoom <- int_of_float zoom_adj#value;
     ef_cmd_redraw ev_frame;
