@@ -903,7 +903,9 @@ let start ?open_file () = (
       quit_app () ;
       true (* we prevent window from closing *)
   ));
-  mw#label_title#set_label ("<b>" ^ S.app_name ^ " " ^ (S.version ()) ^ "</b>");
+  mw#label_title#set_label (
+    "<b>" ^ !S.App.app_name ^ " " ^ !S.App.version ^ "</b>"
+  );
   ignore(mw#button_new   #connect#clicked ~callback:b_aw_new   );
   ignore(mw#button_open  #connect#clicked ~callback:b_aw_open  );
   ignore(mw#button_save  #connect#clicked ~callback:b_aw_save  );
