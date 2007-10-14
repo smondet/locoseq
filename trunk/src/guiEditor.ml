@@ -984,7 +984,7 @@ let ef_set_tool ef tool_type = (
 )
 
 (** Build an editor {i draw} frame *)
-let ef_make (box:GPack.box) values ~on_selection = (
+let ef_make (box:GPack.box) values ~on_selection ~on_mouse_move = (
 
   let scrolled_window = GBin.scrolled_window ~border_width:10
   ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC ~packing:box#add () in
@@ -1042,11 +1042,18 @@ let ef_make (box:GPack.box) values ~on_selection = (
       ef_on_mouse_release the_event_frame x y;
       true
   ));
+
+  (* This is needed to get all motions: (GTK's bug or feature ?) *)
+  event_box#event#add [`POINTER_MOTION; ];
+  (* http://marc.info/?l=php-gtk-general&m=117030947412128&w=2 *)
+  (* http://www.mail-archive.com/gtk-list@gnome.org/msg25046.html *)
+
   ignore(event_box#event#connect#motion_notify ~callback:(
     fun ev ->
       let x = int_of_float (GdkEvent.Motion.x ev) in
     	let y = int_of_float (GdkEvent.Motion.y ev) in
       ef_on_mouse_drag the_event_frame x y;
+      on_mouse_move the_event_frame x y;
       true
   ));
 
@@ -1419,10 +1426,21 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
 
   GuiUtil.append_horzsepar main_vbox;
 
+  let status_bar_label = GMisc.label ~text:"<status>" ~justify:`LEFT () in
+
   let ev_frame =
     ef_make main_vbox tk_values
     ~on_selection:(util_update_add_edit_line add_edit_hbox)
+    ~on_mouse_move:(fun ef x y ->
+      status_bar_label#set_label (
+        Printf.sprintf "STATUS:   pointer:(%d, %d)  time:[%s]" x y
+        (S.string_of_length (ef_pixels_to_ticks ef (x - ef.ef_grid_begin_x))
+        ef.ef_model.tv_pqn)
+      );
+    )
   in
+  main_vbox#pack ~expand:false ~fill:false ~padding:0 status_bar_label#coerce;
+
 
   util_update_add_edit_line add_edit_hbox ev_frame;
 
