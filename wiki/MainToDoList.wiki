@@ -25,10 +25,7 @@
    * *done* \SourceCodeC -> idem
  * *done* re-do the README without txt2tags
  * disable "stop" action in InputMgr
- * 'main' with options
-   * the file to load
-   * alsa client name
-   * see licence
+ * *done* 'main' with options (the file to load, alsa client name, see licence, ...)
 
 *-> 0.1*
 
