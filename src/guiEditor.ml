@@ -1380,7 +1380,7 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
       GuiUtil.append_vertsepar track_settings_hbox;
       GuiUtil.append_label " Port: " track_settings_hbox;
       let port_combo =
-        GEdit.combo_box_text ~strings:(Array.to_list S.out_put_ports)
+        GEdit.combo_box_text ~strings:(Array.to_list S.App.out_put_ports)
         ~add_tearoffs:false ~packing:track_settings_hbox#add () in
       (fst port_combo)#set_active tk_values.tv_port;
       Some port_combo

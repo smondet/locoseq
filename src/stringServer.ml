@@ -33,33 +33,63 @@ manipulate them.
 let spr = Printf.sprintf
 let soi = string_of_int
 
-let app_name = "LoCoSEQ"
+(** Strings related to the {i application} (name, version, alsa client...) *)
+module App =  struct
 
-let version () = "0.0.1" 
+  let app_name = ref "LoCoSEQ"
 
-let alsa_client_name = ref "locoseq"
+  let version = ref "0.0.1" 
 
-let out_put_ports = [|
-  !alsa_client_name ^":out_" ^ (spr "%02d"   0) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"   1) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"   2) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"   3) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"   4) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"   5) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"   6) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"   7) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"   8) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"   9) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"  10) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"  11) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"  12) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"  13) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"  14) ;
-  !alsa_client_name ^":out_" ^ (spr "%02d"  15) ;
-|] 
-let in_put_ports = [|
-  !alsa_client_name ^":ctrl"
-|]
+  let alsa_client_name = ref "locoseq"
+
+  let out_put_ports = [|
+    !alsa_client_name ^":out_" ^ (spr "%02d"   0) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"   1) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"   2) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"   3) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"   4) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"   5) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"   6) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"   7) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"   8) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"   9) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"  10) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"  11) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"  12) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"  13) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"  14) ;
+    !alsa_client_name ^":out_" ^ (spr "%02d"  15) ;
+  |] 
+
+  let in_put_ports = [|
+    !alsa_client_name ^":ctrl"
+  |]
+
+  let licence = ref "
+  Copyright (c) 2007, Sebastien MONDET                               \n\
+  \n\
+  Permission is hereby granted, free of charge, to any person        \n\
+  obtaining a copy of this software and associated documentation     \n\
+  files (the \"Software\"), to deal in the Software without            \n\
+  restriction, including without limitation the rights to use,       \n\
+  copy, modify, merge, publish, distribute, sublicense, and/or sell  \n\
+  copies of the Software, and to permit persons to whom the          \n\
+  Software is furnished to do so, subject to the following           \n\
+  conditions:                                                        \n\
+  \n\
+  The above copyright notice and this permission notice shall be     \n\
+  included in all copies or substantial portions of the Software.    \n\
+  \n\
+  THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,    \n\
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES    \n\
+  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND           \n\
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT        \n\
+  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,       \n\
+  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING       \n\
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR      \n\
+  OTHER DEALINGS IN THE SOFTWARE.                                    \n\
+  "
+end
 
 let gui_quarters () = "quarters"
 let gui_44_bars () = "4/4 bars"
@@ -117,7 +147,7 @@ let string_of_meta_event event pqn = (
 
 
 let make_appwin_title songname =
-    app_name ^ " " ^ (version ()) ^(
+    !App.app_name ^ " " ^ !App.version ^(
     match songname with
     | "" -> "   -- (no name song) --"
     | _  -> "    [" ^ songname ^ "]" 

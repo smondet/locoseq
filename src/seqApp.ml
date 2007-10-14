@@ -62,9 +62,9 @@ let make_app  ?(visitor=fun () -> ()) () = (
 
   let my_seq =
     AlsaSequencer.make_sequencer
-    !StringServer.alsa_client_name
-    StringServer.in_put_ports
-    StringServer.out_put_ports ;
+    !StringServer.App.alsa_client_name
+    StringServer.App.in_put_ports
+    StringServer.App.out_put_ports ;
   in
 
   let the_input_mgr = InputManager.make_manager my_seq in
