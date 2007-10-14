@@ -609,398 +609,393 @@ let get_track_stat trkr id =
 
 
 
-(* =====================
-   NOTE: REAL-TIME here:
 
- *)
+(******************************************************************************)
+(** {3 Real Time Control} *)
 
+(** Module providing functions to control the tracker (like play, stop...) *)
+module RTCtrl = struct
 
-
-let toggle_playing_track tr tk = (
-  if is_midi tk then (
-    let tk = midi_get_track tr tk in
-    if not tk.i_playing then (
-      tk.i_playing <- true ;
-      tk.i_play_scheduled <- false ;
-      tk.i_stop_scheduled <- false ;
+  let toggle_playing_track tr tk = (
+    if is_midi tk then (
+      let tk = midi_get_track tr tk in
+      if not tk.i_playing then (
+        tk.i_playing <- true;
+        tk.i_play_scheduled <- false;
+        tk.i_stop_scheduled <- false;
+      ) else (
+        tk.i_stopped <- true;
+      );
     ) else (
-      tk.i_stopped <- true ;
+      let tk = meta_get_track tr tk in
+      if not tk.m_playing then (
+        tk.m_playing <- true;
+        tk.m_stop_scheduled <- false;
+        tk.m_play_scheduled <- false;
+      ) else (
+        tk.m_stopped <- true;
+      );
     );
-  ) else (
-    let tk = meta_get_track tr tk in
-    if not tk.m_playing then (
-      tk.m_playing <- true ;
-      tk.m_stop_scheduled <- false ;
-      tk.m_play_scheduled <- false ;
+  )
+
+  let set_playing_track tr tk = (
+    if is_midi tk then (
+      let tk = midi_get_track tr tk in
+      if not tk.i_playing || tk.i_stopped
+      then (
+        tk.i_playing <- true;
+        tk.i_stop_scheduled <- false;
+        tk.i_stopped <- false;
+      );
+      tk.i_set_play <- true;
     ) else (
-      tk.m_stopped <- true ;
-    );
-  );
-)
-
-let set_playing_track tr tk = (
-  if is_midi tk then (
-    let tk = midi_get_track tr tk in
-    if not tk.i_playing || tk.i_stopped
-    then (
-      tk.i_playing <- true ;
-      tk.i_stop_scheduled <- false ;
-      tk.i_stopped <- false ;
-    );
-    tk.i_set_play <- true ;
-  ) else (
-    let tk = meta_get_track tr tk in
-    if not tk.m_playing then (
-      tk.m_playing <- true ;
-      tk.m_stop_scheduled <- false ;
-      tk.m_play_scheduled <- false ;
-    );
-  );
-)
-
-let set_stopping_track tr tk = (
-  if is_midi tk then (
-    let tk = midi_get_track tr tk in
-    if tk.i_playing && not tk.i_set_play
-    then (
-      tk.i_stopped <- true ;
-      tk.i_play_scheduled <- false ;
-      tk.i_stop_scheduled <- false ;
-    );
-  ) else (
-    let tk = meta_get_track tr tk in
-    if tk.m_playing then (
-      tk.m_stopped <- true ;
-      tk.m_stop_scheduled <- false ;
-      tk.m_play_scheduled <- false ;
-    );
-  );
-)
-
-
-let schedule_play tr tk = (
-  if is_midi tk then (
-    let tk = midi_get_track tr tk in
-    if not tk.i_playing then 
-      tk.i_play_scheduled <- true ;
-      tk.i_stop_scheduled <- false ;
-  ) else (
-    let tk = meta_get_track tr tk in
-    if not tk.m_playing then (
-      tk.m_stop_scheduled <- false ;
-      tk.m_play_scheduled <- true ;
+      let tk = meta_get_track tr tk in
+      if not tk.m_playing then (
+        tk.m_playing <- true;
+        tk.m_stop_scheduled <- false;
+        tk.m_play_scheduled <- false;
+      );
     );
   )
-)
 
-
-let schedule_stop tr tk = (
-  if is_midi tk then (
-    let tk = midi_get_track tr tk in
-    if tk.i_playing then 
-      tk.i_stop_scheduled <- true ;
-      tk.i_play_scheduled <- false ;
-  ) else (
-    let tk = meta_get_track tr tk in
-    if tk.m_playing then (
-      tk.m_stop_scheduled <- true ;
-      tk.m_play_scheduled <- false ;
+  let set_stopping_track tr tk = (
+    if is_midi tk then (
+      let tk = midi_get_track tr tk in
+      if tk.i_playing && not tk.i_set_play
+      then (
+        tk.i_stopped <- true;
+        tk.i_play_scheduled <- false;
+        tk.i_stop_scheduled <- false;
+      );
+    ) else (
+      let tk = meta_get_track tr tk in
+      if tk.m_playing then (
+        tk.m_stopped <- true;
+        tk.m_stop_scheduled <- false;
+        tk.m_play_scheduled <- false;
+      );
     );
-  );
-)
-
-let is_track_playing tr tk = (
-  if is_midi tk then (
-    let tk = midi_get_track tr tk in
-    tk.i_playing 
-  ) else (
-    let tk = meta_get_track tr tk in
-    tk.m_playing
   )
-)
 
 
-let schedule_toggle tr tk = (
-  if (is_track_playing tr tk) then (
-    schedule_stop tr tk ;
-  ) else (
-    schedule_play tr tk ;
+  let schedule_play tr tk = (
+    if is_midi tk then (
+      let tk = midi_get_track tr tk in
+      if not tk.i_playing then 
+        tk.i_play_scheduled <- true;
+        tk.i_stop_scheduled <- false;
+    ) else (
+      let tk = meta_get_track tr tk in
+      if not tk.m_playing then (
+        tk.m_stop_scheduled <- false;
+        tk.m_play_scheduled <- true;
+      );
+    )
   )
-)
-
-let set_all_stopping tr = (
-  midi_iteri tr ( fun i _ -> set_stopping_track tr i) ;
-  meta_iteri tr ( fun i _ -> set_stopping_track tr i) ;
-)
-
-let is_tracker_playing tr = tr.is_playing
-
-let stop tr = (
-  tr.is_playing <- false ;
-)
-
-let set_bpm tr bpm = (
-  tr.bpm <- bpm ;
-  if tr.is_playing then (
-    Seq.set_queue_tempo tr.sequencer tr.bpm tr.ppqn
-  );
-)
-let add_to_bpm tr value = (
-  tr.bpm <- tr.bpm + value ;
-  if tr.is_playing then (
-    Seq.set_queue_tempo tr.sequencer tr.bpm tr.ppqn
-  );
-)
-
-let util_meta_ev_intersects_tick_interval (m_b,m_e) lgth (t_b,t_e) = (
-  let t_bm = t_b mod lgth in
-  let t_em = t_e mod lgth in
-  if t_em < t_bm then (
-    (* [t_b,t_e] intersects the loop_tick of the meta track so  *)
-    (* [0 , t_em] and [ t_bm, lgth ] *)
-    (* ( t_em <= m_e )  || ( m_b <= t_bm )    *)
-    ( m_b <= t_em ) || ( t_bm <= m_e )
-  ) else (
-    (* [t_bm,t_em] is in the meta track interval *)
-    ( t_bm <= m_b && m_b <= t_em ) || ( t_bm <= m_e && m_e <= t_em ) ||
-    ( m_b <= t_bm && t_bm <= m_e ) || ( m_b <= t_em && t_em <= m_e ) 
-  );
-)
-
-let util_meta_tick_in_interval tick lgth (t_b,t_e) =
-  util_meta_ev_intersects_tick_interval (tick,tick) lgth (t_b,t_e) 
-  (* Could be optimized !! *)
-
-let util_do_we_cross_the_end lgth (t_b,t_e) = (
-  (* Log.p "util_do_we_cross_the_end %d (%d,%d)\n" lgth t_b t_e ; *)
-  let t_bm = t_b mod lgth in
-  let t_em = t_e mod lgth in
-  (t_em < t_bm) || (t_bm = 0)
-)
 
 
-let play_meta_events send_ev tr previous_tick cur_tk = (
-  (* Managing META tracks *)
-  meta_iteri tr (
-    fun i tk ->
+  let schedule_stop tr tk = (
+    if is_midi tk then (
+      let tk = midi_get_track tr tk in
+      if tk.i_playing then 
+        tk.i_stop_scheduled <- true;
+        tk.i_play_scheduled <- false;
+    ) else (
+      let tk = meta_get_track tr tk in
+      if tk.m_playing then (
+        tk.m_stop_scheduled <- true;
+        tk.m_play_scheduled <- false;
+      );
+    );
+  )
+
+  let is_track_playing tr tk = (
+    if is_midi tk then (
+      let tk = midi_get_track tr tk in
+      tk.i_playing 
+    ) else (
+      let tk = meta_get_track tr tk in
+      tk.m_playing
+    )
+  )
+
+
+  let schedule_toggle tr tk = (
+    if (is_track_playing tr tk) then (
+      schedule_stop tr tk;
+    ) else (
+      schedule_play tr tk;
+    )
+  )
+
+  let set_all_stopping tr = (
+    midi_iteri tr (fun i _ -> set_stopping_track tr i);
+    meta_iteri tr (fun i _ -> set_stopping_track tr i);
+  )
+
+  let is_tracker_playing tr = tr.is_playing
+
+  let stop tr = (
+    tr.is_playing <- false;
+  )
+
+  let set_bpm tr bpm = (
+    tr.bpm <- bpm;
+    if tr.is_playing then (
+      Seq.set_queue_tempo tr.sequencer tr.bpm tr.ppqn
+    );
+  )
+  let add_to_bpm tr value = (
+    tr.bpm <- tr.bpm + value;
+    if tr.is_playing then (
+      Seq.set_queue_tempo tr.sequencer tr.bpm tr.ppqn
+    );
+  )
+
+  let util_meta_ev_intersects_tick_interval (m_b,m_e) lgth (t_b,t_e) = (
+    let t_bm = t_b mod lgth in
+    let t_em = t_e mod lgth in
+    if t_em < t_bm then (
+      (* [t_b,t_e] intersects the loop_tick of the meta track so  *)
+      (* [0 , t_em] and [ t_bm, lgth ] *)
+      (* ( t_em <= m_e )  || ( m_b <= t_bm )    *)
+      ( m_b <= t_em ) || ( t_bm <= m_e )
+    ) else (
+      (* [t_bm,t_em] is in the meta track interval *)
+      ( t_bm <= m_b && m_b <= t_em ) || ( t_bm <= m_e && m_e <= t_em ) ||
+      ( m_b <= t_bm && t_bm <= m_e ) || ( m_b <= t_em && t_em <= m_e ) 
+    );
+  )
+
+  let util_meta_tick_in_interval tick lgth (t_b,t_e) =
+    util_meta_ev_intersects_tick_interval (tick,tick) lgth (t_b,t_e) 
+    (* Could be optimized !! *)
+
+  let util_do_we_cross_the_end lgth (t_b,t_e) = (
+    (* Log.p "util_do_we_cross_the_end %d (%d,%d)\n" lgth t_b t_e; *)
+    let t_bm = t_b mod lgth in
+    let t_em = t_e mod lgth in
+    (t_em < t_bm) || (t_bm = 0)
+  )
+
+
+  let play_meta_events send_ev tr previous_tick cur_tk = (
+    (* Managing META tracks *)
+    meta_iteri tr (fun i tk ->
       if tk.m_stop_scheduled &&
       (util_do_we_cross_the_end tk.m_tick_nb ((!previous_tick + 1),cur_tk))
       then (
-        Log.p "In MetaSchedStop \n" ;
-        tk.m_stopped <- true ;
-        tk.m_stop_scheduled <- false ;
+        Log.p "In MetaSchedStop \n";
+        tk.m_stopped <- true;
+        tk.m_stop_scheduled <- false;
       );
       if tk.m_stopped then (
-        tk.m_stopped <- false ;
-        tk.m_playing <- false ;
-        List.iter (
-          fun ev ->
-            match ev.action with
-            | TrackOff tk -> set_stopping_track tr tk ;
-            | TrackKeepOn trk ->
-                if (util_meta_ev_intersects_tick_interval ev.m_ticks
-                tk.m_tick_nb (!previous_tick + 1, cur_tk) ) then (
-                  set_stopping_track tr trk ;
-                );
-            | _ -> ()
-        ) tk.meta_events ;
+        tk.m_stopped <- false;
+        tk.m_playing <- false;
+        List.iter (fun ev ->
+          match ev.action with
+          | TrackOff tk -> set_stopping_track tr tk;
+          | TrackKeepOn trk ->
+              if (util_meta_ev_intersects_tick_interval ev.m_ticks
+              tk.m_tick_nb (!previous_tick + 1, cur_tk) ) then (
+                set_stopping_track tr trk;
+              );
+          | _ -> ()
+        ) tk.meta_events;
       );
       if tk.m_play_scheduled &&
       (util_do_we_cross_the_end tk.m_tick_nb ((!previous_tick + 1),cur_tk))
       then (
-        Log.p "In MetaSchedPlay \n" ;
-        tk.m_playing <- true ;
-        tk.m_play_scheduled <- false ;
+        Log.p "In MetaSchedPlay \n";
+        tk.m_playing <- true;
+        tk.m_play_scheduled <- false;
       );
       if tk.m_playing then (
-        List.iter begin
-          fun ev ->
-            if (util_meta_ev_intersects_tick_interval ev.m_ticks tk.m_tick_nb
-            (!previous_tick + 1, cur_tk)) then (
-              let _ = match ev.action with
-              | TrackOn trk -> set_playing_track tr trk ;
-              | TrackOff tk -> set_stopping_track tr tk ;
-              | SetBPM x -> set_bpm tr x ;
-              | TrackKeepOn trk ->
-                  let is_end_in =
-                    util_meta_tick_in_interval (snd ev.m_ticks) tk.m_tick_nb
-                    (!previous_tick + 1, cur_tk) in
-                  let is_beg_in =
-                    util_meta_tick_in_interval (fst ev.m_ticks) tk.m_tick_nb
-                    (!previous_tick + 1, cur_tk) in
-                  if not is_beg_in && is_end_in 
-                  then (
-                    (* Log.p "Set stopping %d: m:[%d,%d] i:[%d,%d] i':[%d,%d]\n  stat:%s\n" *)
-                    (* trk (fst ev.m_ticks) (snd ev.m_ticks) *)
-                    (* (!previous_tick + 1) cur_tk *)
-                    (* ((!previous_tick + 1) mod tk.m_tick_nb) *)
-                    (* (cur_tk  mod tk.m_tick_nb) *)
-                    (* (util_track_status_to_string tr trk); *)
-                    set_stopping_track tr trk ;
-                  );
-                  if not is_end_in || (is_beg_in && is_end_in)
-                  then (
-                    (* Log.p "Set playing: m:[%d,%d] i:[%d,%d] i':[%d,%d]\n" *)
-                    (* (fst ev.m_ticks) (snd ev.m_ticks) *)
-                    (* (!previous_tick + 1) cur_tk *)
-                    (* ((!previous_tick + 1) mod tk.m_tick_nb) *)
-                    (* (cur_tk  mod tk.m_tick_nb) ; *)
-                    set_playing_track tr trk ;
-                  );
-                  (* TODO: see if both conditions are sufficient *)
+        List.iter begin fun ev ->
+          if (util_meta_ev_intersects_tick_interval ev.m_ticks tk.m_tick_nb
+          (!previous_tick + 1, cur_tk)) then (
+            begin match ev.action with
+            | TrackOn trk -> set_playing_track tr trk;
+            | TrackOff tk -> set_stopping_track tr tk;
+            | SetBPM x -> set_bpm tr x;
+            | TrackKeepOn trk ->
+                let is_end_in =
+                  util_meta_tick_in_interval (snd ev.m_ticks) tk.m_tick_nb
+                  (!previous_tick + 1, cur_tk) in
+                let is_beg_in =
+                  util_meta_tick_in_interval (fst ev.m_ticks) tk.m_tick_nb
+                  (!previous_tick + 1, cur_tk) in
+                if not is_beg_in && is_end_in 
+                then (
+                  (* Log.p "Set stopping %d: m:[%d,%d] i:[%d,%d] i':[%d,%d]\n  stat:%s\n" *)
+                  (* trk (fst ev.m_ticks) (snd ev.m_ticks) *)
+                  (* (!previous_tick + 1) cur_tk *)
+                  (* ((!previous_tick + 1) mod tk.m_tick_nb) *)
+                  (* (cur_tk  mod tk.m_tick_nb) *)
+                  (* (util_track_status_to_string tr trk); *)
+                  set_stopping_track tr trk;
+                );
+                if not is_end_in || (is_beg_in && is_end_in)
+                then (
+                  (* Log.p "Set playing: m:[%d,%d] i:[%d,%d] i':[%d,%d]\n" *)
+                  (* (fst ev.m_ticks) (snd ev.m_ticks) *)
+                  (* (!previous_tick + 1) cur_tk *)
+                  (* ((!previous_tick + 1) mod tk.m_tick_nb) *)
+                  (* (cur_tk  mod tk.m_tick_nb); *)
+                  set_playing_track tr trk;
+                );
+                (* TODO: see if both conditions are sufficient *)
 
-                in () ;
-            );
-        end tk.meta_events ;
+            end;
+          );
+        end tk.meta_events;
       );
-  );
-)
+    );
+  )
 
-let copy_and_queue_on_time ev send_ev seq port time = (
-  send_ev.Midi.ticks   <- time ;
-  send_ev.Midi.status  <- ev.Midi.status ;
-  send_ev.Midi.channel <- ev.Midi.channel ;
-  send_ev.Midi.data_1  <- ev.Midi.data_1  ;
-  send_ev.Midi.data_2  <- ev.Midi.data_2  ;
-  (* Seq.output_event_direct tr.sequencer 0 send_ev ; *)
-  Seq.put_event_in_queue seq port send_ev ;
-)
+  let copy_and_queue_on_time ev send_ev seq port time = (
+    send_ev.Midi.ticks   <- time;
+    send_ev.Midi.status  <- ev.Midi.status;
+    send_ev.Midi.channel <- ev.Midi.channel;
+    send_ev.Midi.data_1  <- ev.Midi.data_1;
+    send_ev.Midi.data_2  <- ev.Midi.data_2;
+    (* Seq.output_event_direct tr.sequencer 0 send_ev; *)
+    Seq.put_event_in_queue seq port send_ev;
+  )
 
-let play_midi_events send_ev tr previous_tick cur_tk = (
-  (* Playing MIDI tracks: *)
-  let should_send_noteoffs = ref true in
-  midi_iteri tr (
-    fun i tk ->
+  let play_midi_events send_ev tr previous_tick cur_tk = (
+    (* Playing MIDI tracks: *)
+    let should_send_noteoffs = ref true in
+    midi_iteri tr (fun i tk ->
       if tk.i_stop_scheduled &&
       (util_do_we_cross_the_end tk.i_tick_nb ((!previous_tick + 1),cur_tk))
       then (
-        tk.i_stopped <- true ;
-        tk.i_stop_scheduled <- false ;
-        should_send_noteoffs := false ;
+        tk.i_stopped <- true;
+        tk.i_stop_scheduled <- false;
+        should_send_noteoffs := false;
       );
       if tk.i_stopped then (
-        tk.i_stopped <- false ;
-        tk.i_playing <- false ;
+        tk.i_stopped <- false;
+        tk.i_playing <- false;
         if (!should_send_noteoffs) then (
-          List.iter (
-            fun ev ->
-              (* Hack: we send all the NoteOFF we find... *)
-              if ev.Midi.status = 0x80 then (
-                copy_and_queue_on_time ev send_ev
-                tr.sequencer tk.i_outport (cur_tk + tr.queue_delay - 1);
-              );
-          ) tk.midi_events ;
+          List.iter (fun ev ->
+            (* Hack: we send all the NoteOFF we find... *)
+            if ev.Midi.status = 0x80 then (
+              copy_and_queue_on_time ev send_ev
+              tr.sequencer tk.i_outport (cur_tk + tr.queue_delay - 1);
+            );
+          ) tk.midi_events;
         ) else (
-          should_send_noteoffs := true ;
+          should_send_noteoffs := true;
         );
       );
       if tk.i_play_scheduled &&
       (util_do_we_cross_the_end tk.i_tick_nb ((!previous_tick + 1),cur_tk))
       then (
-        tk.i_playing <- true ;
-        tk.i_play_scheduled <- false ;
+        tk.i_playing <- true;
+        tk.i_play_scheduled <- false;
       );
       if tk.i_playing then (
-        tk.i_set_play <- false ;
-        List.iter (
-          fun ev ->
-            (* Get The Tick:  *)
-            let to_trigger = ref false in
-            let tick = ref (!previous_tick + 1) in
-            while !tick <= cur_tk && !to_trigger = false do
-              if ev.Midi.ticks = (!tick mod tk.i_tick_nb)
-              then  (
-                to_trigger := true ;
-              ) else (
-                incr tick ;
-              ) ;
-            done;
-
-            if !to_trigger then (
-              copy_and_queue_on_time ev send_ev
-              tr.sequencer tk.i_outport (!tick + tr.queue_delay);
+        tk.i_set_play <- false;
+        List.iter (fun ev ->
+          (* Get The Tick:  *)
+          let to_trigger = ref false in
+          let tick = ref (!previous_tick + 1) in
+          while !tick <= cur_tk && !to_trigger = false do
+            if ev.Midi.ticks = (!tick mod tk.i_tick_nb)
+            then  (
+              to_trigger := true;
+            ) else (
+              incr tick;
             );
-        ) tk.midi_events ;
+          done;
+
+          if !to_trigger then (
+            copy_and_queue_on_time ev send_ev
+            tr.sequencer tk.i_outport (!tick + tr.queue_delay);
+          );
+        ) tk.midi_events;
       );
-  );
-)
-
-
-
-
-let play on_end tr = (
-  tr.is_playing <- true ;
-
-  Seq.set_queue_tempo tr.sequencer tr.bpm tr.ppqn ;
-  Seq.start_queue tr.sequencer ;
-
-  let info = Seq.get_queue_timer_info tr.sequencer in
-  (* XXX Why need this hack ??? *)
-  info.Tim.t_card <- 0 ;
-  let my_timer = Tim.make_timer info in
-
-  let cpt_ticks = ref 0 in
-  let previous_tick = ref (-1) in
-
-  let send_ev = Midi.empty_midi_event () in
-
-  Tim.set_ticks my_timer tr.timer_ticks ;
-  Tim.start_timer my_timer ;
-
-  Log.p "Timer started !\n" ;
-
-  let loop = ref tr.is_playing in
-  let willstop = ref 0 in
-  while !loop do
-    let count = Tim.wait_next_tick my_timer 1000 in
-    if count <> 1 then (
-      if count = -1 then
-        Log.warn "At loop %d, Timer has returned -1. TIME OUT ?\n" !cpt_ticks  
-      else
-        Log.warn "[%d] Read %d timer events\n"  !cpt_ticks count 
     );
-    let cur_tk = Seq.get_current_tick tr.sequencer in
+  )
 
-    let ticks_to_manage = cur_tk - !previous_tick in
-    if (ticks_to_manage < 0) 
-    then (
-      Log.warn "Going to fail:  Cur Tk: %d   Prev Tk: %d\n" cur_tk !previous_tick ;
-      failwith ( "Ticks to manage: " ^ (string_of_int ticks_to_manage) ^ "< 0");
-    );
 
-    tr.do_before tr ;
 
-    if (ticks_to_manage > 0) then (
 
-      play_meta_events send_ev tr previous_tick cur_tk ;
-      play_midi_events send_ev tr previous_tick cur_tk ;
+  let play on_end tr = (
+    tr.is_playing <- true;
 
-    (* ) else ( *)
-        (* Gc.minor () ;*) (*  is it a good idea ? *)
-    );
+    Seq.set_queue_tempo tr.sequencer tr.bpm tr.ppqn;
+    Seq.start_queue tr.sequencer;
 
-    tr.do_after tr ;
+    let info = Seq.get_queue_timer_info tr.sequencer in
+    (* XXX Why need this hack ??? *)
+    info.Tim.t_card <- 0;
+    let my_timer = Tim.make_timer info in
 
-    previous_tick := cur_tk ;
-    cpt_ticks := !cpt_ticks + tr.timer_ticks ;
+    let cpt_ticks = ref 0 in
+    let previous_tick = ref (-1) in
 
-    if !willstop = 3 then (
-      loop := false ;
-    );
-    if not tr.is_playing then (
-      set_all_stopping tr ;
-      incr willstop ;
-    );
-    
-  done;
+    let send_ev = Midi.empty_midi_event () in
 
-  Tim.stop_timer my_timer ;
-  Seq.clear_queue tr.sequencer ;
-  Seq.stop_queue  tr.sequencer ;
+    Tim.set_ticks my_timer tr.timer_ticks;
+    Tim.start_timer my_timer;
 
-  on_end () ;
-)
+    Log.p "Timer started !\n";
 
+    let loop = ref tr.is_playing in
+    let willstop = ref 0 in
+    while !loop do
+      let count = Tim.wait_next_tick my_timer 1000 in
+      if count <> 1 then (
+        if count = -1 then
+          Log.warn "At loop %d, Timer has returned -1. TIME OUT ?\n" !cpt_ticks  
+        else
+          Log.warn "[%d] Read %d timer events\n"  !cpt_ticks count 
+      );
+      let cur_tk = Seq.get_current_tick tr.sequencer in
+
+      let ticks_to_manage = cur_tk - !previous_tick in
+      if (ticks_to_manage < 0) 
+      then (
+        Log.warn "Going to fail:  Cur Tk: %d   Prev Tk: %d\n" cur_tk !previous_tick;
+        failwith ( "Ticks to manage: " ^ (string_of_int ticks_to_manage) ^ "< 0");
+      );
+
+      tr.do_before tr;
+
+      if (ticks_to_manage > 0) then (
+
+        play_meta_events send_ev tr previous_tick cur_tk;
+        play_midi_events send_ev tr previous_tick cur_tk;
+
+        (* ) else ( *)
+        (* Gc.minor ();*) (*  is it a good idea ? *)
+      );
+
+      tr.do_after tr;
+
+      previous_tick := cur_tk;
+      cpt_ticks := !cpt_ticks + tr.timer_ticks;
+
+      if !willstop = 3 then (
+        loop := false;
+      );
+      if not tr.is_playing then (
+        set_all_stopping tr;
+        incr willstop;
+      );
+
+    done;
+
+    Tim.stop_timer my_timer;
+    Seq.clear_queue tr.sequencer;
+    Seq.stop_queue  tr.sequencer;
+
+    on_end ();
+  )
+
+end
 
 
 
