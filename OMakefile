@@ -68,7 +68,7 @@ clean: # The Big clean:
 ## Make inspection and genrate human readable reports:
 inspection:src/$(APP_NAME)
   mkdir -p $(INSPECTION_DIR)
-  src/$(APP_NAME) inspection  $(INSPECTION_DIR)/$(INSPECTION_OUTPUT).t2t
+  src/$(APP_NAME) -inspect $(INSPECTION_DIR)/$(INSPECTION_OUTPUT).t2t
   # cp  $(README_CSS_FILE) $(INSPECTION_DIR)/inspect.css
   txt2tags --toc --enum-title -t man $(INSPECTION_DIR)/$(INSPECTION_OUTPUT).t2t
   txt2tags --toc -t xhtml $(INSPECTION_DIR)/$(INSPECTION_OUTPUT).t2t
