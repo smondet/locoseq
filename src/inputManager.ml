@@ -215,28 +215,29 @@ let arg_to_int arg ev_opt = (
 )
 
 let play_action action tracker (ev:Midi.midi_event option) =
+  let module TRTC = Tracker.RTCtrl in
   match action with
   | ActSetBPM   argument                ->  
-      Tracker.set_bpm tracker (arg_to_int argument ev) ;
+      TRTC.set_bpm tracker (arg_to_int argument ev) ;
   | ActIncrBPM   argument               -> 
-      Tracker.add_to_bpm tracker (arg_to_int argument ev) ;
+      TRTC.add_to_bpm tracker (arg_to_int argument ev) ;
   | ActDecrBPM   argument               ->
-      Tracker.add_to_bpm tracker ((-1) * (arg_to_int argument ev)) ;
+      TRTC.add_to_bpm tracker ((-1) * (arg_to_int argument ev)) ;
   | ActToggleTrack   argument           -> 
-      Tracker.toggle_playing_track tracker (arg_to_int argument ev) ;
+      TRTC.toggle_playing_track tracker (arg_to_int argument ev) ;
   | ActTrackOn   argument               ->
-      Tracker.set_playing_track tracker (arg_to_int argument ev) ;
+      TRTC.set_playing_track tracker (arg_to_int argument ev) ;
   | ActTrackOff   argument            ->
-      Tracker.set_stopping_track tracker (arg_to_int argument ev) ;
+      TRTC.set_stopping_track tracker (arg_to_int argument ev) ;
   | ActScheduleToggleTrack   argument   -> 
-      Tracker.schedule_toggle tracker (arg_to_int argument ev)
+      TRTC.schedule_toggle tracker (arg_to_int argument ev)
   | ActScheduleTrackOn   argument       ->
-      Tracker.schedule_play tracker (arg_to_int argument ev) ;
+      TRTC.schedule_play tracker (arg_to_int argument ev) ;
   | ActScheduleTrackOff   argument    ->
-      Tracker.schedule_stop tracker (arg_to_int argument ev) ;
-  | ActPlay                             -> Log.p "Not Implemented...\n" ;
-  | ActStop -> Tracker.stop tracker ;
-  | ActMuteAll -> Tracker.set_all_stopping tracker ;
+      TRTC.schedule_stop tracker (arg_to_int argument ev) ;
+  | ActPlay -> Log.p "Not Implemented...\n" ;
+  | ActStop -> TRTC.stop tracker ;
+  | ActMuteAll -> TRTC.set_all_stopping tracker ;
 ;;
 
 

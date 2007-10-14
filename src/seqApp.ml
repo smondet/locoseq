@@ -107,7 +107,7 @@ let get_bpm_ppqn app =
   (app.a_tracker.Tracker.bpm, app.a_tracker.Tracker.ppqn)
 
 let set_bpm app bpm = (
-  Tracker.set_bpm app.a_tracker bpm ;
+  Tracker.RTCtrl.set_bpm app.a_tracker bpm ;
   app.a_is_saved <- false ;
 )
 let set_ppqn app ppqn = Tracker.set_ppqn app.a_tracker ppqn
@@ -145,24 +145,26 @@ let add_midi_file app file =
   app.a_is_saved <- false ;
   ();;
 
-let threaded_play on_end app =
+let threaded_play on_end app = (
   app.a_play_thread <- Some (Thread.create (
     fun () ->
       InputManager.clear_input app.a_input_mgr ;
-      Tracker.play on_end app.a_tracker;
-  ) ()) ;;
+      Tracker.RTCtrl.play on_end app.a_tracker;
+  ) ());
+)
 
-let threaded_stop app =
+let threaded_stop app = (
     match app.a_play_thread with
     | None -> Log.p "You want to stop a stopped tracker...\n" ;
     | Some t -> (
-      Tracker.stop app.a_tracker ;
+      Tracker.RTCtrl.stop app.a_tracker ;
       Thread.join t ;
       app.a_play_thread <- None ;
       Log.p "Tracker Stopped\n" ;
     )
-;;
-let is_playing app = Tracker.is_tracker_playing app.a_tracker
+)
+
+let is_playing app = Tracker.RTCtrl.is_tracker_playing app.a_tracker
 
 let get_current_tick app = AlsaSequencer.get_current_tick app.a_sequencer
 
