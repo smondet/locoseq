@@ -196,6 +196,13 @@ let add_meta_track app name size actions = (
   app.a_is_saved <- false ;
   tk_id
 )
+let add_midi_track app name port ticks = (
+  let trk = Tracker.empty_track () in
+  let id = Tracker.add_midi_track app.a_tracker trk in
+  Tracker.set_midi_track_infos app.a_tracker id name port ticks;
+  app.a_is_saved <- false ;
+  id
+)
 let replace_meta_track app id name size actions  = (
   let mtk = Tracker.make_meta_track name size actions in
   Tracker.replace_meta_track app.a_tracker id mtk ;

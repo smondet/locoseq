@@ -220,7 +220,8 @@ let tv_aw_init_trackview (kind:[`MIDI|`META]) treeview = (
       let status,color = S.status_color_of_bools (plays,schedplay,schedstop) in
       let tick = App.get_current_tick app in
       let percent =
-        (100 * (tick mod lgth)) / lgth in
+        if lgth = 0 then 0 
+        else (100 * (tick mod lgth)) / lgth in
 
       stat_renderer#set_properties [
         `TEXT (Some status) ; `VALUE percent ;
@@ -415,7 +416,8 @@ let tv_aw_update_iact_view () = (
 (******************************************************************************)
 (* {3 Buttons' callbacks} *)
 
-let b_aw_add_midi    () = (
+let b_aw_import_midi () = (
+
   let file_ok_sel fw () =
     App.add_midi_file (get_app ()) fw#filename;
     fw#destroy ();
@@ -430,6 +432,11 @@ let b_aw_add_midi    () = (
   ignore(filew#cancel_button#connect#clicked ~callback:filew#destroy);
 
   filew#show ();
+)
+let b_aw_add_midi () = (
+  let tk_id = App.add_midi_track (get_app ()) "Untitled ffd f" 1 0 in
+  tv_aw_update_midi_view ();
+  GuiEditor.track_editor (get_app()) (`MIDI tk_id) tv_aw_update_midi_view;
 )
 let b_aw_edit_midi   () = (
   let tk_id = !global_tv_aw_midiview_selction in
@@ -931,6 +938,7 @@ let start ?open_file () = (
 
   global_tv_aw_midiview_info := tv_aw_init_trackview `MIDI mw#treeview_midi ;
   tv_aw_update_midi_view () ;
+  ignore(mw#button_import_midi#connect#clicked ~callback:b_aw_import_midi);
   ignore(mw#button_add_midi   #connect#clicked ~callback:b_aw_add_midi   );
   ignore(mw#button_edit_midi  #connect#clicked ~callback:b_aw_edit_midi  );
   ignore(mw#button_suppr_midi #connect#clicked ~callback:b_aw_suppr_midi );
