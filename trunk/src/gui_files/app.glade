@@ -52,38 +52,31 @@
                             <property name="n_rows">3</property>
                             <property name="n_columns">2</property>
                             <child>
-                              <widget class="GtkButton" id="button_new">
+                              <widget class="GtkButton" id="button_help">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                <property name="label" translatable="yes">New</property>
-                              </widget>
-                            </child>
-                            <child>
-                              <widget class="GtkButton" id="button_open">
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="receives_default">True</property>
-                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                <property name="label" translatable="yes">Open</property>
+                                <property name="label" translatable="yes">Help</property>
                               </widget>
                               <packing>
                                 <property name="left_attach">1</property>
                                 <property name="right_attach">2</property>
+                                <property name="top_attach">2</property>
+                                <property name="bottom_attach">3</property>
                               </packing>
                             </child>
                             <child>
-                              <widget class="GtkButton" id="button_save">
+                              <widget class="GtkButton" id="button_quit">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                <property name="label" translatable="yes">Save</property>
+                                <property name="label" translatable="yes">Quit</property>
                               </widget>
                               <packing>
-                                <property name="top_attach">1</property>
-                                <property name="bottom_attach">2</property>
+                                <property name="top_attach">2</property>
+                                <property name="bottom_attach">3</property>
                               </packing>
                             </child>
                             <child>
@@ -102,32 +95,39 @@
                               </packing>
                             </child>
                             <child>
-                              <widget class="GtkButton" id="button_quit">
+                              <widget class="GtkButton" id="button_save">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                <property name="label" translatable="yes">Quit</property>
+                                <property name="label" translatable="yes">Save</property>
                               </widget>
                               <packing>
-                                <property name="top_attach">2</property>
-                                <property name="bottom_attach">3</property>
+                                <property name="top_attach">1</property>
+                                <property name="bottom_attach">2</property>
                               </packing>
                             </child>
                             <child>
-                              <widget class="GtkButton" id="button_help">
+                              <widget class="GtkButton" id="button_open">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                <property name="label" translatable="yes">Help</property>
+                                <property name="label" translatable="yes">Open</property>
                               </widget>
                               <packing>
                                 <property name="left_attach">1</property>
                                 <property name="right_attach">2</property>
-                                <property name="top_attach">2</property>
-                                <property name="bottom_attach">3</property>
                               </packing>
+                            </child>
+                            <child>
+                              <widget class="GtkButton" id="button_new">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="receives_default">True</property>
+                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                                <property name="label" translatable="yes">New</property>
+                              </widget>
                             </child>
                           </widget>
                         </child>
@@ -216,52 +216,58 @@
                                     <property name="n_rows">3</property>
                                     <property name="n_columns">3</property>
                                     <child>
-                                      <widget class="GtkLabel" id="label10">
+                                      <widget class="GtkButton" id="button_update_sngnam">
                                         <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
                                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="label" translatable="yes">BPM:</property>
+                                        <property name="label" translatable="yes">Update</property>
                                       </widget>
                                       <packing>
+                                        <property name="left_attach">2</property>
+                                        <property name="right_attach">3</property>
+                                        <property name="top_attach">2</property>
+                                        <property name="bottom_attach">3</property>
                                         <property name="x_options"></property>
                                         <property name="y_options"></property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkLabel" id="label11">
-                                        <property name="visible">True</property>
-                                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="label" translatable="yes">PQN:</property>
-                                      </widget>
-                                      <packing>
-                                        <property name="top_attach">1</property>
-                                        <property name="bottom_attach">2</property>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <widget class="GtkSpinButton" id="spinbutton_bpm">
+                                      <widget class="GtkEntry" id="entry_sngnam">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="adjustment">0 0 240 1 10 10</property>
                                       </widget>
                                       <packing>
                                         <property name="left_attach">1</property>
                                         <property name="right_attach">2</property>
+                                        <property name="top_attach">2</property>
+                                        <property name="bottom_attach">3</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkLabel" id="label30">
+                                        <property name="visible">True</property>
+                                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                                        <property name="label" translatable="yes">Song Name:</property>
+                                      </widget>
+                                      <packing>
+                                        <property name="top_attach">2</property>
+                                        <property name="bottom_attach">3</property>
                                         <property name="x_options"></property>
                                         <property name="y_options"></property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkSpinButton" id="spinbutton_pqn">
-                                        <property name="visible">True</property>
+                                      <widget class="GtkButton" id="button_update_pqn">
+                                        <property name="can_focus">True</property>
+                                        <property name="receives_default">True</property>
                                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="adjustment">0 0 10000 1 10 10</property>
+                                        <property name="label" translatable="yes">Update</property>
                                       </widget>
                                       <packing>
-                                        <property name="left_attach">1</property>
-                                        <property name="right_attach">2</property>
+                                        <property name="left_attach">2</property>
+                                        <property name="right_attach">3</property>
                                         <property name="top_attach">1</property>
                                         <property name="bottom_attach">2</property>
                                         <property name="x_options"></property>
@@ -284,15 +290,14 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkButton" id="button_update_pqn">
-                                        <property name="can_focus">True</property>
-                                        <property name="receives_default">True</property>
+                                      <widget class="GtkSpinButton" id="spinbutton_pqn">
+                                        <property name="visible">True</property>
                                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="label" translatable="yes">Update</property>
+                                        <property name="adjustment">0 0 10000 1 10 10</property>
                                       </widget>
                                       <packing>
-                                        <property name="left_attach">2</property>
-                                        <property name="right_attach">3</property>
+                                        <property name="left_attach">1</property>
+                                        <property name="right_attach">2</property>
                                         <property name="top_attach">1</property>
                                         <property name="bottom_attach">2</property>
                                         <property name="x_options"></property>
@@ -300,44 +305,39 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkLabel" id="label30">
+                                      <widget class="GtkSpinButton" id="spinbutton_bpm">
                                         <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
                                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="label" translatable="yes">Song Name:</property>
+                                        <property name="adjustment">0 0 240 1 10 10</property>
                                       </widget>
                                       <packing>
-                                        <property name="top_attach">2</property>
-                                        <property name="bottom_attach">3</property>
+                                        <property name="left_attach">1</property>
+                                        <property name="right_attach">2</property>
                                         <property name="x_options"></property>
                                         <property name="y_options"></property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkEntry" id="entry_sngnam">
+                                      <widget class="GtkLabel" id="label11">
                                         <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
                                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                                        <property name="label" translatable="yes">PQN:</property>
                                       </widget>
                                       <packing>
-                                        <property name="left_attach">1</property>
-                                        <property name="right_attach">2</property>
-                                        <property name="top_attach">2</property>
-                                        <property name="bottom_attach">3</property>
+                                        <property name="top_attach">1</property>
+                                        <property name="bottom_attach">2</property>
+                                        <property name="x_options"></property>
+                                        <property name="y_options"></property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkButton" id="button_update_sngnam">
+                                      <widget class="GtkLabel" id="label10">
                                         <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
-                                        <property name="receives_default">True</property>
                                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="label" translatable="yes">Update</property>
+                                        <property name="label" translatable="yes">BPM:</property>
                                       </widget>
                                       <packing>
-                                        <property name="left_attach">2</property>
-                                        <property name="right_attach">3</property>
-                                        <property name="top_attach">2</property>
-                                        <property name="bottom_attach">3</property>
                                         <property name="x_options"></property>
                                         <property name="y_options"></property>
                                       </packing>
@@ -381,23 +381,15 @@
                                     <property name="n_rows">2</property>
                                     <property name="n_columns">2</property>
                                     <child>
-                                      <widget class="GtkLabel" id="label12">
+                                      <widget class="GtkSpinButton" id="spinbutton_tt">
                                         <property name="visible">True</property>
+                                        <property name="can_focus">True</property>
                                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="label" translatable="yes">Queue Delay:</property>
+                                        <property name="adjustment">0 0 100 1 10 10</property>
                                       </widget>
                                       <packing>
-                                        <property name="x_options"></property>
-                                        <property name="y_options"></property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <widget class="GtkLabel" id="label13">
-                                        <property name="visible">True</property>
-                                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="label" translatable="yes">Timer Ticks:</property>
-                                      </widget>
-                                      <packing>
+                                        <property name="left_attach">1</property>
+                                        <property name="right_attach">2</property>
                                         <property name="top_attach">1</property>
                                         <property name="bottom_attach">2</property>
                                         <property name="x_options"></property>
@@ -419,17 +411,25 @@
                                       </packing>
                                     </child>
                                     <child>
-                                      <widget class="GtkSpinButton" id="spinbutton_tt">
+                                      <widget class="GtkLabel" id="label13">
                                         <property name="visible">True</property>
-                                        <property name="can_focus">True</property>
                                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="adjustment">0 0 100 1 10 10</property>
+                                        <property name="label" translatable="yes">Timer Ticks:</property>
                                       </widget>
                                       <packing>
-                                        <property name="left_attach">1</property>
-                                        <property name="right_attach">2</property>
                                         <property name="top_attach">1</property>
                                         <property name="bottom_attach">2</property>
+                                        <property name="x_options"></property>
+                                        <property name="y_options"></property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <widget class="GtkLabel" id="label12">
+                                        <property name="visible">True</property>
+                                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                                        <property name="label" translatable="yes">Queue Delay:</property>
+                                      </widget>
+                                      <packing>
                                         <property name="x_options"></property>
                                         <property name="y_options"></property>
                                       </packing>
@@ -506,13 +506,35 @@
                               <placeholder/>
                             </child>
                             <child>
-                              <widget class="GtkLabel" id="label15">
+                              <widget class="GtkLabel" id="label_filename">
                                 <property name="visible">True</property>
                                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                <property name="label" translatable="yes">&lt;i&gt;Playing Time:&lt;/i&gt;  </property>
+                                <property name="label" translatable="yes">&lt;tt&gt;/tmp/non_name.osk&lt;/tt&gt;</property>
+                                <property name="use_markup">True</property>
+                                <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                                <property name="wrap">True</property>
+                                <property name="wrap_mode">PANGO_WRAP_WORD_CHAR</property>
+                                <property name="selectable">True</property>
+                              </widget>
+                              <packing>
+                                <property name="left_attach">1</property>
+                                <property name="right_attach">2</property>
+                                <property name="top_attach">1</property>
+                                <property name="bottom_attach">2</property>
+                                <property name="x_options"></property>
+                                <property name="y_options"></property>
+                              </packing>
+                            </child>
+                            <child>
+                              <widget class="GtkLabel" id="label19">
+                                <property name="visible">True</property>
+                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                                <property name="label" translatable="yes">&lt;i&gt;FileName:&lt;/i&gt;  </property>
                                 <property name="use_markup">True</property>
                               </widget>
                               <packing>
+                                <property name="top_attach">1</property>
+                                <property name="bottom_attach">2</property>
                                 <property name="x_options"></property>
                                 <property name="y_options"></property>
                               </packing>
@@ -533,35 +555,13 @@
                               </packing>
                             </child>
                             <child>
-                              <widget class="GtkLabel" id="label19">
+                              <widget class="GtkLabel" id="label15">
                                 <property name="visible">True</property>
                                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                <property name="label" translatable="yes">&lt;i&gt;FileName:&lt;/i&gt;  </property>
+                                <property name="label" translatable="yes">&lt;i&gt;Playing Time:&lt;/i&gt;  </property>
                                 <property name="use_markup">True</property>
                               </widget>
                               <packing>
-                                <property name="top_attach">1</property>
-                                <property name="bottom_attach">2</property>
-                                <property name="x_options"></property>
-                                <property name="y_options"></property>
-                              </packing>
-                            </child>
-                            <child>
-                              <widget class="GtkLabel" id="label_filename">
-                                <property name="visible">True</property>
-                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                <property name="label" translatable="yes">&lt;tt&gt;/tmp/non_name.osk&lt;/tt&gt;</property>
-                                <property name="use_markup">True</property>
-                                <property name="justify">GTK_JUSTIFY_RIGHT</property>
-                                <property name="wrap">True</property>
-                                <property name="wrap_mode">PANGO_WRAP_WORD_CHAR</property>
-                                <property name="selectable">True</property>
-                              </widget>
-                              <packing>
-                                <property name="left_attach">1</property>
-                                <property name="right_attach">2</property>
-                                <property name="top_attach">1</property>
-                                <property name="bottom_attach">2</property>
                                 <property name="x_options"></property>
                                 <property name="y_options"></property>
                               </packing>
@@ -688,6 +688,15 @@
                         <property name="visible">True</property>
                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                         <child>
+                          <widget class="GtkButton" id="button_import_midi">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                            <property name="label" translatable="yes">Import</property>
+                          </widget>
+                        </child>
+                        <child>
                           <widget class="GtkButton" id="button_add_midi">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
@@ -695,6 +704,9 @@
                             <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                             <property name="label" translatable="yes">Add</property>
                           </widget>
+                          <packing>
+                            <property name="position">1</property>
+                          </packing>
                         </child>
                         <child>
                           <widget class="GtkButton" id="button_edit_midi">
@@ -705,7 +717,7 @@
                             <property name="label" translatable="yes">Edit</property>
                           </widget>
                           <packing>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
@@ -717,11 +729,8 @@
                             <property name="label" translatable="yes">Suppr</property>
                           </widget>
                           <packing>
-                            <property name="position">2</property>
+                            <property name="position">3</property>
                           </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
                         </child>
                         <child>
                           <placeholder/>
@@ -1000,24 +1009,26 @@
             <property name="n_rows">2</property>
             <property name="n_columns">2</property>
             <child>
-              <widget class="GtkHBox" id="hbox_action">
+              <widget class="GtkLabel" id="label17">
                 <property name="visible">True</property>
                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
+                <property name="label" translatable="yes">Input:</property>
               </widget>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
+                <property name="x_options"></property>
+                <property name="y_options"></property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label18">
+                <property name="visible">True</property>
+                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                <property name="label" translatable="yes">Action:</property>
+              </widget>
+              <packing>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
+                <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -1042,26 +1053,24 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="label18">
+              <widget class="GtkHBox" id="hbox_action">
                 <property name="visible">True</property>
                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                <property name="label" translatable="yes">Action:</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
               </widget>
               <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
-                <property name="x_options"></property>
-                <property name="y_options"></property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkLabel" id="label17">
-                <property name="visible">True</property>
-                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                <property name="label" translatable="yes">Input:</property>
-              </widget>
-              <packing>
-                <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
             </child>

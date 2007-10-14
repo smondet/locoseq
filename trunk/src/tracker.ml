@@ -198,11 +198,11 @@ let get_meta_tracks_number tr = HT.length tr.meta_tracks
 let remove_midi_track tr id = HT.remove tr.midi_tracks id 
 let remove_meta_track tr id = HT.remove tr.meta_tracks id 
 
-let add_midi_track tr mtk = HT.add tr.midi_tracks (midi_new_id tr) mtk 
+let add_midi_track tr mtk = (
+  let the_id = midi_new_id tr in HT.add tr.midi_tracks the_id mtk; the_id
+)
 let add_meta_track tr mtk = (
-  let the_id = meta_new_id tr in
-  HT.add tr.meta_tracks the_id mtk;
-  the_id
+  let the_id = meta_new_id tr in HT.add tr.meta_tracks the_id mtk; the_id
 )
 
 let add_or_replace_midi_track tr id mtk = (
