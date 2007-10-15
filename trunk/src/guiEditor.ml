@@ -89,6 +89,24 @@ module GuiUtil = struct
       ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
     GEdit.spin_button ~adjustment:adj ~packing:(box#add) ()
   )
+
+
+  (** To debug keyboard shortcuts with printfs... *)
+  let modifier_to_string = function
+    | `BUTTON1  -> "BUTTON1 "
+    | `BUTTON2  -> "BUTTON2 "
+    | `BUTTON3  -> "BUTTON3 "
+    | `BUTTON4  -> "BUTTON4 "
+    | `BUTTON5  -> "BUTTON5 "
+    | `CONTROL  -> "CONTROL "
+    | `LOCK     -> "LOCK    "
+    | `MOD1     -> "MOD1    "
+    | `MOD2     -> "MOD2    "
+    | `MOD3     -> "MOD3    "
+    | `MOD4     -> "MOD4    "
+    | `MOD5     -> "MOD5    "
+    | `SHIFT    -> "SHIFT   "
+
 end
 
 
@@ -1522,7 +1540,8 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   end;
   ignore(te#event#connect#key_press ~callback:(fun x ->
     let modifiers = GdkEvent.Key.state x in
-    if modifiers = [ `CONTROL ] then (
+    (* List.iter (fun x -> Log.p "mod: %s\n" (modifier_to_string x)) modifiers; *)
+    if List.exists (fun x -> x = `CONTROL) modifiers then (
       let key = (GdkEvent.Key.keyval x) in
       begin match key with
       | 119 ->  (* 'w' *)
