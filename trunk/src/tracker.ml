@@ -859,8 +859,8 @@ module RTCtrl = struct
     send_ev.Midi.channel <- ev.Midi.channel;
     send_ev.Midi.data_1  <- ev.Midi.data_1;
     send_ev.Midi.data_2  <- ev.Midi.data_2;
-    (* Seq.output_event_direct tr.sequencer 0 send_ev; *)
-    Seq.put_event_in_queue seq port send_ev;
+    Seq.output_event_direct seq port send_ev;
+    (* Seq.put_event_in_queue seq port send_ev; *)
   )
 
   let play_midi_events send_ev tr previous_tick cur_tk = (
@@ -920,45 +920,62 @@ module RTCtrl = struct
   )
 
 
+  
 
 
   let play on_end tr = (
     tr.is_playing <- true;
 
-    Seq.set_queue_tempo tr.sequencer tr.bpm tr.ppqn;
-    Seq.start_queue tr.sequencer;
+    (* Seq.set_queue_tempo tr.sequencer tr.bpm tr.ppqn; *)
+    (* Seq.start_queue tr.sequencer; *)
 
-    let info = Seq.get_queue_timer_info tr.sequencer in
-    (* XXX Why need this hack ??? *)
-    info.Tim.t_card <- 0;
-    let my_timer = Tim.make_timer info in
+    let my_timer = Tim.make_timer Tim.default_timer_info in
 
     let cpt_ticks = ref 0 in
     let previous_tick = ref (-1) in
 
+
     let send_ev = Midi.empty_midi_event () in
 
     Tim.set_ticks my_timer tr.timer_ticks;
+    (* Tim.set_ticks my_timer 1; *)
     Tim.start_timer my_timer;
 
-    Log.p "Timer started !\n";
+    let tick_duration = (60 * 1000000) / tr.bpm / tr.ppqn in
 
     let loop = ref tr.is_playing in
     let willstop = ref 0 in
+
+    let begining =  (1000000. *. (Unix.gettimeofday ())) in
+    let millisecs () =
+      int_of_float (
+        (1000000.  *. (Unix.gettimeofday ())) -. begining
+      ) in
+    let previous_time = ref (millisecs ()) in
+
+
     while !loop do
-      let count = Tim.wait_next_tick my_timer 1000 in
+      let count = 
+        Tim.wait_next_tick my_timer 1000 in
       if count <> 1 then (
         if count = -1 then
           Log.warn "At loop %d, Timer has returned -1. TIME OUT ?\n" !cpt_ticks  
         else
           Log.warn "[%d] Read %d timer events\n"  !cpt_ticks count 
       );
-      let cur_tk = Seq.get_current_tick tr.sequencer in
+      cpt_ticks := !cpt_ticks + (tr.timer_ticks * count);
+
+      let delta = (millisecs ()) - !previous_time in
+      previous_time := !previous_time + delta;
+      (* let cur_tk = Seq.get_current_tick tr.sequencer in *)
+      (* Log.p "delta: %d millis: %d\n" delta (millisecs ()); *)
+      let cur_tk = !previous_tick + (delta / tick_duration) in
 
       let ticks_to_manage = cur_tk - !previous_tick in
       if (ticks_to_manage < 0) 
       then (
-        Log.warn "Going to fail:  Cur Tk: %d   Prev Tk: %d\n" cur_tk !previous_tick;
+        Log.warn "Going to fail:  Cur Tk: %d   Prev Tk: %d\n"
+        cur_tk !previous_tick;
         failwith ( "Ticks to manage: " ^ (string_of_int ticks_to_manage) ^ "< 0");
       );
 
@@ -966,23 +983,27 @@ module RTCtrl = struct
 
       if (ticks_to_manage > 0) then (
 
+      (* Log.p "Loop ticks_to_manage:%d\n" ticks_to_manage ; *)
         play_meta_events send_ev tr previous_tick cur_tk;
+      (* Log.p "played midi cur_tk: %d\n" cur_tk; *)
         play_midi_events send_ev tr previous_tick cur_tk;
 
+      (* Log.p "played meta \n" ; *)
         (* ) else ( *)
         (* Gc.minor ();*) (*  is it a good idea ? *)
       );
 
+      (* Log.p "played all cur_tk: %d\n" cur_tk; *)
       tr.do_after tr;
 
       previous_tick := cur_tk;
-      cpt_ticks := !cpt_ticks + tr.timer_ticks;
 
       if !willstop = 3 then (
+        (* TODO should test with = 2 or 1... *)
         loop := false;
       );
       if not tr.is_playing then (
-        set_all_stopping tr;
+          set_all_stopping tr;
         incr willstop;
       );
 
@@ -996,6 +1017,4 @@ module RTCtrl = struct
   )
 
 end
-
-
 

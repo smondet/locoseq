@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <song version="0" name="Test Song">
-  <tracker pqn="192" bpm="170" queue_delay="4" timer_ticks="4">
+  <tracker pqn="192" bpm="170" queue_delay="4" timer_ticks="33">
     <midi_tracks>
       <midi_track id="1" name="Drums 1" length="768" outport="0">
         <midi_event tcks="0" stat="144" chan="9" dat1="35" dat2="100"/>
@@ -225,7 +225,7 @@
     </meta_tracks>
   </tracker>
   <input_manager>
-    <handler input_match="custom:0" action_type="toggle_track" action_arg="direct_int:4"/>
     <handler input_match="custom:18" action_type="schedule_toggle_track" action_arg="direct_int:3"/>
+    <handler input_match="custom:0" action_type="toggle_track" action_arg="direct_int:4"/>
   </input_manager>
 </song>

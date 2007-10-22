@@ -166,7 +166,8 @@ let threaded_stop app = (
 
 let is_playing app = Tracker.RTCtrl.is_tracker_playing app.a_tracker
 
-let get_current_tick app = AlsaSequencer.get_current_tick app.a_sequencer
+let get_current_tick app = 0 
+(* AlsaSequencer.get_current_tick app.a_sequencer *)
 
 let get_midi_tracks_information app = (
   Tracker.get_midi_tracks_infos app.a_tracker
