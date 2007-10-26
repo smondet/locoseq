@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
-<song version="0" name="Test Song">
-  <tracker pqn="192" bpm="170" queue_delay="4" timer_ticks="33">
+<song version="0" name="The testing Song">
+  <tracker pqn="192" bpm="216" queue_delay="4" timer_ticks="25">
     <midi_tracks>
-      <midi_track id="1" name="Drums 1" length="768" outport="0">
+      <midi_track id="1" name="Drums 1" track_lgth="768" sched_lgth="768" outport="0">
         <midi_event tcks="0" stat="144" chan="9" dat1="35" dat2="100"/>
         <midi_event tcks="0" stat="144" chan="9" dat1="42" dat2="100"/>
         <midi_event tcks="46" stat="128" chan="9" dat1="35" dat2="100"/>
@@ -44,7 +44,7 @@
         <midi_event tcks="718" stat="128" chan="9" dat1="46" dat2="100"/>
         <midi_event tcks="718" stat="128" chan="9" dat1="42" dat2="100"/>
       </midi_track>
-      <midi_track id="2" name="Bass 1" length="768" outport="0">
+      <midi_track id="2" name="Bass 1" track_lgth="768" sched_lgth="768" outport="0">
         <midi_event tcks="0" stat="144" chan="2" dat1="24" dat2="100"/>
         <midi_event tcks="178" stat="128" chan="2" dat1="24" dat2="100"/>
         <midi_event tcks="192" stat="144" chan="2" dat1="25" dat2="100"/>
@@ -56,7 +56,7 @@
         <midi_event tcks="578" stat="128" chan="2" dat1="23" dat2="100"/>
         <midi_event tcks="758" stat="128" chan="2" dat1="24" dat2="100"/>
       </midi_track>
-      <midi_track id="3" name="Chords 1" length="768" outport="0">
+      <midi_track id="3" name="Chords 1" track_lgth="768" sched_lgth="768" outport="0">
         <midi_event tcks="18" stat="224" chan="0" dat1="0" dat2="60"/>
         <midi_event tcks="27" stat="224" chan="0" dat1="0" dat2="48"/>
         <midi_event tcks="32" stat="224" chan="0" dat1="0" dat2="50"/>
@@ -161,7 +161,7 @@
         <midi_event tcks="747" stat="224" chan="0" dat1="0" dat2="55"/>
         <midi_event tcks="760" stat="224" chan="0" dat1="0" dat2="64"/>
       </midi_track>
-      <midi_track id="4" name="Drums 2" length="768" outport="0">
+      <midi_track id="4" name="Drums 2" track_lgth="768" sched_lgth="768" outport="0">
         <midi_event tcks="0" stat="144" chan="9" dat1="35" dat2="100"/>
         <midi_event tcks="0" stat="144" chan="9" dat1="42" dat2="100"/>
         <midi_event tcks="46" stat="128" chan="9" dat1="35" dat2="100"/>
@@ -212,20 +212,9 @@
         <midi_event tcks="718" stat="128" chan="9" dat1="42" dat2="100"/>
       </midi_track>
     </midi_tracks>
-    <meta_tracks>
-      <meta_track id="-1" name="Drum And Bass" length="768">
-        <meta_event begin="0" end="768" action="track_keep_on" arg1="2"/>
-        <meta_event begin="0" end="768" action="track_keep_on" arg1="1"/>
-      </meta_track>
-      <meta_track id="-2" name="DummyTest" length="576">
-        <meta_event begin="384" end="384" action="set_bpm" arg1="143"/>
-        <meta_event begin="125" end="125" action="track_set_off" arg1="2"/>
-        <meta_event begin="13" end="13" action="track_set_on" arg1="2"/>
-      </meta_track>
-    </meta_tracks>
+    <meta_tracks/>
   </tracker>
   <input_manager>
-    <handler input_match="custom:18" action_type="schedule_toggle_track" action_arg="direct_int:3"/>
-    <handler input_match="custom:0" action_type="toggle_track" action_arg="direct_int:4"/>
+    <handler input_match="custom:0" action_type="schedule_toggle_track" action_arg="direct_int:1"/>
   </input_manager>
 </song>

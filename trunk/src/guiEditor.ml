@@ -114,8 +114,9 @@ end
 (** Midi related utilities *)
 module MidiUtil = struct
 
+
   let note_octave_of_event ev = (
-    ev.Midi.data_1 mod 12 , (ev.Midi.data_1 / 12) + 1
+    ev.Tracker.MidiEvent.e_dat1 mod 12 , (ev.Tracker.MidiEvent.e_dat1 / 12) + 1
   )
 
   let note_of_val_and_oct value octave = (octave - 1) * 12 + value
@@ -123,13 +124,14 @@ module MidiUtil = struct
   let note_to_string note = (
     let value,octave = note_octave_of_event note in
     let virtual_note = StringServer.note_names.(value) in
-    let chan = note.Midi.channel in
+    let chan = note.Tracker.MidiEvent.e_chan in
     Printf.sprintf "NOTE: %s%d -> %d" virtual_note octave chan
   )
 
   let midi_event_to_string midi_ev = (
-    let cmd = Midi.midi_cmd_of_event midi_ev in
-    let chan = midi_ev.Midi.channel in
+    (* To optimize !! TODO *)
+    let cmd = Midi.midi_cmd_of_event (Tracker.MidiEvent.to_midi midi_ev) in
+    let chan = midi_ev.Tracker.MidiEvent.e_chan in
     Printf.sprintf "%s -> %d" (Midi.midi_cmd_to_string cmd) chan
   )
 end
@@ -231,9 +233,9 @@ type track_type = MIDI_TRACK | META_TRACK
 type editable_event =
   | EE_None
   (** The [editable_event] is a kind of [option] *)
-  | EE_Midi of Midi.midi_event
+  | EE_Midi of Tracker.MidiEvent.midi_event
   (** Generic midi event *)
-  | EE_MidiNote of (Midi.midi_event * Midi.midi_event) list
+  | EE_MidiNote of (Tracker.MidiEvent.midi_event * Tracker.MidiEvent.midi_event) list
   (** One midi note, and its instances in the track (NoteOn, NoteOff) *)
   | EE_MetaSpecOneTick of MetaUtil.meta_type * int * int 
   (** Meta-event based on one-tick-date *)
@@ -259,6 +261,7 @@ type track_values = {
 let util_make_midi_editables midi_events track_length = (
 
   let module HT = Hashtbl in
+  let module Mi = Tracker.MidiEvent in
 
   let note_ons  = HT.create 50 in
   let note_offs  = HT.create 50 in
@@ -272,12 +275,12 @@ let util_make_midi_editables midi_events track_length = (
 
   List.iter (
     fun midi_ev ->
-      match midi_ev.Midi.status with
+      match midi_ev.Mi.e_stat with
       | rs when ((0x80<= rs) && (rs <= 0x8F)) ->
-          HT.add note_offs midi_ev.Midi.data_1 midi_ev;
+          HT.add note_offs midi_ev.Mi.e_dat1 midi_ev;
       | rs when ((0x90<= rs) && (rs <= 0x9F)) -> 
-          HT.add note_ons midi_ev.Midi.data_1 midi_ev;
-          add_key midi_ev.Midi.data_1;
+          HT.add note_ons midi_ev.Mi.e_dat1 midi_ev;
+          add_key midi_ev.Mi.e_dat1;
       | _ -> other_list := (EE_Midi midi_ev)::!other_list;
   ) midi_events;
 
@@ -286,16 +289,16 @@ let util_make_midi_editables midi_events track_length = (
       let for_this_note = ref [] in
 
       let ons  = ref (
-        List.fast_sort (fun x y -> compare x.Midi.ticks y.Midi.ticks)
+        List.fast_sort (fun x y -> compare x.Mi.e_tiks y.Mi.e_tiks)
         (HT.find_all note_ons x)) in
       let ofs = ref (
-        List.fast_sort (fun x y -> compare x.Midi.ticks y.Midi.ticks)
+        List.fast_sort (fun x y -> compare x.Mi.e_tiks y.Mi.e_tiks)
         (HT.find_all note_offs x)) in
       let ons_iter = ref (List.length !ons) in
       let ofs_iter = ref (List.length !ofs) in
       while !ons_iter > 0 && !ofs_iter > 0 do
         let the_on,the_of = List.hd !ons , List.hd !ofs in
-        if the_on.Midi.ticks < the_of.Midi.ticks
+        if the_on.Mi.e_tiks < the_of.Mi.e_tiks
         then (
           (* "normal" case: *)
           for_this_note := (the_on, the_of) :: !for_this_note;
@@ -303,7 +306,7 @@ let util_make_midi_editables midi_events track_length = (
           ofs := List.tl !ofs; decr ofs_iter;
         ) else (
           Log.p "Not off (%d) before note on (%d)\n"
-          the_of.Midi.ticks the_on.Midi.ticks;
+          the_of.Mi.e_tiks the_on.Mi.e_tiks;
           other_list := (EE_Midi the_of)::!other_list;
           ofs := List.tl !ofs; decr ofs_iter;
         );
@@ -322,7 +325,7 @@ let util_make_midi_editables midi_events track_length = (
 
   (List.append (List.fast_sort (
     fun x y -> 
-      let get_note = function | EE_MidiNote ((mev,_)::_) -> mev.Midi.data_1
+      let get_note = function | EE_MidiNote ((mev,_)::_) -> mev.Mi.e_dat1
       | _ -> failwith "not a note in note list" in
       - (compare (get_note x) (get_note y))
   ) !notes_list) (List.rev (!other_list)))
@@ -344,7 +347,7 @@ let util_make_meta_editables meta_events = (
 let tv_make_track_values app tk_ref = (
   match tk_ref with
   | `MIDI tk -> 
-      let name,port,length =
+      let name,port,length, _ =
         App.get_midi_track_information app tk in
       let _,p = App.get_bpm_ppqn app in
       let b,q,t = S.unitize_length_tuple length p in
@@ -366,7 +369,7 @@ let tv_make_track_values app tk_ref = (
         tv_edit_evts = editables_array;
       }
   | `META tk ->
-      let name,length = App.get_meta_track_information app tk in
+      let name,length,_ = App.get_meta_track_information app tk in
       let _,p = App.get_bpm_ppqn app in
       let b,q,t = S.unitize_length_tuple length p in
       let meta_events = App.get_meta_track app tk in
@@ -601,7 +604,8 @@ let ef_draw_event ef index event = (
   begin match event with
   | EE_Midi ev ->
       let cur_y, unit_y = make_event_label (MidiUtil.midi_event_to_string ev) in
-      draw_tick_event ~t_value:ev.Midi.ticks ~current_y:cur_y ~unit_y;
+      draw_tick_event ~t_value:ev.Tracker.MidiEvent.e_tiks
+      ~current_y:cur_y ~unit_y;
 
   | EE_MidiNote [] -> Log.warn "An empty midi note ??? keep going on\n";
   | EE_MidiNote ev_list ->
@@ -610,10 +614,11 @@ let ef_draw_event ef index event = (
       
       List.iter (
         fun (ev_on , ev_off) ->
-          let start_t, end_t = ev_on.Midi.ticks, ev_off.Midi.ticks in
+          let start_t, end_t =
+            ev_on.Tracker.MidiEvent.e_tiks, ev_off.Tracker.MidiEvent.e_tiks in
           draw_range_event ~start_t ~end_t ~current_y:cur_y ~unit_y;
 
-          let str = Printf.sprintf "v%d" ev_on.Midi.data_2 in
+          let str = Printf.sprintf "v%d" ev_on.Tracker.MidiEvent.e_dat2 in
           ef.ef_draw#set_foreground !Col.text_velocity;
           let x = ef_x_for_velocity_of_midi_note ef start_t end_t in
           ef.ef_draw#put_layout ~x ~y:(cur_y + 1) (ef_make_layout ef str);
@@ -667,7 +672,7 @@ let ef_pointer_in_ticks_interval ef x_point (t_min, t_max) = (
 )
 
 let ef_set_editable_selected ef editable = (
-  let module M = Midi in
+  let module M = Tracker.MidiEvent in
   let idx = ref 0 in
   let ended = ref false in
   while !idx < (Array.length ef.ef_model.tv_edit_evts) && not !ended do
@@ -676,7 +681,7 @@ let ef_set_editable_selected ef editable = (
       | EE_Midi mev ->  editable = EE_Midi mev 
       | EE_MidiNote ((b,_) :: _) -> (
           match editable with
-          | EE_MidiNote ((bb,_) :: _) when b.M.data_1 = bb.M.data_1 -> true
+          | EE_MidiNote ((bb,_) :: _) when b.M.e_dat1 = bb.M.e_dat1 -> true
           | _ -> false
       )
       | event ->
@@ -709,7 +714,7 @@ let ef_on_mouse_press ef x y = (
       let on_drag x = (x_min <= x) && (x <= x_max) in
       let on_release x_release =
         let x_ticks = ef_pixels_to_ticks ef (x_release - ef.ef_grid_begin_x) in
-        midi_ev.Midi.ticks <- x_ticks;
+        midi_ev.Tracker.MidiEvent.e_tiks <- x_ticks;
         ef_cmd_redraw ef;
       in
       ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
@@ -719,8 +724,9 @@ let ef_on_mouse_press ef x y = (
       let on_drag x = (x_min <= x) && (x <= x_max) in
       let on_release x_release =
         let distance = (float (x_release - x_start)) in
-        let new_velo = midi_ev.Midi.data_2 + (int_of_float (distance *. 0.4)) in
-        midi_ev.Midi.data_2 <- new_velo;
+        let new_velo =
+          midi_ev.Tracker.MidiEvent.e_dat2 + (int_of_float (distance *. 0.4)) in
+        midi_ev.Tracker.MidiEvent.e_dat2 <- new_velo;
         ef_cmd_redraw ef;
       in
       ef.ef_pointer.ep_status <- EPStatus_XDrag (on_drag, on_release);
@@ -742,7 +748,7 @@ let ef_on_mouse_press ef x y = (
     let start_removing_midi_note ef (ev_b, ev_e) = (
       let on_drag x =
         ef_pointer_in_ticks_interval ef x
-        (ev_b.Midi.ticks,ev_e.Midi.ticks)
+        (ev_b.Tracker.MidiEvent.e_tiks,ev_e.Tracker.MidiEvent.e_tiks)
       in
       let on_release x =
         if (ef.ef_grid_begin_x <= x && x <= ef.ef_w) then (
@@ -770,15 +776,16 @@ let ef_on_mouse_press ef x y = (
           >= !Settings.midi_note_minimum_tick_size
         ) then (
           let example_on, example_of = List.hd ev_list in
+          let module Mi = Tracker.MidiEvent in
           let note_on, note_of =
-            Midi.copy_midi_event example_on, Midi.copy_midi_event example_of
+            Mi.copy_midi_event example_on, Mi.copy_midi_event example_of
           in
           if (x_start_ticks < x_release_ticks) then (
-            note_on.Midi.ticks <- x_start_ticks;
-            note_of.Midi.ticks <- x_release_ticks;
+            note_on.Mi.e_tiks <- x_start_ticks;
+            note_of.Mi.e_tiks <- x_release_ticks;
           ) else (
-            note_on.Midi.ticks <- x_release_ticks;
-            note_of.Midi.ticks <- x_start_ticks;
+            note_on.Mi.e_tiks <- x_release_ticks;
+            note_of.Mi.e_tiks <- x_start_ticks;
           );
           App.add_midi_event_to_track 
           ef.ef_model.tv_app ef.ef_model.tv_tk_id note_on;
@@ -798,7 +805,8 @@ let ef_on_mouse_press ef x y = (
     let rec iter_note_instances_for_resize = function
       | [] -> () 
       | (ev_b, ev_e) :: q ->
-          let t_b,t_e = ev_b.Midi.ticks, ev_e.Midi.ticks in
+          let t_b,t_e =
+            ev_b.Tracker.MidiEvent.e_tiks, ev_e.Tracker.MidiEvent.e_tiks in
           if (ef_pointer_touches_ticks ef x t_b) then (
             start_resize_midi_ticks ef ev_b
             ~valid_interval:(ef.ef_grid_begin_x, pixelize t_e);
@@ -820,7 +828,8 @@ let ef_on_mouse_press ef x y = (
       | [] -> ()
       | (ev_b, ev_e) :: q ->
           if (
-            ef_pointer_in_ticks_interval ef x (ev_b.Midi.ticks,ev_e.Midi.ticks)
+            ef_pointer_in_ticks_interval ef x
+            (ev_b.Tracker.MidiEvent.e_tiks,ev_e.Tracker.MidiEvent.e_tiks)
           ) then (
             start_removing_midi_note ef (ev_b,ev_e);
           ) else (
@@ -909,7 +918,8 @@ let ef_on_mouse_press ef x y = (
           let event = ef.ef_model.tv_edit_evts.(event_id) in
           begin match event with
           | EE_Midi mev ->
-              if (ef_pointer_touches_ticks ef x mev.Midi.ticks) then (
+              if (ef_pointer_touches_ticks ef x mev.Tracker.MidiEvent.e_tiks
+              ) then (
                 LocalUtil.start_resize_midi_ticks ef mev
                 ~valid_interval:(ef.ef_grid_begin_x, ef.ef_w);
               );
@@ -929,7 +939,8 @@ let ef_on_mouse_press ef x y = (
           let event = ef.ef_model.tv_edit_evts.(event_id) in
           begin match event with
           | EE_Midi mev ->
-              if (ef_pointer_touches_ticks ef x mev.Midi.ticks) then (
+              if (ef_pointer_touches_ticks ef x mev.Tracker.MidiEvent.e_tiks
+              ) then (
                 LocalUtil.start_removing_midi_event ef mev;
               );
           | EE_MidiNote  ev_list ->
@@ -1094,15 +1105,13 @@ let rec util_update_add_edit_line box ef = (
     let menu = GMenu.menu () in
     begin match ef.ef_model.tv_type with
     | MIDI_TRACK -> 
+        let module Mi = Tracker.MidiEvent in
         let menuitem_note =  
           GMenu.menu_item ~label:"Midi Note" ~packing:menu#append () in
         ignore(menuitem_note#connect#activate ~callback:(fun () ->
           (* add the event, rebuild,  set it to selected *)
-          let the_event_on = Midi.empty_midi_event () in
-          let the_event_of = Midi.empty_midi_event () in
-          the_event_on.Midi.status <- 0x90;
-          the_event_of.Midi.status <- 0x80;
-          the_event_of.Midi.ticks <- ef.ef_model.tv_pqn;
+          let the_event_on = Mi.create 0 0x90 0 0 0 in
+          let the_event_of = Mi.create ef.ef_model.tv_pqn 0x80 0 0 0 in
           App.add_midi_event_to_track 
           ef.ef_model.tv_app ef.ef_model.tv_tk_id the_event_on;
           App.add_midi_event_to_track 
@@ -1117,7 +1126,7 @@ let rec util_update_add_edit_line box ef = (
         let menuitem_midi =  
           GMenu.menu_item ~label:"Midi Generic Event" ~packing:menu#append () in
         ignore(menuitem_midi#connect#activate ~callback:(fun () ->
-          let the_event = Midi.empty_midi_event () in
+          let the_event = Mi.create 0 0 0 0 0  in
           App.add_midi_event_to_track 
           ef.ef_model.tv_app ef.ef_model.tv_tk_id the_event;
           tv_rebuild_editables ef.ef_model;
@@ -1215,10 +1224,11 @@ let rec util_update_add_edit_line box ef = (
           Log.p "The active is: %d\n" cbo#active;
           let _, octave = MidiUtil.note_octave_of_event mev_b in
           let new_note = cbo#active in
+          let module Mi = Tracker.MidiEvent in
           List.iter (
             fun (evb, eve) ->
-              evb.Midi.data_1 <- MidiUtil.note_of_val_and_oct new_note octave;
-              eve.Midi.data_1 <- MidiUtil.note_of_val_and_oct new_note octave;
+              evb.Mi.e_dat1 <- MidiUtil.note_of_val_and_oct new_note octave;
+              eve.Mi.e_dat1 <- MidiUtil.note_of_val_and_oct new_note octave;
           ) ev_list;
           tv_rebuild_editables ef.ef_model;
           ef_set_editable_selected ef (EE_MidiNote [(mev_b,mev_e)]);
@@ -1237,11 +1247,12 @@ let rec util_update_add_edit_line box ef = (
           let note, old_octave = MidiUtil.note_octave_of_event mev_b in
           let new_octave = int_of_float octave_adj#value in
           (* TODO verify that data_1 < 255 *)
+          let module Mi = Tracker.MidiEvent in
           if old_octave <> new_octave then (
             List.iter (
               fun (evb, eve) ->
-                evb.Midi.data_1 <- MidiUtil.note_of_val_and_oct note new_octave;
-                eve.Midi.data_1 <- MidiUtil.note_of_val_and_oct note new_octave;
+                evb.Mi.e_dat1 <- MidiUtil.note_of_val_and_oct note new_octave;
+                eve.Mi.e_dat1 <- MidiUtil.note_of_val_and_oct note new_octave;
             ) ev_list;
             tv_rebuild_editables ef.ef_model;
             ef_set_editable_selected ef (EE_MidiNote [(mev_b,mev_e)]);
@@ -1256,14 +1267,15 @@ let rec util_update_add_edit_line box ef = (
           GEdit.combo_box_text ~strings:S.midi_channel_strings
           ~packing:box#add () in
         let cbo,_ = chan_entry in
-        cbo#set_active (mev_b.Midi.channel + 1);
+        cbo#set_active (mev_b.Tracker.MidiEvent.e_chan + 1);
         ignore(cbo#connect#changed ~callback:( fun () ->
           Log.p "The active is: %d\n" cbo#active;
+          let module Mi = Tracker.MidiEvent in
           let new_chan = cbo#active - 1 in
           List.iter (
             fun (evb, eve) ->
-              evb.Midi.channel <- new_chan;
-              eve.Midi.channel <- new_chan;
+              evb.Mi.e_chan <- new_chan;
+              eve.Mi.e_chan <- new_chan;
           ) ev_list;
           ef_cmd_redraw ef;
         ));
@@ -1277,14 +1289,15 @@ let rec util_update_add_edit_line box ef = (
         begin try
           let _ =
             List.find (fun (_,b) -> 
-              incr active_index; ev.Midi.status land 0xF0 = b
+              incr active_index; ev.Tracker.MidiEvent.e_stat land 0xF0 = b
             ) S.midi_status_string_value in
           cbo#set_active !active_index;
           with Not_found -> ()
         end;
         ignore(cbo#connect#changed ~callback:( fun () ->
           begin match GEdit.text_combo_get_active stat_entry with
-          | Some c -> ev.Midi.status <- S.midi_status_of_string c
+          | Some c -> 
+              ev.Tracker.MidiEvent.e_stat <- S.midi_status_of_string c
           | None -> ()
           end;
           util_update_add_edit_line box ef;
@@ -1295,37 +1308,40 @@ let rec util_update_add_edit_line box ef = (
           GEdit.combo_box_text ~strings:S.midi_channel_strings
             ~packing:box#add () in
         let cbo,_ = chan_entry in
-        cbo#set_active (ev.Midi.channel + 1);
+        cbo#set_active (ev.Tracker.MidiEvent.e_chan + 1);
         ignore(cbo#connect#changed ~callback:( fun () ->
-          ev.Midi.channel <-  cbo#active - 1;
+          ev.Tracker.MidiEvent.e_chan <-  cbo#active - 1;
           util_update_add_edit_line box ef;
           ef_cmd_redraw ef;
         ));
         GuiUtil.append_label " Data 1:" box;
         let note_adj =
-          GData.adjustment ~value:(float ev.Midi.data_1) ~lower:(0.)
+          GData.adjustment
+          ~value:(float ev.Tracker.MidiEvent.e_dat1) ~lower:(0.)
           ~upper:255.0 ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
         let spin =
           GEdit.spin_button ~adjustment:note_adj ~packing:(box#add) () in
         ignore (spin#connect#changed ~callback:( fun () ->
-          if ev.Midi.data_1 <> (int_of_float note_adj#value) then (
-            ev.Midi.data_1 <- int_of_float note_adj#value;
+          if ev.Tracker.MidiEvent.e_dat1 <> (int_of_float note_adj#value) then (
+            ev.Tracker.MidiEvent.e_dat1 <- int_of_float note_adj#value;
             util_update_add_edit_line box ef;
             ef_cmd_redraw ef;
           );
         ));
         (* for 2-arg midi events: *)
-        let rs = ev.Midi.status land 0xF0 in
+        let rs = ev.Tracker.MidiEvent.e_stat land 0xF0 in
         if not ((0xC0 <= rs) && (rs <= 0xDF)) then (
           GuiUtil.append_label " Data 2:" box;
           let velo_adj =
-            GData.adjustment ~value:(float ev.Midi.data_2) ~lower:(0.0)
+            GData.adjustment
+            ~value:(float ev.Tracker.MidiEvent.e_dat2) ~lower:(0.0)
             ~upper:255.0 ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
           let spin =
             GEdit.spin_button ~adjustment:velo_adj ~packing:(box#add) () in
           ignore (spin#connect#changed ~callback:( fun () ->
-            if ev.Midi.data_2 <> (int_of_float velo_adj#value) then (
-              ev.Midi.data_2 <- int_of_float velo_adj#value;
+            if ev.Tracker.MidiEvent.e_dat2 <> (int_of_float velo_adj#value
+            ) then (
+              ev.Tracker.MidiEvent.e_dat2 <- int_of_float velo_adj#value;
               util_update_add_edit_line box ef;
               ef_cmd_redraw ef;
             );

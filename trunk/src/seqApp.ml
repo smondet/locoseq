@@ -40,7 +40,7 @@
 (** Type container for the applicative non-GUI levels *)
 type seq_app = {
   mutable a_sequencer : AlsaSequencer.sequencer;
-  mutable a_tracker : Tracker.tracker;
+  mutable a_tracker : Tracker.tracker_engine;
   mutable a_input_mgr : InputManager.manager;
 
   mutable a_play_thread : Thread.t option;
@@ -70,9 +70,9 @@ let make_app  ?(visitor=fun () -> ()) () = (
   let the_input_mgr = InputManager.make_manager my_seq in
 
   let my_tracker = 
-    Tracker.make_tracker default_ppqn  170 my_seq
-    (InputManager.manage_input the_input_mgr)
-    (fun t -> visitor () ; Thread.delay 0.001) in
+    Tracker.make_engine ~pqn:default_ppqn ~bpm:170 ~sequencer:my_seq
+    ~before:(InputManager.manage_input the_input_mgr)
+    ~after:(fun t -> visitor () ; Thread.delay 0.001) in
 
   {
     a_sequencer = my_seq ;
@@ -96,7 +96,7 @@ let make_app  ?(visitor=fun () -> ()) () = (
 
 
 let clear_song app = (
-  Tracker.clear_tracker app.a_tracker ;
+  Tracker.Services.clear_tracker app.a_tracker ;
   app.a_input_actions <- [] ;
   app.a_unsaved_actions <- [] ;
   app.a_songname <- "" ;
@@ -104,23 +104,23 @@ let clear_song app = (
   app.a_is_saved <- true ;(* Nothing has been done neither ! *)
 )
 let get_bpm_ppqn app =
-  (app.a_tracker.Tracker.bpm, app.a_tracker.Tracker.ppqn)
+  (app.a_tracker.Tracker.t_bpm, app.a_tracker.Tracker.t_ppqn)
 
 let set_bpm app bpm = (
-  Tracker.RTCtrl.set_bpm app.a_tracker bpm ;
+  Tracker.RTControl.set_bpm app.a_tracker bpm ;
   app.a_is_saved <- false ;
 )
-let set_ppqn app ppqn = Tracker.set_ppqn app.a_tracker ppqn
+let set_ppqn app ppqn = Tracker.Services.set_ppqn app.a_tracker ppqn
 
 let get_sequencer_info app =
-  (app.a_tracker.Tracker.queue_delay, app.a_tracker.Tracker.timer_ticks) ;;
+  (app.a_tracker.Tracker.t_queue_delay, app.a_tracker.Tracker.t_timer_ticks) ;;
 
 let set_sequencer_info app (qd, tt) = 
   if (
-    app.a_tracker.Tracker.queue_delay <> qd ||
-    app.a_tracker.Tracker.timer_ticks <> tt ) then (
-      app.a_tracker.Tracker.queue_delay <- qd ;
-      app.a_tracker.Tracker.timer_ticks <- tt ;
+    app.a_tracker.Tracker.t_queue_delay <> qd ||
+    app.a_tracker.Tracker.t_timer_ticks <> tt ) then (
+      app.a_tracker.Tracker.t_queue_delay <- qd ;
+      app.a_tracker.Tracker.t_timer_ticks <- tt ;
       Log.p "Setting to false\n" ;
       app.a_is_saved <- false ;
     )
@@ -137,10 +137,11 @@ let set_song_name app str = (
 let add_midi_file app file =
   let midi_data =  MidiFile.parse_smf file in
 
-  Tracker.set_ppqn app.a_tracker midi_data.Midi.per_quarter_note ;
-  Tracker.add_midi_tracks app.a_tracker midi_data.Midi.tracks;
+  Tracker.Services.set_ppqn app.a_tracker midi_data.Midi.per_quarter_note ;
+  Tracker.Services.add_midi_tracks app.a_tracker midi_data.Midi.tracks;
   
-  Log.p "Number of tracks: %d\n" (Tracker.get_midi_tracks_number app.a_tracker);
+  Log.p "Number of tracks: %d\n"
+  (Tracker.ManageTracks.get_midi_tracks_number app.a_tracker);
 
   app.a_is_saved <- false ;
   ();;
@@ -149,7 +150,7 @@ let threaded_play on_end app = (
   app.a_play_thread <- Some (Thread.create (
     fun () ->
       InputManager.clear_input app.a_input_mgr ;
-      Tracker.RTCtrl.play on_end app.a_tracker;
+      Tracker.RTControl.play ~on_end app.a_tracker;
   ) ());
 )
 
@@ -157,83 +158,87 @@ let threaded_stop app = (
     match app.a_play_thread with
     | None -> Log.p "You want to stop a stopped tracker...\n" ;
     | Some t -> (
-      Tracker.RTCtrl.stop app.a_tracker ;
+      Tracker.RTControl.stop app.a_tracker ;
       Thread.join t ;
       app.a_play_thread <- None ;
       Log.p "Tracker Stopped\n" ;
     )
 )
 
-let is_playing app = Tracker.RTCtrl.is_tracker_playing app.a_tracker
+let is_playing app = Tracker.RTControl.is_tracker_playing app.a_tracker
 
 let get_current_tick app = 0 
 (* AlsaSequencer.get_current_tick app.a_sequencer *)
 
 let get_midi_tracks_information app = (
-  Tracker.get_midi_tracks_infos app.a_tracker
+  Tracker.Services.get_midi_tracks_infos app.a_tracker
 )
 let get_midi_track_information app id = (
-  Tracker.get_midi_track_infos app.a_tracker id
+  Tracker.Services.get_midi_track_infos app.a_tracker id
 )
 let set_midi_track_information app id name port ticks= (
-  Tracker.set_midi_track_infos app.a_tracker id name port ticks;
+  Tracker.Services.set_midi_track_infos app.a_tracker id name port ticks ticks;
+  (* TODO s/ticks/lgth & sched/ *)
   app.a_is_saved <- false ;
 )
 let get_meta_tracks_information app = (
-  Tracker.get_meta_tracks_infos app.a_tracker
+  Tracker.Services.get_meta_tracks_infos app.a_tracker
 )
 let set_meta_track_information app id name ticks= (
-  Tracker.set_meta_track_infos app.a_tracker id name ticks;
+  Tracker.Services.set_meta_track_infos app.a_tracker id name ticks ticks;
+  (* TODO s/ticks/lgth & sched/ *)
   app.a_is_saved <- false ;
 )
 
 let get_meta_track_information app id = (
-  Tracker.get_meta_track_infos app.a_tracker id
+  Tracker.Services.get_meta_track_infos app.a_tracker id
 )
-let get_track_stat app = Tracker.get_track_stat app.a_tracker
+let get_track_stat app = Tracker.Services.get_track_stat app.a_tracker
 
 let add_meta_track app name size actions = (
   let mtk =
-    Tracker.make_meta_track name size actions in
-  let tk_id = Tracker.add_meta_track app.a_tracker mtk in
+    Tracker.Tracks.make_meta_track name size  size actions in
+  (* TODO s/ticks/lgth & sched/ *)
+  let tk_id = Tracker.ManageTracks.add_meta_track app.a_tracker mtk in
   app.a_is_saved <- false ;
   tk_id
 )
 let add_midi_track app name port ticks = (
-  let trk = Tracker.empty_track () in
-  let id = Tracker.add_midi_track app.a_tracker trk in
-  Tracker.set_midi_track_infos app.a_tracker id name port ticks;
+  let trk = Tracker.Tracks.make_midi_track name ticks ticks port [] in
+  (* TODO s/ticks/lgth & sched/ *)
+  let id = Tracker.ManageTracks.add_midi_track app.a_tracker trk in
   app.a_is_saved <- false ;
   id
 )
 let replace_meta_track app id name size actions  = (
-  let mtk = Tracker.make_meta_track name size actions in
-  Tracker.replace_meta_track app.a_tracker id mtk ;
+  let mtk = Tracker.Tracks.make_meta_track name size size actions in
+  (* TODO s/ticks/lgth & sched/ *)
+  Tracker.Services.replace_meta_track app.a_tracker id mtk ;
   app.a_is_saved <- false ;
 )
 let remove_midi_track app id = (
-  Tracker.remove_midi_track app.a_tracker id ;
+  Tracker.ManageTracks.remove_midi_track app.a_tracker id ;
   app.a_is_saved <- false ;
 )
 let remove_meta_track app id = (
-  Tracker.remove_meta_track app.a_tracker id ;
+  Tracker.ManageTracks.remove_meta_track app.a_tracker id ;
   app.a_is_saved <- false ;
 )
 
-let get_meta_track app id = Tracker.get_meta_track_actions app.a_tracker id 
-let get_midi_track app id = Tracker.get_midi_track_events app.a_tracker id 
+let get_meta_track app id = Tracker.Services.get_meta_track_actions app.a_tracker id 
+let get_midi_track app id = Tracker.Services.get_midi_track_events app.a_tracker id 
 
 let remove_midi_event_from_track app tk_id midi_event =
-  (Tracker.remove_midi_event_from_track  app.a_tracker tk_id midi_event)
+  (Tracker.Services.remove_midi_event_from_track  app.a_tracker tk_id midi_event)
 
 let remove_meta_event_from_track app tk_id meta_event =
-  (Tracker.remove_meta_event_from_track  app.a_tracker tk_id meta_event)
+  (Tracker.Services.remove_meta_event_from_track  app.a_tracker tk_id meta_event)
 
 let add_midi_event_to_track app tk_id midi_event =
-  (Tracker.add_midi_event_to_track  app.a_tracker tk_id midi_event)
+  (Tracker.Services.add_midi_event_to_track  app.a_tracker tk_id midi_event)
 
 let add_meta_event_to_track app tk_id meta_event =
-  (Tracker.add_meta_event_to_track  app.a_tracker tk_id meta_event)
+  (Tracker.Services.add_meta_event_to_track  app.a_tracker tk_id meta_event)
 
 (******************************************************************************)
 (** {3 Input Management} *)
@@ -327,7 +332,7 @@ let xml_stop=                 "stop"
 let xml_mute_all=             "mute_all"             
 
 let save_to_file_xml app filename = (
-  let xml_tracker = Tracker.XmlSerialization.to_xml app.a_tracker in
+  let xml_tracker = Tracker.XML_IO.to_xml app.a_tracker in
   let xml_inpact =
     X.Element ( xml_inputmgr , [] ,
     List.rev (List.rev_map (
@@ -392,8 +397,8 @@ let load_of_file_xml app filename = (
       X.iter (
         fun child ->
           match X.tag child with
-          | s when s = Tracker.XmlSerialization.xml_tracker ->
-              Tracker.XmlSerialization.load_xml app.a_tracker child ;
+          | s when s = Tracker.XML_IO.xml_tracker ->
+              Tracker.XML_IO.load_xml app.a_tracker child ;
           | s when s = xml_inputmgr -> (
             X.iter (
               fun hdlr ->

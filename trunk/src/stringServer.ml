@@ -107,12 +107,11 @@ let playing_and_schedstop_color = "#FF0000"
 let playing = "P"
 let playing_color = "#00FF00"
 
-let status_color_of_bools (playing,sched_play,sched_stop) =
-  match (playing,sched_play,sched_stop) with
-  | false,false,_     -> "Stop","#FFFFFF"
-  | true ,_    ,false -> "Play","#00FF00"
-  | false,true ,_     -> "S->P","#00AA00"
-  | true ,_    ,true  -> "P->S","#00BB00"
+let status_color_of_state = function
+  | Tracker.Automata.AS_On       -> "Play","#00FF00"
+  | Tracker.Automata.AS_Off      -> "Stop","#FFFFFF"
+  | Tracker.Automata.AS_SchedOn  -> "S->P","#00AA00"
+  | Tracker.Automata.AS_SchedOff -> "P->S","#00BB00"
 
 let selected_color = "#2233EE"
 let normal_color   = "#111111"

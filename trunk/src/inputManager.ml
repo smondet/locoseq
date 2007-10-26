@@ -215,7 +215,7 @@ let arg_to_int arg ev_opt = (
 )
 
 let play_action action tracker (ev:Midi.midi_event option) =
-  let module TRTC = Tracker.RTCtrl in
+  let module TRTC = Tracker.RTControl in
   match action with
   | ActSetBPM   argument                ->  
       TRTC.set_bpm tracker (arg_to_int argument ev) ;
