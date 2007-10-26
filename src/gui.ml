@@ -215,9 +215,10 @@ let tv_aw_init_trackview (kind:[`MIDI|`META]) treeview = (
   stat_vcol#set_cell_data_func stat_renderer (
     fun (model:GTree.model) iter ->
       let nb = (model#get ~row:iter ~column:nbrs_col) in
-      let (lgth, plays,schedplay,schedstop) =
-        App.get_track_stat app nb in
-      let status,color = S.status_color_of_bools (plays,schedplay,schedstop) in
+      let state = App.get_track_stat app nb in
+      let status,color = S.status_color_of_state state in
+      let lgth = 0 in
+      (* TODO here *)
       let tick = App.get_current_tick app in
       let percent =
         if lgth = 0 then 0 
