@@ -27,12 +27,12 @@
  @author S. Mondet
  *)
 
-module Seq = AlsaSequencer
 module Tim = AlsaSequencer
 module HT = Hashtbl
 
 (** The old tracker (not used, not linked in executable *)
 module OldTracker = struct
+  module Seq = AlsaSequencer
   type meta_action = 
     | TrackOn of int
     | TrackOff of int
@@ -1025,6 +1025,8 @@ module OldTracker = struct
   
 end
 
+module Seq = JackSequencer
+
 (** Some utilities  *)
 module Util = struct
 
@@ -1301,7 +1303,7 @@ module Tracks = struct
 end
 
 type tracker_engine = {
-  mutable t_sequencer : AlsaSequencer.sequencer ;
+  mutable t_sequencer : Seq.sequencer ;
   mutable t_midi_tracks : (int,Tracks.midi_track) Hashtbl.t;
   mutable t_meta_tracks : (int,Tracks.meta_track) Hashtbl.t;
   mutable t_ppqn: int;
@@ -2004,8 +2006,13 @@ module RTControl = struct
       preallocated_midi.Midi.channel <- tracker_event.MidiEvent.e_chan;
       preallocated_midi.Midi.data_1  <- tracker_event.MidiEvent.e_dat1;
       preallocated_midi.Midi.data_2  <- tracker_event.MidiEvent.e_dat2;
-      Seq.output_event_direct seq port preallocated_midi;
+      (* Seq.output_event_direct seq port preallocated_midi; *)
       (* Seq.put_event_in_queue seq port preallocated_midi; *)
+      Seq.output_event seq ~port 
+      ~stat:tracker_event.MidiEvent.e_stat
+      ~chan:tracker_event.MidiEvent.e_chan
+      ~dat1:tracker_event.MidiEvent.e_dat1
+      ~dat2:tracker_event.MidiEvent.e_dat2;
     )
 
     let on_midi_track_off tr track prev_tick cur_tick prealloc = (

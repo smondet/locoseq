@@ -39,7 +39,7 @@
 
 (** Type container for the applicative non-GUI levels *)
 type seq_app = {
-  mutable a_sequencer : AlsaSequencer.sequencer;
+  mutable a_sequencer : JackSequencer.sequencer;
   mutable a_tracker : Tracker.tracker_engine;
   mutable a_input_mgr : InputManager.manager;
 
@@ -61,7 +61,7 @@ let make_app  ?(visitor=fun () -> ()) () = (
   let default_ppqn = 192 in
 
   let my_seq =
-    AlsaSequencer.make_sequencer
+    JackSequencer.make_sequencer
     !StringServer.App.alsa_client_name
     StringServer.App.in_put_ports
     StringServer.App.out_put_ports ;
