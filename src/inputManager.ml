@@ -23,7 +23,7 @@
 (*  OTHER DEALINGS IN THE SOFTWARE.                                       *)
 (**************************************************************************)
 
-module Seq = AlsaSequencer ;;
+module Seq = JackSequencer ;;
 
 
 type arg_t =
@@ -186,8 +186,8 @@ let set_dump_midi_input mgr boolean = (
 (* ==== REAL-TIME here: ==== *)
 
 let clear_input mgr =
-  let _ =  Seq.get_input_events mgr.sequencer in () ;
-  Queue.clear  mgr.custom_events ;
+  let _ =  Seq.get_input mgr.sequencer in () ;
+  Queue.clear  mgr.custom_events;
 ;;
 
 let add_custom_event mgr id =
@@ -242,20 +242,24 @@ let play_action action tracker (ev:Midi.midi_event option) =
 
 
 let manage_input mgr tracker =
-  let ev_list = Seq.get_input_events mgr.sequencer in () ;
-  List.iter (
-    fun ev ->
-      if mgr.dump_midi_input then (
-        Log.p "INPUT: [status:0x%x, chan:%d, arg1:%d, arg2:%d]\n"
-        ev.Midi.status ev.Midi.channel ev.Midi.data_1 ev.Midi.data_2 ;
+  let ev_array = Seq.get_input mgr.sequencer in
+  Array.iter (fun (port, stat, chan, dat1, dat2) ->
+    (* fun ev -> *)
+    if mgr.dump_midi_input then (
+      Log.p "INPUT: [port:%d stat:%x chan:%d dat1:%d dat2:%d]\n"
+      port stat chan dat1 dat2;
+      (* ev.Midi.status ev.Midi.channel ev.Midi.data_1 ev.Midi.data_2 ; *)
+    );
+    let ev = {
+      Midi.status = stat;
+      ticks = 0; channel = chan; data_1 = dat1; data_2 = dat2;
+    } in
+    List.iter ( fun (hdl_ev,action) ->
+      if (match_event hdl_ev ev) then (
+        play_action action tracker (Some ev) ;
       );
-      List.iter (
-        fun (hdl_ev,action) ->
-          if (match_event hdl_ev ev) then (
-            play_action action tracker (Some ev) ;
-          );
-      ) mgr.midi_handlers ;
-  ) ev_list ;
+    ) mgr.midi_handlers ;
+  ) ev_array ;
 
   while not (Queue.is_empty mgr.custom_events) do
     let event = Queue.take mgr.custom_events in

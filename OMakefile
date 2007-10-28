@@ -8,13 +8,19 @@ LABLGLADE_DEPENDERS= gui.ml
 
 ## Application:
 APP_NAME= locoseq
-APP_MODS=  $(LABLGLADE_GEN_MOD)  midi log alsaSequencer tracker inputManager midiFile stringServer seqApp guiEditor gui main
+APP_MODS=  $(LABLGLADE_GEN_MOD)  midi log jackSequencer alsaSequencer tracker inputManager midiFile stringServer seqApp guiEditor gui main
 
-## ALSA interface library:
+## ALSA interface:
 ALSAITF_NAME=alsa_interface
 ALSAITF_FLAGS= -Wall -Wextra -Wpointer-arith -Wbad-function-cast
 # NOTE: could not use '-ansi -pedantic' because of asoundlib.h
 
+## JACK-MIDI Interface:
+JACKITF_NAME=jackseq
+JACKITF_FLAGS=-ansi -pedantic -Wall -Wextra -Wpointer-arith -Wbad-function-cast
+
+## The library of interfaces:
+ITF_LIB=interfaces
 
 ## Code documentation:
 DOC_SOURCES=src/midi.ml src/log.ml src/alsaSequencer.ml src/tracker.ml src/inputManager.ml src/midiFile.ml src/stringServer.ml src/seqApp.ml src/guiEditor.ml src/gui.ml src/main.ml
@@ -38,8 +44,8 @@ BYTE_ENABLED = false
 USE_OCAMLFIND = true
 OCAMLPACKS[] = unix,threads.posix,lablgtk2,lablgtk2.glade,lablgtk2.init,xml-light
 
-OCAML_CLIBS= $(ALSAITF_NAME)
-OCAML_NATIVE_LINK_FLAGS=  -cclib -lasound
+OCAML_CLIBS= $(ITF_LIB)
+OCAML_NATIVE_LINK_FLAGS=  -cclib -lasound -cclib -ljack
 
 ## Some targets:
 .PHONY: clean install inspection package license unlicense codedoc
@@ -112,10 +118,12 @@ MakeExec () =
     lablgladecc2 $(LABLGLADE_OPT) $(LABLGLADE_FILE) > $(LABLGLADE_GEN_MOD).ml
   $(LABLGLADE_DEPENDERS):$(LABLGLADE_GEN_FILE)
   # 2: The alsa wrapper lib:
-  $(ALSAITF_NAME).a:$(ALSAITF_NAME).o
-    ar -crv $(ALSAITF_NAME).a $(ALSAITF_NAME).o
+  $(ITF_LIB).a: $(ALSAITF_NAME).o $(JACKITF_NAME).o
+    ar -crv $(ITF_LIB).a $(ALSAITF_NAME).o $(JACKITF_NAME).o
   $(ALSAITF_NAME).o:$(ALSAITF_NAME).c
     gcc $(ALSAITF_FLAGS) -c alsa_interface.c
+  $(JACKITF_NAME).o:$(JACKITF_NAME).c
+    gcc $(JACKITF_FLAGS) -c $(JACKITF_NAME).c
   # 3: The native program:
   OCamlProgram($(APP_NAME), $(APP_MODS) )
   .DEFAULT:  $(APP_NAME)
