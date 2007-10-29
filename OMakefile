@@ -8,7 +8,7 @@ LABLGLADE_DEPENDERS= gui.ml
 
 ## Application:
 APP_NAME= locoseq
-APP_MODS=  $(LABLGLADE_GEN_MOD)  midi log jackSequencer alsaSequencer tracker inputManager midiFile stringServer seqApp guiEditor gui main
+APP_MODS=  $(LABLGLADE_GEN_MOD)  midi log jackSequencer tracker inputManager midiFile stringServer seqApp guiEditor gui main
 
 ## JACK-MIDI Interface:
 JACKITF_NAME=jackseq
@@ -18,7 +18,7 @@ JACKITF_FLAGS=-ansi -pedantic -Wall -Wextra -Wpointer-arith -Wbad-function-cast
 ITF_LIB=interfaces
 
 ## Code documentation:
-DOC_SOURCES=src/midi.ml src/log.ml src/alsaSequencer.ml src/tracker.ml src/inputManager.ml src/midiFile.ml src/stringServer.ml src/seqApp.ml src/guiEditor.ml src/gui.ml src/main.ml
+DOC_SOURCES=src/midi.ml src/log.ml src/jackSequencer.ml src/tracker.ml src/inputManager.ml src/midiFile.ml src/stringServer.ml src/seqApp.ml src/guiEditor.ml src/gui.ml src/main.ml
 HTML_DIR=doc/ref/html
 LATEX_DIR=doc/ref/latex
 CODEDOC_CSS=codedoc.css
