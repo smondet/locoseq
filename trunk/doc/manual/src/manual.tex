@@ -40,7 +40,8 @@ change tempo...) and you can configure how the sequencer reacts on a given
 input (midi-in port or keyboard).
 
 
-The application is build on top of the alsa sequencer API, it is written in
+The application is built on top of the \href{http://jackaudio.org/}{jack}
+API, it is written in
 \href{http://www.ocaml.org}{ocaml}
 (except the code wrapping asoundlib) and uses GTK+ and glade
 (\href {http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgtk.html}{lablgtk2})
@@ -56,12 +57,12 @@ The source code is available under a classic MIT license (see
 \subsection{Requirements}
 
 For the moment, let's talk about ubuntu packages as the project is developed
-under ubuntustudio. 
+under 64studio. 
 
 Those pakages should make you download all needed dependencies to compile the
 application:
 
-\ShellCmd{ apt-get install libasound2-dev libxml-light-ocaml-dev omake
+\ShellCmd{ apt-get install libjack-dev libxml-light-ocaml-dev omake
 ocaml-findlib liblablgtk2-ocaml-dev }
 
 Those packages should make you download all needed dependencies to compile the
@@ -148,7 +149,6 @@ In addition to ocaml distribution and omake:
   \textit{semi-compiler} \texttt{lablgladecc2})
   \item for inspection reports (\ref{sec:inspect}) we use
   \href{http://txt2tags.sourceforge.net/}{txt2tags}
-  \item for licence header management we use \texttt{headache}
   \item this documentation is built with \LaTeX2e\ and 
   \href{http://hevea.inria.fr/}{Hevea}
 \end{itemize}
@@ -180,11 +180,12 @@ To generate in \FileName{doc/ref/html/} the code documentation, just type:
  |  \__ midiFile.ml           -> midi file read and write
  |  \__ tracker.ml            -> the sequencer
  |  \__ midi.ml               -> manipulation of MIDI "Data"
- |  \__ alsa_interface.c      -> asoundlib wrapper
- |  \__ alsaSequencer.ml      -> OCamL functions for the wrapper
+ |  \__ jackseq.c             -> jack-midi code
+ |  \__ jackSequencer.ml      -> OCamL functions for jackseq usage
  |  \__ gui_files                   
  |   |  \__ app.glade         -> main Glade file
- |  \__ gui.ml                -> All the GUI code is there
+ |  \__ gui.ml                -> the main GUI code is there
+ |  \__ guiEditor.ml          -> the code for the generic track editor
  |  \__ stringServer.ml       -> attempt to group the user messages
  |  \__ seqApp.ml             -> the "model interface", many functions for gui.ml 
  |  \__ inputManager.ml       -> event handler of the tracker and midi listener

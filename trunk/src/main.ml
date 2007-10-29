@@ -139,7 +139,7 @@ let options = Arg.align [
   ("-song", Arg.String (fun s -> g_file_to_open := Some s),
   "<xml_file> Open the file");
   ("-jackname", Arg.Set_string S.App.jack_client_name,
-  "<name> Sets alsa client identifier to <name>");
+  "<name> Sets jack client identifier to <name>");
   ("-licence", Arg.Set show_licence, " Show Licence");
   ("-version", Arg.Set show_version, " Print version (one parsable line)");
 ]
