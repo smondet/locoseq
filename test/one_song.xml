@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <song version="0" name="The testing Song">
-  <tracker pqn="192" bpm="216" queue_delay="4" timer_ticks="5">
+  <tracker pqn="192" bpm="216" queue_delay="4" timer_ticks="10">
     <midi_tracks>
       <midi_track id="1" name="Drums 1" track_lgth="768" sched_lgth="768" outport="0">
         <midi_event tcks="0" stat="144" chan="9" dat1="35" dat2="100"/>

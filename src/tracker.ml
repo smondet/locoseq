@@ -27,7 +27,6 @@
  @author S. Mondet
  *)
 
-module Tim = AlsaSequencer
 module HT = Hashtbl
 module Seq = JackSequencer
 
@@ -886,31 +885,6 @@ module RTControl = struct
 
     end
 
-    let start_sequencer_and_get_timer tr = (
-      (* Seq.set_queue_tempo tr.t_sequencer tr.t_bpm tr.t_ppqn; *)
-      (* Seq.start_queue tr.t_sequencer; *)
-
-      (* let info = Seq.get_queue_timer_info tr.t_sequencer in *)
-      (* info.Tim.t_card <- 0; *)
-      Tim.make_timer  Tim.default_timer_info
-    )
-    let start_timer tr timer = (
-      Tim.set_ticks timer tr.t_timer_ticks;
-      Tim.start_timer timer;
-      Log.p "Timer started !\n";
-    )
-
-    let wait_for_alarm_clock tr timer = (
-      let count = Tim.wait_next_tick timer 1000 in
-      if count <> 1 then (
-        if count = -1 then (
-          Log.warn "Timer has returned -1, ie TIME OUT => do an inspection !\n"
-        ) else (
-          Log.warn "[Tracker] Read %d timer events\n" count 
-        )
-      );
-    )
-
     let on_meta_track_off tr track prev_tick cur_tick = (
       List.iter (fun ev ->
         match ev.MetaEvent.ev_action with
@@ -1099,16 +1073,11 @@ module RTControl = struct
     let module Pl = PlayUtil in
     tr.t_is_playing <- true;
 
-    let my_timer = Pl.start_sequencer_and_get_timer tr in
-
-    (* let cpt_ticks = ref 0 in *)
     let previous_tick = ref (-1) in
 
     (* Optimization: functions shall use the midi event so that they don't have
      * to allocate one *)
     let preallocated_midi_event = Midi.empty_midi_event () in
-
-    Pl.start_timer tr my_timer;
 
     let loop = ref tr.t_is_playing in
     let willstop = ref 0 in
@@ -1123,7 +1092,8 @@ module RTControl = struct
     let max_ticks_to_manage = ref 0 in
 
     while !loop do
-      Pl.wait_for_alarm_clock tr my_timer;
+      (* Pl.wait_for_alarm_clock tr my_timer; *)
+      Thread.delay (0.001 *. (float tr.t_timer_ticks));
       tr.t_do_before tr;
 
       (* let cur_tk = Seq.get_current_tick tr.t_sequencer in *)
@@ -1168,7 +1138,6 @@ module RTControl = struct
       );
 
     done;
-    Tim.stop_timer my_timer;
 
     Log.p "Max Ticks To manage at once: %d\n" !max_ticks_to_manage;
 
