@@ -33,36 +33,36 @@ manipulate them.
 let spr = Printf.sprintf
 let soi = string_of_int
 
-(** Strings related to the {i application} (name, version, alsa client...) *)
+(** Strings related to the {i application} (name, version, client...) *)
 module App =  struct
 
   let app_name = ref "LoCoSEQ"
 
   let version = ref "0.0.1" 
 
-  let alsa_client_name = ref "locoseq"
+  let jack_client_name = ref "locoseq"
 
   let out_put_ports = [|
-    !alsa_client_name ^":out_" ^ (spr "%02d"   0) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"   1) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"   2) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"   3) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"   4) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"   5) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"   6) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"   7) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"   8) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"   9) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"  10) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"  11) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"  12) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"  13) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"  14) ;
-    !alsa_client_name ^":out_" ^ (spr "%02d"  15) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"   0) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"   1) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"   2) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"   3) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"   4) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"   5) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"   6) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"   7) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"   8) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"   9) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"  10) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"  11) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"  12) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"  13) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"  14) ;
+    !jack_client_name ^":out_" ^ (spr "%02d"  15) ;
   |] 
 
   let in_put_ports = [|
-    !alsa_client_name ^":ctrl"
+    !jack_client_name ^":ctrl"
   |]
 
   let licence = ref "

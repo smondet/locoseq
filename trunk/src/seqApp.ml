@@ -62,7 +62,7 @@ let make_app  ?(visitor=fun () -> ()) () = (
 
   let my_seq =
     JackSequencer.make_sequencer
-    !StringServer.App.alsa_client_name
+    !StringServer.App.jack_client_name
     StringServer.App.in_put_ports
     StringServer.App.out_put_ports ;
   in
