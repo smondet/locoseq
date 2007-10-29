@@ -138,7 +138,7 @@ let options = Arg.align [
   "<target_file> Process portability inspection and write a report");
   ("-song", Arg.String (fun s -> g_file_to_open := Some s),
   "<xml_file> Open the file");
-  ("-alsaname", Arg.Set_string S.App.alsa_client_name,
+  ("-jackname", Arg.Set_string S.App.jack_client_name,
   "<name> Sets alsa client identifier to <name>");
   ("-licence", Arg.Set show_licence, " Show Licence");
   ("-version", Arg.Set show_version, " Print version (one parsable line)");
