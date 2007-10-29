@@ -15,10 +15,10 @@ that drive the sequencer (schedule track x, mute, change tempo...) and you
 can configure how the sequencer reacts on a given input (midi-in port or
 keyboard). 
 
-The application is build on top of the alsa sequencer API, it is written in
-ocaml (http://www.ocaml.org) (except the code wrapping asoundlib) and uses GTK+
-and glade (thanks to lablgtk2:
-http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgtk.html) for its GUI.
+The application is built on top of the jack midi API, it is written in ocaml
+(http://www.ocaml.org) (except some C code) and uses GTK+ and glade (thanks to
+lablgtk2: http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgtk.html) for its
+GUI.
 
 The source code is available under a classic MIT license (see ./license.mit).
 
@@ -32,12 +32,12 @@ Current developers:
 ** Requirements:
 
 For the moment, let's talk about ubuntu packages as the project is developed
-under ubuntustudio. 
+under 64studio. 
 
 Those packages should make you download all needed dependencies to compile the
 application:
 
-  apt-get install libasound2-dev libxml-light-ocaml-dev omake ocaml-findlib \
+  apt-get install libjack-dev libxml-light-ocaml-dev omake ocaml-findlib \
    liblablgtk2-ocaml-dev
 
 Those packages should make you download all needed dependencies to compile the
@@ -67,8 +67,8 @@ The mid is a midifile containing some tracks (import with "Add" in the
 midi-tracks view), it has been made with seq24 (http://www.filter24.org/seq24/).
 
 It's just for testing, it should render something more or less audible with a
-classical General Midi setup (e.g. some FluidSynth with a common
-soundfont).
+classical General Midi setup (e.g. some FluidSynth listening to a jack-midi
+port thanks to a2jmidid with a common soundfont).
 
 ** If it does not work:
 
