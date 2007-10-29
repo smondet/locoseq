@@ -46,9 +46,6 @@ let test_parse_and_print_midi_file file = (
 (******************************************************************************)
 (** {3 Inspection functions} *)
 
-module Seq = AlsaSequencer 
-module Tim = AlsaSequencer
-
 let used_channel = ref stdout
 let pr (form:('a, out_channel, unit ) format) = (
   Printf.fprintf !used_channel ( form ^^ "%!" )
@@ -68,46 +65,6 @@ let str_of_cmd cmd = (
 )
 let print_cmd cmd = (
   pr "```\nocaml@home:/bin/sh$ %s\n%s```\n" cmd (str_of_cmd cmd);
-)
-
-let test_timer info = (
-
-  let is_end = ref false in
-  while not !is_end do
-    let _ = 
-      try (
-        let my_timer = Tim.make_timer info in
-        Tim.set_ticks my_timer 4 ;
-        Tim.start_timer my_timer ;
-        let status = Tim.get_status my_timer in
-        pr ": Status:\n  ``resolution: %d, lost: %d, overrun: %d, queue:%d``\n\n"
-        status.Tim.resolution
-        status.Tim.lost
-        status.Tim.overrun
-        status.Tim.queue ;
-        pr ": Trying the wait next:\n";
-        let count = Tim.wait_next_tick my_timer 500 in
-        if count = -1 then (
-          pr "- Timer wait_next_tick has returned -1. -> **TIME OUT**\n" 
-        ) else (
-          pr "- **Succeeded**: count = %d\n" count ;
-        );
-        Tim.stop_timer my_timer ;
-        pr "- timer stopped\n"
-      ) with exn -> (
-        pr "\n**Got an exception**: %s\n" (Printexc.to_string exn)
-      );
-    in
-    pr "\n\n\n%!" ;
-    if (info.Tim.t_card <> 0 ) then (
-      pr "\n**Retrying with card = 0 (a.k.a //The Ugly Hack//)**\n";
-      info.Tim.t_card <- 0 ;
-    ) else (
-      is_end := true ;
-    );
-
-  done;
-
 )
 
 
@@ -157,46 +114,6 @@ let make_inspection file = (
     with e -> GtkInit.locale
   );
 
-  let l = Tim.query_info () in
-  pr "\n\n= Inspection of the TIMERS =\n\n" ;
-  List.iter (
-    fun info ->
-      let cla = info.Tim.t_class in
-      let scl = info.Tim.t_sclass in
-      let crd = info.Tim.t_card in
-      let dev = info.Tim.t_device in
-      let sdv = info.Tim.t_subdevice in 
-      pr "== Timer (%d, %d, %d, %d, %d) ==\n\n: Information:\n"
-      cla scl crd dev sdv;
-      pr "  CLASS=%d (%s),\nSCLASS=%d (%s),\nCARD=%d, DEV=%d, SUBDEV=%d\n\n"
-      info.Tim.t_class     (Tim.timer_class_to_string       info.Tim.t_class)
-      info.Tim.t_sclass    (Tim.timer_slave_class_to_string info.Tim.t_sclass)
-      info.Tim.t_card     info.Tim.t_device    info.Tim.t_subdevice    ;
-      (* pr "\n\n=== Test ===\n\n%!" ; *)
-
-      test_timer info ;
-      pr "\n\n\n%!" ;
-
-  ) l;
-
-  pr "= Alsa interface =\n\n";
-  let seq =
-    Seq.make_sequencer "da_dummy_alsa_client" [| "one_in" |] [| "one_out" |] in
-  let info = Seq.get_queue_timer_info seq in
-
-  let cla = info.Tim.t_class in
-  let scl = info.Tim.t_sclass in
-  let crd = info.Tim.t_card in
-  let dev = info.Tim.t_device in
-  let sdv = info.Tim.t_subdevice in 
-  pr "== Queue Timer (%d, %d, %d, %d, %d) ==\n\n: Information:\n\n"
-  cla scl crd dev sdv;
-  pr "- CLASS=%d (%s),\nSCLASS=%d (%s),\nCARD=%d, DEV=%d, SUBDEV=%d\n\n"
-  info.Tim.t_class     (Tim.timer_class_to_string       info.Tim.t_class)
-  info.Tim.t_sclass    (Tim.timer_slave_class_to_string info.Tim.t_sclass)
-  info.Tim.t_card     info.Tim.t_device    info.Tim.t_subdevice    ;
-
-  test_timer info ;
 )
 
 
