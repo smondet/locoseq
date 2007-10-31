@@ -133,6 +133,9 @@ let string_of_length lgth pqn = (
   let b,q,t = unitize_length_tuple lgth pqn in
   spr "%dB:%dQ:%dT" b q t 
 )
+let units_to_length b q t pqn = (
+  (b * 4 * pqn) + (q * pqn) + t
+)
 
 let string_of_meta_event event pqn = (
   match event with
