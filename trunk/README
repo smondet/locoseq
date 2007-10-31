@@ -4,7 +4,7 @@
 
      Loop-based Controllable midi-Sequencer
      Sebastien MONDET
-     Sat, 04 Aug 2007 17:02:34 +0200
+     Wed, 31 Oct 2007 19:02:31 +0100
 
 ################################################################################
 ## PRESENTATION
@@ -31,7 +31,7 @@ Current developers:
 
 ** Requirements:
 
-For the moment, let's talk about ubuntu packages as the project is developed
+For the moment, let's talk about debian packages as the project is developed
 under 64studio. 
 
 Those packages should make you download all needed dependencies to compile the
