@@ -83,11 +83,12 @@ module GuiUtil = struct
   )
 
   (** Make a [spin_button] for an integer value *)
-  let int_spin_button min max box = (
+  let int_spin_button min max (box:GPack.box) = (
     let adj =
       GData.adjustment ~value:min ~lower:min ~upper:max
       ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
-    GEdit.spin_button ~adjustment:adj ~packing:(box#add) ()
+    GEdit.spin_button ~adjustment:adj
+    ~packing:(box#pack ~expand:false ~fill:false ~padding:0) ()
   )
 
 
@@ -410,10 +411,10 @@ let tv_update_track_info tv = (
   begin match tv.tv_type with
   | MIDI_TRACK ->
       App.set_midi_track_information tv.tv_app tv.tv_tk_id
-      tv.tv_name tv.tv_port (tv_ticks_length tv);
+      tv.tv_name tv.tv_port tv.tv_track_length tv.tv_sched_length;
   | META_TRACK ->
       App.set_meta_track_information tv.tv_app tv.tv_tk_id tv.tv_name 
-      (tv_ticks_length tv);
+      tv.tv_track_length tv.tv_sched_length;
   end
 )
 
@@ -1402,7 +1403,8 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   (* The looping length (bar,quarter,tick): *)
   GuiUtil.append_horzsepar main_vbox;
   let track_length_hbox = GuiUtil.append_hbox main_vbox in
-  GuiUtil.append_label "Track Length (loop): " track_length_hbox;
+  ignore(GMisc.label ~text:"Track Length (loop): " ~justify:`RIGHT
+  ~packing:(track_length_hbox#pack ~expand:true ~fill:false ~padding:0) ());
 
   let length_b, length_q, length_t =
     S.unitize_length_tuple tk_values.tv_track_length tk_values.tv_pqn in
@@ -1422,8 +1424,33 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
 
   GuiUtil.append_label " ticks" track_length_hbox;
 
+  (* The schedulable length (bar,quarter,tick): *)
+  GuiUtil.append_horzsepar main_vbox;
+  let sched_length_hbox = GuiUtil.append_hbox main_vbox in
+  (* XXX justification does not seem to work: *)
+  ignore(GMisc.label ~text:"Schedule Length (trigger): " ~justify:`RIGHT
+  ~packing:(sched_length_hbox#pack ~expand:true ~fill:false ~padding:0) ());
+
+  let sched_b, sched_q, sched_t =
+    S.unitize_length_tuple tk_values.tv_sched_length tk_values.tv_pqn in
+
+  let sched_b_spin = GuiUtil.int_spin_button 0. 20000. sched_length_hbox in
+  sched_b_spin#adjustment#set_value (float sched_b);
+
+  GuiUtil.append_label " 4/4 bars, " sched_length_hbox;
   
-  (* next line: *)
+  let sched_q_spin = GuiUtil.int_spin_button 0. 20000. sched_length_hbox in
+  sched_q_spin#adjustment#set_value (float sched_q);
+
+  GuiUtil.append_label " quarters and " sched_length_hbox;
+  
+  let sched_t_spin = GuiUtil.int_spin_button 0. 200. sched_length_hbox in
+  sched_t_spin#adjustment#set_value (float sched_t);
+
+  GuiUtil.append_label " ticks" sched_length_hbox;
+
+  
+  (* Editing Tools Line: *)
   GuiUtil.append_horzsepar main_vbox;
   let tools_hbox = GuiUtil.append_hbox main_vbox in
 
@@ -1542,6 +1569,18 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   ignore(length_b_spin#connect#changed ~callback:update_length);
   ignore(length_q_spin#connect#changed ~callback:update_length);
   ignore(length_t_spin#connect#changed ~callback:update_length);
+  (* Set the length: *)
+  let update_sched () =
+    let b = int_of_float sched_b_spin#adjustment#value in
+    let q = int_of_float sched_q_spin#adjustment#value in
+    let t = int_of_float sched_t_spin#adjustment#value in
+    tk_values.tv_sched_length <- S.units_to_length b q t tk_values.tv_pqn;
+    tv_update_track_info tk_values; change_callback ();
+    ef_cmd_redraw ev_frame;
+  in
+  ignore(sched_b_spin#connect#changed ~callback:update_sched);
+  ignore(sched_q_spin#connect#changed ~callback:update_sched);
+  ignore(sched_t_spin#connect#changed ~callback:update_sched);
   (* Set the port (MIDI) *)
   begin match port_combo with
   | Some (pc, _) -> 
