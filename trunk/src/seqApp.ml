@@ -176,17 +176,15 @@ let get_midi_tracks_information app = (
 let get_midi_track_information app id = (
   Tracker.Services.get_midi_track_infos app.a_tracker id
 )
-let set_midi_track_information app id name port ticks= (
-  Tracker.Services.set_midi_track_infos app.a_tracker id name port ticks ticks;
-  (* TODO s/ticks/lgth & sched/ *)
+let set_midi_track_information app id name port ticks sched= (
+  Tracker.Services.set_midi_track_infos app.a_tracker id name port ticks sched;
   app.a_is_saved <- false ;
 )
 let get_meta_tracks_information app = (
   Tracker.Services.get_meta_tracks_infos app.a_tracker
 )
-let set_meta_track_information app id name ticks= (
-  Tracker.Services.set_meta_track_infos app.a_tracker id name ticks ticks;
-  (* TODO s/ticks/lgth & sched/ *)
+let set_meta_track_information app id name ticks sched = (
+  Tracker.Services.set_meta_track_infos app.a_tracker id name ticks sched;
   app.a_is_saved <- false ;
 )
 
