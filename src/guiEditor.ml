@@ -1389,25 +1389,6 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   ~editable:true ~has_frame:true ~width_chars:16
   ~packing:track_settings_hbox#add ~show:true () in
 
-  (* The length (bar,quarter,tick): *)
-  GuiUtil.append_vertsepar track_settings_hbox;
-  GuiUtil.append_label "Length: " track_settings_hbox;
-
-  let length_b_spin = GuiUtil.int_spin_button 0. 20000. track_settings_hbox in
-  length_b_spin#adjustment#set_value (float tk_values.tv_length_b);
-
-  GuiUtil.append_label " 4/4 bars, " track_settings_hbox;
-  
-  let length_q_spin = GuiUtil.int_spin_button 0. 20000. track_settings_hbox in
-  length_q_spin#adjustment#set_value (float tk_values.tv_length_q);
-
-  GuiUtil.append_label " quarters and " track_settings_hbox;
-  
-  let length_t_spin = GuiUtil.int_spin_button 0. 200. track_settings_hbox in
-  length_t_spin#adjustment#set_value (float tk_values.tv_length_t);
-
-  GuiUtil.append_label " ticks" track_settings_hbox;
-
   (* The only MIDI ouput port: *)
   let port_combo = match tk_values.tv_type with
   | MIDI_TRACK ->
@@ -1415,11 +1396,34 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
       GuiUtil.append_label " Port: " track_settings_hbox;
       let port_combo =
         GEdit.combo_box_text ~strings:(Array.to_list S.App.out_put_ports)
-        ~add_tearoffs:false ~packing:track_settings_hbox#add () in
+        ~add_tearoffs:false ~packing:(
+          track_settings_hbox#pack ~expand:false ~fill:false ~padding:0
+        ) () in
       (fst port_combo)#set_active tk_values.tv_port;
       Some port_combo
   | _ -> None
   in
+
+  (* The looping length (bar,quarter,tick): *)
+  GuiUtil.append_horzsepar main_vbox;
+  let track_length_hbox = GuiUtil.append_hbox main_vbox in
+  GuiUtil.append_label "Track Length (loop): " track_length_hbox;
+
+  let length_b_spin = GuiUtil.int_spin_button 0. 20000. track_length_hbox in
+  length_b_spin#adjustment#set_value (float tk_values.tv_length_b);
+
+  GuiUtil.append_label " 4/4 bars, " track_length_hbox;
+  
+  let length_q_spin = GuiUtil.int_spin_button 0. 20000. track_length_hbox in
+  length_q_spin#adjustment#set_value (float tk_values.tv_length_q);
+
+  GuiUtil.append_label " quarters and " track_length_hbox;
+  
+  let length_t_spin = GuiUtil.int_spin_button 0. 200. track_length_hbox in
+  length_t_spin#adjustment#set_value (float tk_values.tv_length_t);
+
+  GuiUtil.append_label " ticks" track_length_hbox;
+
   
   (* next line: *)
   GuiUtil.append_horzsepar main_vbox;
