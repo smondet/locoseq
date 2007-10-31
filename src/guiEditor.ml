@@ -250,9 +250,8 @@ type track_values = {
   mutable tv_tk_id: int; (** The track ID *)
   mutable tv_type : track_type; (** Midi or Meta *)
   mutable tv_name: string;
-  mutable tv_length_b: int;
-  mutable tv_length_q: int;
-  mutable tv_length_t: int;
+  mutable tv_track_length: int;
+  mutable tv_sched_length: int;
   mutable tv_pqn : int;
   mutable tv_port: int;
   mutable tv_edit_evts : editable_event array;
@@ -347,31 +346,28 @@ let util_make_meta_editables meta_events = (
 let tv_make_track_values app tk_ref = (
   match tk_ref with
   | `MIDI tk -> 
-      let name,port,length, _ =
+      let name, port, track_length, sched_length =
         App.get_midi_track_information app tk in
       let _,p = App.get_bpm_ppqn app in
-      let b,q,t = S.unitize_length_tuple length p in
       let midi_events = App.get_midi_track app tk in
-      let editables_list = util_make_midi_editables midi_events length in
-        (* List.rev (List.rev_map ( *)
-        (* fun midi_ev -> EE_Midi midi_ev) midi_events) in *)
+      let editables_list =
+        util_make_midi_editables midi_events track_length in
       let editables_array = Array.of_list editables_list in
       {
         tv_app = app;
         tv_tk_id = tk;
         tv_type = MIDI_TRACK;
         tv_name = name; 
-        tv_length_b = b; 
-        tv_length_q = q; 
-        tv_length_t = t; 
+        tv_track_length = track_length;
+        tv_sched_length = sched_length;
         tv_pqn = p;
         tv_port = port;
         tv_edit_evts = editables_array;
       }
   | `META tk ->
-      let name,length,_ = App.get_meta_track_information app tk in
+      let name, track_length, sched_length =
+        App.get_meta_track_information app tk in
       let _,p = App.get_bpm_ppqn app in
-      let b,q,t = S.unitize_length_tuple length p in
       let meta_events = App.get_meta_track app tk in
       let editables_list = util_make_meta_editables meta_events in
       let editables_array = Array.of_list editables_list in
@@ -380,21 +376,20 @@ let tv_make_track_values app tk_ref = (
         tv_tk_id = tk;
         tv_type = META_TRACK;
         tv_name = name; 
-        tv_length_b = b; 
-        tv_length_q = q; 
-        tv_length_t = t; 
+        tv_track_length = track_length;
+        tv_sched_length = sched_length;
         tv_pqn = p;
         tv_port = 0;
         tv_edit_evts = editables_array;
       }
 )
 
-let tv_ticks_length tv = (
-  let b,q,t =
-    tv.tv_length_b, tv.tv_length_q, tv.tv_length_t in
-  let p = tv.tv_pqn in
-  b * 4 * p + q * p + t
-)
+let tv_ticks_length tv = (tv.tv_track_length)
+  (* let b,q,t = *)
+    (* tv.tv_length_b, tv.tv_length_q, tv.tv_length_t in *)
+  (* let p = tv.tv_pqn in *)
+  (* b * 4 * p + q * p + t *)
+(* ) *)
 let tv_rebuild_editables tv = (
   begin match tv.tv_type with
   | MIDI_TRACK ->
@@ -1409,18 +1404,21 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
   let track_length_hbox = GuiUtil.append_hbox main_vbox in
   GuiUtil.append_label "Track Length (loop): " track_length_hbox;
 
+  let length_b, length_q, length_t =
+    S.unitize_length_tuple tk_values.tv_track_length tk_values.tv_pqn in
+
   let length_b_spin = GuiUtil.int_spin_button 0. 20000. track_length_hbox in
-  length_b_spin#adjustment#set_value (float tk_values.tv_length_b);
+  length_b_spin#adjustment#set_value (float length_b);
 
   GuiUtil.append_label " 4/4 bars, " track_length_hbox;
   
   let length_q_spin = GuiUtil.int_spin_button 0. 20000. track_length_hbox in
-  length_q_spin#adjustment#set_value (float tk_values.tv_length_q);
+  length_q_spin#adjustment#set_value (float length_q);
 
   GuiUtil.append_label " quarters and " track_length_hbox;
   
   let length_t_spin = GuiUtil.int_spin_button 0. 200. track_length_hbox in
-  length_t_spin#adjustment#set_value (float tk_values.tv_length_t);
+  length_t_spin#adjustment#set_value (float length_t);
 
   GuiUtil.append_label " ticks" track_length_hbox;
 
@@ -1533,21 +1531,17 @@ let track_editor app (to_edit:[`MIDI of int|`META of int]) change_callback = (
     ef_cmd_redraw ev_frame;
   ));
   (* Set the length: *)
-  ignore(length_b_spin#connect#changed ~callback:(fun () ->
-    tk_values.tv_length_b <- int_of_float length_b_spin#adjustment#value;
+  let update_length () =
+    let b = int_of_float length_b_spin#adjustment#value in
+    let q = int_of_float length_q_spin#adjustment#value in
+    let t = int_of_float length_t_spin#adjustment#value in
+    tk_values.tv_track_length <- S.units_to_length b q t tk_values.tv_pqn;
     tv_update_track_info tk_values; change_callback ();
     ef_cmd_redraw ev_frame;
-  ));
-  ignore(length_q_spin#connect#changed ~callback:(fun () ->
-    tk_values.tv_length_q <- int_of_float length_q_spin#adjustment#value;
-    tv_update_track_info tk_values; change_callback ();
-    ef_cmd_redraw ev_frame;
-  ));
-  ignore(length_t_spin#connect#changed ~callback:(fun () ->
-    tk_values.tv_length_t <- int_of_float length_t_spin#adjustment#value;
-    tv_update_track_info tk_values; change_callback ();
-    ef_cmd_redraw ev_frame;
-  ));
+  in
+  ignore(length_b_spin#connect#changed ~callback:update_length);
+  ignore(length_q_spin#connect#changed ~callback:update_length);
+  ignore(length_t_spin#connect#changed ~callback:update_length);
   (* Set the port (MIDI) *)
   begin match port_combo with
   | Some (pc, _) -> 
