@@ -1,21 +1,19 @@
 === Bugs: ===
 
- * portability issues: on one machine, I see that RTC timer is not well openned ('time out on poll')
- * meta events bigger than tracks are not banned -> GUI
- * something is wrong in tracker automata when schedduling twice
- * in `alsa_interface.c` "output pool size" should be decided or parametrized
+ * Gui: meta events bigger than tracks are not banned
+ * GuiEditor: X.org kills the application when drawn track becomes too big !
 
 === Features: ===
 
-
-
  * *done* port this to the project's wiki
- * *started* implement the quasi-generic track editor
+ * implement the quasi-generic track editor
+   * *almost done* make it usable
+   * make it beautiful
  * document code:
    * use explicit variable names in code (no btn, sngnam, etc...)
    * *started*  in the .ml's
-   *  maybe create mli's ?
    * *done* a CSS for code documentation
+   * document CLI options
  * make up documentation framework
    * *done* OMakefile for pdflatex and htmlByHevea
    * *done* \filename
@@ -26,16 +24,17 @@
  * *done* re-do the README without txt2tags
  * disable "stop" action in InputMgr
  * *done* 'main' with options (the file to load, alsa client name, see licence, ...)
+ * *done* s/alsa/jack_midi/g (no more libasound dependency)
+ * *needs debug* re-implement the tracker engine (with schedulle length feature)
 
 *-> 0.1*
 
- * implement "delayed scheduller" (ie having 2 lengths: real length and "start available length") ie some "quantification"
+ * optimize gui space for lists of tracks and interactions.
  * keyboard short cuts (open, save, quit...)
  * port portability inspection to latex or xml
 
 *-> 0.2*
 
- * optimize gui space for lists of tracks and interactions.
  * import/collapse songs
  * save "playing" state of a track (if not save on file, allow set before play)
  * undo stack
@@ -57,9 +56,8 @@
 *-> 1.0*
 
  * export2midi functionnality (take one (meta)track and render one midi file)
- * remanage modularity of AlsaSequencer and allow other implementations of Timer and Sequencer (CoreAudio ? OSS ? Jack-midi ?)
  * allow operations on input arguments (add, multiply...)
- * s/gtk/whatever/g
+ * s/gtk/whatever/g *?*
 
 *-> 2.0*
 
