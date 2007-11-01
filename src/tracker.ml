@@ -998,14 +998,7 @@ module RTControl = struct
       );
     )
 
-    let fill_and_send_event tracker_event preallocated_midi seq port tick = (
-      preallocated_midi.Midi.ticks   <- tick;
-      preallocated_midi.Midi.status  <- tracker_event.MidiEvent.e_stat;
-      preallocated_midi.Midi.channel <- tracker_event.MidiEvent.e_chan;
-      preallocated_midi.Midi.data_1  <- tracker_event.MidiEvent.e_dat1;
-      preallocated_midi.Midi.data_2  <- tracker_event.MidiEvent.e_dat2;
-      (* Seq.output_event_direct seq port preallocated_midi; *)
-      (* Seq.put_event_in_queue seq port preallocated_midi; *)
+    let send_event_to_sequencer tracker_event seq port = (
       Seq.output_event seq ~port 
       ~stat:tracker_event.MidiEvent.e_stat
       ~chan:tracker_event.MidiEvent.e_chan
@@ -1013,18 +1006,16 @@ module RTControl = struct
       ~dat2:tracker_event.MidiEvent.e_dat2;
     )
 
-    let on_midi_track_off tr track prev_tick cur_tick prealloc = (
+    let on_midi_track_off tr track prev_tick cur_tick = (
       List.iter (fun ev ->
         (* Hack: we send all the NoteOFF we find... *)
         if ev.MidiEvent.e_stat = 0x80 then (
-          fill_and_send_event ev prealloc tr.t_sequencer track.Tracks.mi_outport
-          (cur_tick + tr.t_queue_delay - 1);
-          (* TODO comment the above formula *)
+          send_event_to_sequencer ev tr.t_sequencer track.Tracks.mi_outport;
         );
       ) track.Tracks.mi_events;
     )
 
-    let when_midi_track_plays tr track prev_tick cur_tick prealloc = (
+    let when_midi_track_plays tr track prev_tick cur_tick = (
       let loop_length = (Tracks.midi_track_lgth track) in
       let started_time = Tracks.midi_start_tick track in
       let current = (prev_tick + 1, cur_tick) in
@@ -1033,14 +1024,12 @@ module RTControl = struct
           Times.should_play_event ~current ~started_time
           ~loop_length ~event_tick:ev.MidiEvent.e_tiks
         then (
-          fill_and_send_event ev prealloc tr.t_sequencer track.Tracks.mi_outport
-          ((prev_tick + 1) + tr.t_queue_delay - 1);
-          (* TODO comment the above formula *)
+          send_event_to_sequencer ev tr.t_sequencer track.Tracks.mi_outport;
         );
       ) track.Tracks.mi_events;
     )
 
-    let play_midi_events preallocated_midi_event tr prev_tick cur_tick = (
+    let play_midi_events  tr prev_tick cur_tick = (
       let module T = Tracks in
       let module A = Automata in
       ManageTracks.midi_iteri tr (fun id tk ->
@@ -1067,15 +1056,13 @@ module RTControl = struct
 
         (* If track just comes off, we do some stuff -> parametrize ? *)
         if cur_state = A.AS_Off && prev_state != A.AS_Off then (
-          on_midi_track_off tr tk prev_tick cur_tick
-          preallocated_midi_event;
+          on_midi_track_off tr tk prev_tick cur_tick ;
           Tracks.update_midi_previous tk;
         );
 
         (* If he is playing, we process his events: *)
         if cur_state = A.AS_On || cur_state = A.AS_SchedOff then (
-          when_midi_track_plays tr tk prev_tick cur_tick
-          preallocated_midi_event;
+          when_midi_track_plays tr tk prev_tick cur_tick ;
         );
 
       );
@@ -1087,10 +1074,6 @@ module RTControl = struct
     tr.t_is_playing <- true;
 
     let previous_tick = ref (-1) in
-
-    (* Optimization: functions shall use the midi event so that they don't have
-     * to allocate one *)
-    let preallocated_midi_event = Midi.empty_midi_event () in
 
     let loop = ref tr.t_is_playing in
     let willstop = ref 0 in
@@ -1131,8 +1114,7 @@ module RTControl = struct
       if (ticks_to_manage > 0) then (
         max_ticks_to_manage := max !max_ticks_to_manage ticks_to_manage;
         Pl.play_meta_events tr !previous_tick current_tick;
-        Pl.play_midi_events preallocated_midi_event
-        tr !previous_tick current_tick;
+        Pl.play_midi_events tr !previous_tick current_tick;
       );
 
       tr.t_do_after tr;
