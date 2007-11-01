@@ -80,7 +80,7 @@ let util_set_playing_state playing = (
   (get_aw ())#button_save#misc#set_sensitive (not playing) ;
   (get_aw ())#button_saveas#misc#set_sensitive (not playing) ;
   (get_aw ())#button_update_bpm#misc#set_sensitive (not playing) ;
-  (get_aw ())#button_update_bpm#misc#set_sensitive (not playing) ;
+  (get_aw ())#button_update_pqn#misc#set_sensitive (not playing) ;
   (get_aw ())#button_update_sngnam#misc#set_sensitive (not playing) ;
   (* (get_aw ())#spinbutton_qd#misc#set_sensitive (not playing) ; *)
   (* (get_aw ())#spinbutton_tt#misc#set_sensitive (not playing) ; *)
