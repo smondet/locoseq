@@ -106,8 +106,13 @@ process_callback(jack_nframes_t nframes, void * context) {
     size_t i;
     void *o_port_buf;
     for (i = 0; i < js->js_oports_nb; i++) {
+#ifdef JACK_MIDI_NEEDS_NFRAMES      
       o_port_buf = jack_port_get_buffer(js->js_oports[i], nframes);
       jack_midi_clear_buffer(o_port_buf, nframes);
+#else
+      o_port_buf = jack_port_get_buffer(js->js_oports[i]);
+      jack_midi_clear_buffer(o_port_buf);
+#endif
     }
   }
 
@@ -126,7 +131,11 @@ process_callback(jack_nframes_t nframes, void * context) {
           "Can't read in ring buffer !!");
       o_port_buf =
         jack_port_get_buffer(js->js_oports[stack_event.me_port], nframes);
+#ifdef JACK_MIDI_NEEDS_NFRAMES      
       midi_buf = jack_midi_event_reserve(o_port_buf, 0, 3, nframes);
+#else
+      midi_buf = jack_midi_event_reserve(o_port_buf, 0, 3);
+#endif
       midi_buf[0] = (stack_event.me_stat & 0xF0) + (stack_event.me_chan & 0x0F);
       midi_buf[1] = stack_event.me_dat1;
       midi_buf[2] = stack_event.me_dat2;
@@ -144,9 +153,17 @@ process_callback(jack_nframes_t nframes, void * context) {
     for (i = 0; i < js->js_iports_nb; i++) {
       /* Get In Event count: */
       i_port_buf = jack_port_get_buffer(js->js_iports[i], nframes);
+#ifdef JACK_MIDI_NEEDS_NFRAMES      
       n_in = jack_midi_get_event_count(i_port_buf, nframes);
+#else
+      n_in = jack_midi_get_event_count(i_port_buf);
+#endif
       for (j = 0; j < n_in; j++) {
+#ifdef JACK_MIDI_NEEDS_NFRAMES      
         jack_midi_event_get(&event, i_port_buf, j, nframes);
+#else
+        jack_midi_event_get(&event, i_port_buf, j);
+#endif
         if (event.size >= 2) {
           stack_event.me_port = i;
           stack_event.me_stat = event.buffer[0] & 0xF0;

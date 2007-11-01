@@ -11,10 +11,25 @@ APP_NAME= locoseq
 APP_MODS=  $(LABLGLADE_GEN_MOD)  midi log jackSequencer tracker inputManager midiFile stringServer seqApp guiEditor gui main
 
 ## JACK-MIDI Interface:
-JACKITF_NAME=jackseq
-JACKITF_FLAGS=-ansi -pedantic -Wall -Wextra -Wpointer-arith -Wbad-function-cast
+JACK_VERSION=$(shell pkg-config --modversion jack)
+JACK_VERSION_FIRST=$(shell \
+    echo "$(JACK_VERSION)" | sed 's/\([^.]*\)\.[^.]*\.[^.]*/\1/')
+JACK_VERSION_SECOND=$(shell \
+    echo "$(JACK_VERSION)" | sed 's/[^.]*\.\([^.]*\)\.[^.]*/\1/')
 
-## The library of interfaces:
+JACK_MIDI_COMPATIBILTY="not-set-so-that-compilation-fails"
+if $(and $(equal $(JACK_VERSION_FIRST), 0), $(lt $(JACK_VERSION_SECOND), 105))
+  JACK_MIDI_COMPATIBILTY=-DJACK_MIDI_NEEDS_NFRAMES=$(JACK_VERSION_SECOND)
+  export
+else
+  JACK_MIDI_COMPATIBILTY=
+  export
+
+JACKITF_NAME=jackseq
+JACKITF_FLAGS= $(JACK_MIDI_COMPATIBILTY)\
+  -ansi -pedantic -Wall -Wextra -Wpointer-arith -Wbad-function-cast
+
+## The library of C interfaces (currently only JACKITF_NAME):
 ITF_LIB=interfaces
 
 ## Code documentation:
