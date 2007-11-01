@@ -297,10 +297,14 @@ module Tracks = struct
     track.mi_track.t_prev_state <- track.mi_track.t_state;
     track.mi_track.t_state <- v;
   )
+  let update_midi_previous track =
+    track.mi_track.t_prev_state <- track.mi_track.t_state
   let set_meta_state track v = (
     track.me_track.t_prev_state <- track.me_track.t_state;
     track.me_track.t_state <- v;
   )
+  let update_meta_previous track =
+    track.me_track.t_prev_state <- track.me_track.t_state
   let set_midi_start_tick track v = track.mi_track.t_start_tick <- v
   let set_meta_start_tick track v = track.me_track.t_start_tick <- v
 end
@@ -842,35 +846,49 @@ module RTControl = struct
         (tik_b <= current_sched) && (current_sched <= tik_e)
       )
 
-      (** Returns 
-      if event should be played, returns the offset from the begining (tik_b)
-       if event should not be played, returns -1
-       *)
+      (** Returns a boolean: {i should the event be played}  *)
       let should_play_event ~current:(tik_b, tik_e)
       ~started_time ~loop_length ~event_tick = (
-        (* tik_b <= started_time + event_tick + k * loop_length <= tik_e *)
-        let diff = tik_b - started_time - event_tick in
-        let k = int_just_over_division diff loop_length in
-        (* (diff / loop_length) + (if diff mod loop_length = 0 then 0 else 1) in *)
-        let t =  started_time + event_tick + k * loop_length in
-        let should = (tik_b <= t) && (t <= tik_e) in
-        (* let t = (started_time + event_tick) mod loop_length in *)
-        (* let should =  *)
-        (* (tik_b mod loop_length <= t) && (t <= tik_e mod loop_length) in *)
-        (* Log.p "should: %b k:%d b: %d t:%d e:%d\n" should k tik_b t tik_e; *)
-        if not should then (
-          -1
-        ) else (
-          t - tik_b
+        (** 
+        {[ tik_b <= started_time + event_tick + k * loop_length <= tik_e ]}
+        *)
+        let arbitrary_delta = 
+          loop_length *
+          (int_just_over_division (started_time + event_tick) loop_length)
+        in
+        let diff_b = tik_b - started_time - event_tick + arbitrary_delta in
+        let diff_e = tik_e - started_time - event_tick + arbitrary_delta in
+        (** now the problem: [ extisting k where diff_b <= k*loop <= diff_e ]
+            ([arbitrary_delta] is a multiple of k used make all positive) *)
+        if diff_b mod loop_length = 0
+        then true (** [ diff_b / loop_length ] is a solution *)
+        else (
+          if diff_e mod loop_length = 0
+          then true (** [diff_e / loop_length] is a solution *)
+          else (
+            (** Now
+            [possibles = N <inter> \] (diff_b. /. loop.), (diff_e. /. loop.) \[]
+                ... so let's compute [|possibles|] 
+            *)
+            (* if diff_b <= 0 || diff_e <= 0 then *)
+            (* Log.p "card: %d cur:%d,%d l:%d\n" *)
+            (* ((diff_e / loop_length) - (diff_b / loop_length)) *)
+            (* diff_b diff_e loop_length; *)
+            (diff_e / loop_length) - (diff_b / loop_length)  > 0
+          )
         )
+        (* in *)
+      (* if diff_b <= 0 || diff_e <= 0 then *)
+      (* Log.p "[%d,%d] loop:%d started_time:%d event:%d => %b\n" *)
+      (* tik_b tik_e loop_length started_time event_tick should; *)
       )
         
-      let is_it_time_for_loop ~current:(tik_b, tik_e)
-      ~started_time ~loop_length = (
+      (* let is_it_time_for_loop ~current:(tik_b, tik_e) *)
+      (* ~started_time ~loop_length = ( *)
         (* tik_b <= started_time + k * loop_length <= tik_e *)
-        should_play_event ~current:(tik_b, tik_e) ~started_time
-        ~loop_length ~event_tick:0
-      )
+        (* should_play_event ~current:(tik_b, tik_e) ~started_time *)
+        (* ~loop_length ~event_tick:0 *)
+      (* ) *)
 
       type set_started_method = SyncOnLength | SyncOnSched | NoSync
 
@@ -926,7 +944,7 @@ module RTControl = struct
           (* TODO: see if both conditions are sufficient *)
         ) else (
           (* ONE TICK EVENTS: *)
-          if 0 <= (
+          if (
             Times.should_play_event
             ~current ~loop_length ~started_time ~event_tick:(fst ev.M.ev_ticks)
           ) then (
@@ -964,10 +982,12 @@ module RTControl = struct
             Times.get_start_tick ~play_tick:cur_tick
             ~sched_length:(Tracks.meta_sched_lgth tk) in
           Tracks.set_meta_start_tick tk start_time;
+          Tracks.update_meta_previous tk;
         );
         (* If track just comes off, we do some stuff -> parametrize ? *)
         if cur_state = A.AS_Off && prev_state != A.AS_Off then (
           on_meta_track_off tr tk prev_tick cur_tick;
+          Tracks.update_meta_previous tk;
         );
 
         (* If he is playing, we process his events: *)
@@ -1009,22 +1029,12 @@ module RTControl = struct
       let started_time = Tracks.midi_start_tick track in
       let current = (prev_tick + 1, cur_tick) in
       List.iter (fun ev ->
-        let offset_of_event =
-          (* ev.MidiEvent.e_tiks mod track_lgth in *)
+        if 
           Times.should_play_event ~current ~started_time
           ~loop_length ~event_tick:ev.MidiEvent.e_tiks
-        in
-        (* if tick_in_interval tick_of_event interval track_lgth then ( *)
-        if offset_of_event >= 0 then (
-          (*Log.p "sending event %d %x %d %x %x\n"
-          ((prev_tick + 1) + offset_of_event + tr.t_queue_delay - 1)
-          ev.MidiEvent.e_stat
-          ev.MidiEvent.e_chan
-          ev.MidiEvent.e_dat1
-          ev.MidiEvent.e_dat2
-          ;*)
+        then (
           fill_and_send_event ev prealloc tr.t_sequencer track.Tracks.mi_outport
-          ((prev_tick + 1) + offset_of_event + tr.t_queue_delay - 1);
+          ((prev_tick + 1) + tr.t_queue_delay - 1);
           (* TODO comment the above formula *)
         );
       ) track.Tracks.mi_events;
@@ -1051,12 +1061,15 @@ module RTControl = struct
             Times.get_start_tick ~play_tick:cur_tick
             ~sched_length:(Tracks.midi_sched_lgth tk) in
           Tracks.set_midi_start_tick tk start_time;
+          Tracks.update_midi_previous tk;
+          Log.p "Start time: %d(cur: %d)\n" start_time cur_tick;
         );
 
         (* If track just comes off, we do some stuff -> parametrize ? *)
         if cur_state = A.AS_Off && prev_state != A.AS_Off then (
           on_midi_track_off tr tk prev_tick cur_tick
           preallocated_midi_event;
+          Tracks.update_midi_previous tk;
         );
 
         (* If he is playing, we process his events: *)
