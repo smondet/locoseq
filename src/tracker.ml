@@ -127,6 +127,21 @@ module Automata = struct
     | AA_TimeForSched  -> process_TimeForSched current_state
   )
 
+  let as_str = function
+    | AS_On        -> "On      "
+    | AS_Off       -> "Off     "
+    | AS_SchedOn   -> "SchedOn "
+    | AS_SchedOff  -> "SchedOff"
+
+  let aa_str = function
+    | AA_TrackToggle  -> "TrackToggle "
+    | AA_TrackOn      -> "TrackOn     "
+    | AA_TrackOff     -> "TrackOff    "
+    | AA_SchedOn      -> "SchedOn     "
+    | AA_SchedOff     -> "SchedOff    "
+    | AA_SchedToggle  -> "SchedToggle "
+    | AA_TimeForSched -> "TimeForSched"
+
 end
 
 module MidiEvent = struct
@@ -965,16 +980,16 @@ module RTControl = struct
       let module A = Automata in
       ManageTracks.meta_iteri tr (fun id tk ->
 
-        let cur_state = T.meta_state tk in
-        let prev_state = T.meta_prev_state tk in
-
         (* Do the schedules: *)
         if (
           Times.is_it_time_for_schedule
           ~current:(prev_tick + 1, cur_tick) (T.meta_sched_lgth tk)
         ) then (
-          T.set_meta_state tk (A.process_TimeForSched cur_state);
+          T.set_meta_state tk (A.process_TimeForSched (T.meta_state tk));
         );
+
+        let cur_state = T.meta_state tk in
+        let prev_state = T.meta_prev_state tk in
 
         (* Set the start time of the track if just played *)
         if cur_state = A.AS_On && prev_state != A.AS_On then (
@@ -1033,16 +1048,17 @@ module RTControl = struct
       let module T = Tracks in
       let module A = Automata in
       ManageTracks.midi_iteri tr (fun id tk ->
-        let cur_state = T.midi_state tk in
-        let prev_state = T.midi_prev_state tk in
 
         (* Do the schedules: *)
         if (
           Times.is_it_time_for_schedule
           ~current:(prev_tick + 1, cur_tick) (T.midi_sched_lgth tk)
         ) then (
-          T.set_midi_state tk (A.process_TimeForSched cur_state);
+          T.set_midi_state tk (A.process_TimeForSched (T.midi_state tk));
         );
+
+        let cur_state = T.midi_state tk in
+        let prev_state = T.midi_prev_state tk in
 
         (* Set the start time of the track if just played *)
         if cur_state = A.AS_On && prev_state != A.AS_On then (
@@ -1050,8 +1066,9 @@ module RTControl = struct
             Times.get_start_tick ~play_tick:cur_tick
             ~sched_length:(Tracks.midi_sched_lgth tk) in
           Tracks.set_midi_start_tick tk start_time;
+          Log.p "Start time: %d(cur: %d) (prev state: %s)\n"
+          start_time cur_tick (A.as_str prev_state);
           Tracks.update_midi_previous tk;
-          Log.p "Start time: %d(cur: %d)\n" start_time cur_tick;
         );
 
         (* If track just comes off, we do some stuff -> parametrize ? *)
