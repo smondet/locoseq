@@ -26,6 +26,8 @@
  * *done* 'main' with options (the file to load, alsa client name, see licence, ...)
  * *done* s/alsa/jack_midi/g (no more libasound dependency)
  * *needs debug* re-implement the tracker engine (with schedulle length feature)
+ * Compile against any version of JACK (`nframes` issue)
+
 
 *-> 0.1*
 
