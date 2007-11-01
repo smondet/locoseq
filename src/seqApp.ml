@@ -110,7 +110,10 @@ let set_bpm app bpm = (
   Tracker.RTControl.set_bpm app.a_tracker bpm ;
   app.a_is_saved <- false ;
 )
-let set_ppqn app ppqn = Tracker.Services.set_ppqn app.a_tracker ppqn
+let set_ppqn app ppqn = (
+  Tracker.Services.set_ppqn app.a_tracker ppqn;
+  app.a_is_saved <- false ;
+)
 
 let get_sequencer_info app =
   (app.a_tracker.Tracker.t_queue_delay, app.a_tracker.Tracker.t_timer_ticks) ;;
