@@ -211,6 +211,18 @@
         <midi_event tcks="718" stat="128" chan="9" dat1="46" dat2="100"/>
         <midi_event tcks="718" stat="128" chan="9" dat1="42" dat2="100"/>
       </midi_track>
+      <midi_track id="5" name="Tick" track_lgth="768" sched_lgth="768" outport="0">
+        <midi_event tcks="192" stat="128" chan="9" dat1="53" dat2="0"/>
+        <midi_event tcks="0" stat="144" chan="9" dat1="53" dat2="117"/>
+        <midi_event tcks="97" stat="128" chan="9" dat1="37" dat2="0"/>
+        <midi_event tcks="659" stat="128" chan="9" dat1="37" dat2="0"/>
+        <midi_event tcks="573" stat="144" chan="9" dat1="37" dat2="127"/>
+        <midi_event tcks="478" stat="128" chan="9" dat1="37" dat2="0"/>
+        <midi_event tcks="381" stat="144" chan="9" dat1="37" dat2="141"/>
+        <midi_event tcks="312" stat="128" chan="9" dat1="37" dat2="0"/>
+        <midi_event tcks="189" stat="144" chan="9" dat1="37" dat2="115"/>
+        <midi_event tcks="0" stat="144" chan="9" dat1="37" dat2="103"/>
+      </midi_track>
     </midi_tracks>
     <meta_tracks/>
   </tracker>
