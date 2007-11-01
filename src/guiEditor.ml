@@ -606,7 +606,7 @@ let ef_draw_event ef index event = (
   | EE_MidiNote [] -> Log.warn "An empty midi note ??? keep going on\n";
   | EE_MidiNote ev_list ->
       let ev, _ = List.hd ev_list in
-      let cur_y, unit_y = make_event_label (MidiUtil.midi_event_to_string ev) in
+      let cur_y, unit_y = make_event_label (MidiUtil.note_to_string ev) in
       
       List.iter (
         fun (ev_on , ev_off) ->
@@ -1220,11 +1220,12 @@ let rec util_update_add_edit_line box ef = (
           Log.p "The active is: %d\n" cbo#active;
           let _, octave = MidiUtil.note_octave_of_event mev_b in
           let new_note = cbo#active in
-          let module Mi = Tracker.MidiEvent in
+          let new_dat1 =
+            min 255 (MidiUtil.note_of_val_and_oct new_note octave) in
           List.iter (
             fun (evb, eve) ->
-              evb.Mi.e_dat1 <- MidiUtil.note_of_val_and_oct new_note octave;
-              eve.Mi.e_dat1 <- MidiUtil.note_of_val_and_oct new_note octave;
+              evb.Tracker.MidiEvent.e_dat1 <- new_dat1;
+              eve.Tracker.MidiEvent.e_dat1 <- new_dat1;
           ) ev_list;
           tv_rebuild_editables ef.ef_model;
           ef_set_editable_selected ef (EE_MidiNote [(mev_b,mev_e)]);
@@ -1242,13 +1243,13 @@ let rec util_update_add_edit_line box ef = (
         ignore (octave_spin#connect#changed ~callback:(fun () ->
           let note, old_octave = MidiUtil.note_octave_of_event mev_b in
           let new_octave = int_of_float octave_adj#value in
-          (* TODO verify that data_1 < 255 *)
-          let module Mi = Tracker.MidiEvent in
+          let new_dat1 =
+            min 255 (MidiUtil.note_of_val_and_oct note new_octave) in
           if old_octave <> new_octave then (
             List.iter (
               fun (evb, eve) ->
-                evb.Mi.e_dat1 <- MidiUtil.note_of_val_and_oct note new_octave;
-                eve.Mi.e_dat1 <- MidiUtil.note_of_val_and_oct note new_octave;
+                evb.Tracker.MidiEvent.e_dat1 <- new_dat1;
+                eve.Tracker.MidiEvent.e_dat1 <- new_dat1;
             ) ev_list;
             tv_rebuild_editables ef.ef_model;
             ef_set_editable_selected ef (EE_MidiNote [(mev_b,mev_e)]);
