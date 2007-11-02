@@ -305,17 +305,19 @@ let tv_aw_update_track_view (kind:[`MIDI|`META]) treeview tv_info  = (
   treeview#set_model None;
   tv_model#clear () ;
   for i = 1 to m_tknb do
-    let id,name,port,lgth = m_info.(i-1) in
+    let id,name,port,lgth,sched = m_info.(i-1) in
     let iter = tv_model#append () in
     tv_model#set ~row:iter ~column:nbrs_col id ;
     let pqn = snd (App.get_bpm_ppqn (get_app ())) in
     let size_str = S.string_of_length lgth pqn in
+    let schd_str = S.string_of_length sched pqn in
     tv_model#set ~row:iter ~column:dscr_col name ;
 
     if kind = `MIDI then (
       tv_model#set ~row:iter ~column:(get_option tv_info.tkv_port_col) port ;
     );
-    tv_model#set ~row:iter ~column:size_col (Printf.sprintf "%s" size_str) ;
+    tv_model#set ~row:iter ~column:size_col 
+    (Printf.sprintf "L=%s | S=%s" size_str schd_str) ;
 
     App.add_uniq_custom_unsaved_action (get_app ())
     (global_mouse_l_click_offset + id) (`toggle_track, `direct_int id);
