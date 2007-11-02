@@ -148,14 +148,6 @@ let string_of_meta_event event pqn = (
 )
 
 
-let make_appwin_title songname =
-    !App.app_name ^ " " ^ !App.version ^(
-    match songname with
-    | "" -> "   -- (no name song) --"
-    | _  -> "    [" ^ songname ^ "]" 
-  )
-
-
 let global_available_keys = [|
   "a"; "b"; "c"; "d"; "e"; "f"; "g"; "h"; "i"; "j"; "k"; "l"; "m";
   "n"; "o"; "p"; "q"; "r"; "s"; "t"; "u"; "v"; "w"; "x"; "y"; "z";
