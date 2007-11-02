@@ -431,24 +431,28 @@ module Services = struct
   let get_midi_tracks_infos tr = (
     let module T = Tracks in
     let res =
-      Array.create (ManageTracks.get_midi_tracks_number tr) (0,"",0,0) in
+      Array.create (ManageTracks.get_midi_tracks_number tr) (0,"",0,0,0) in
     let index = ref 0 in
     ManageTracks.midi_iteri tr (
       fun i tk ->
-        res.(!index)
-        <- (i, T.midi_name tk, tk.T.mi_outport, T.midi_track_lgth tk);
+        res.(!index) <- (
+          i, T.midi_name tk, tk.T.mi_outport,
+          T.midi_track_lgth tk, T.midi_sched_lgth tk
+        );
         incr index;
     );
     res
   )
   let get_meta_tracks_infos tr = (
     let l = ManageTracks.get_meta_tracks_number tr in 
-    let res = Array.create l (0,"",0,0) in
+    let res = Array.create l (0,"",0,0,0) in
     let index = ref 0 in
     ManageTracks.meta_iteri tr (
       fun i tk ->
-        res.(l - !index - 1)
-        <- (i, Tracks.meta_name tk, -1 , Tracks.meta_track_lgth tk);
+        res.(l - !index - 1) <- (
+          i, Tracks.meta_name tk, -1 , 
+          Tracks.meta_track_lgth tk, Tracks.meta_sched_lgth tk
+        );
         incr index ;
     );
     res
