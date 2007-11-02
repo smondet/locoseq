@@ -840,7 +840,8 @@ let b_aw_play   () = (
   App.set_sequencer_info app (int_of_float (get_aw ())#spinbutton_tt#value);
   App.update_input_mgr app;
   App.threaded_play (fun () ->
-    update_during_play () ;
+    util_set_playing_state false ;
+    aw_append_msg `LOG "stop playing"
   ) app;
   util_set_playing_state true ;
   aw_append_msg `LOG "start playing"
