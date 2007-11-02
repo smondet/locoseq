@@ -250,9 +250,11 @@
     </meta_tracks>
   </tracker>
   <input_manager>
+    <handler input_match="custom:41" action_type="mute_all" action_arg="direct_int:0"/>
     <handler input_match="midi:144:-1:-1:-1" action_type="toggle_track" action_arg="midi_note"/>
     <handler input_match="custom:3" action_type="decr_BPM" action_arg="direct_int:2"/>
     <handler input_match="custom:18" action_type="incr_BPM" action_arg="direct_int:2"/>
     <handler input_match="custom:0" action_type="schedule_toggle_track" action_arg="direct_int:-1"/>
+    <handler input_match="custom:44" action_type="stop" action_arg="direct_int:0"/>
   </input_manager>
 </song>
