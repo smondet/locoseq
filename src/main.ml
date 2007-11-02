@@ -40,7 +40,11 @@ let test_parse_and_print_midi_file file = (
     *)
     Printf.printf "File %s\n" file;
     Printf.printf "%s" (Midi.midi_to_string midi_data) ;
-  ) with exc -> Printf.printf "Exception: %s\n" (Printexc.to_string exc);
+  ) with
+  | Sys_error msg -> Log.warn "Parse Midi File got SYS error: %s\n" msg;
+  | exc -> 
+      Log.warn "Parse Midi File got an exception: %s\n"
+      (Printexc.to_string exc);
 )
 
 (******************************************************************************)
@@ -113,7 +117,7 @@ let make_inspection file = (
       GtkInit.locale (* never used !*)
     with e -> GtkInit.locale
   );
-
+  pr "- JACK: %s\n" (str_of_cmd "pkg-config --modversion jack");
 )
 
 
@@ -132,7 +136,7 @@ let g_file_to_open = ref None
 
 let options = Arg.align [
   ("-gui", Arg.Set gui, " Launch GUI");
-  ("-parse", Arg.Rest test_parse_and_print_midi_file,
+  ("-parse", Arg.String test_parse_and_print_midi_file,
   "<midi_file> (Test) Parse and print MIDI file");
   ("-inspect", Arg.String make_inspection,
   "<target_file> Process portability inspection and write a report");
@@ -146,7 +150,7 @@ let options = Arg.align [
 
 
 let ignore_unknown_arguments str = (
-  Printf.printf "%s: argument '%s' ignored.\n" Sys.argv.(0) str;
+  Log.warn "argument '%s' ignored.\n" str;
 )
 
 
@@ -155,8 +159,7 @@ let ignore_unknown_arguments str = (
 
 let main () = (
   Arg.parse options ignore_unknown_arguments short_usage;
-  if 1 >= !Arg.current 
-  then (
+  if 1 >= !Arg.current then (
     Arg.usage options short_usage;
     exit 1;
   );
