@@ -111,19 +111,13 @@ let aw_update_title () = (
     | "" -> "-- (no file) --"
     | name -> name in
   (get_aw ())#app_window#set_title (
-    Printf.sprintf "%s %s [%s : %s]"
-    !S.App.app_name  !S.App.version str_song_name str_file_name
+    Printf.sprintf "%s %s as '%s' [%s : %s]"
+    !S.App.app_name  !S.App.version !S.App.jack_client_name
+    str_song_name str_file_name
   );
   (get_aw ())#entry_sngnam#set_text (App.get_song_name (get_app ()));
 )
 
-let lb_aw_update_filename () = (
-  let fnm =
-    match App.get_filename (get_app ()) with
-    | "" -> "<i>(there's no filename...)</i>" 
-    | s -> "<tt>"^s^"</tt>"
-  in (get_aw ())#label_filename#set_label fnm ;
-)
 let aw_append_msg (typ:[`LOG |`WARN |`ERR]) str = (
   let aw = get_aw () in
   let mkp = 
@@ -739,7 +733,6 @@ let b_aw_saveas ?(and_then=fun () -> ()) () = (
     App.save_to_file (get_app ()) fw#filename;
     aw_update_title () ;
     fw#destroy ();
-    lb_aw_update_filename () ;
     and_then () ;
   in
   let filew = GWindow.file_selection ~title:"Save As" ~modal:true () in
@@ -753,7 +746,6 @@ let b_aw_save   ?(and_then=fun ()->())  () = (
   if (fil <> "") then (
     App.save_to_file (get_app ()) fil;
     and_then () ;
-    lb_aw_update_filename () ;
   ) else (
     b_aw_saveas ~and_then () ;
   );
@@ -806,7 +798,6 @@ let b_aw_new    () = (
     tv_aw_update_iact_view ();
     sp_aw_update_bpm_ppqn_values ();
     aw_update_title () ;
-    lb_aw_update_filename () ;
     aw_update_qd_tt () ;
   in
   if not (App.is_saved (get_app ())) then (
@@ -828,7 +819,6 @@ let b_aw_open   () = (
         tv_aw_update_iact_view ();
         sp_aw_update_bpm_ppqn_values ();
         aw_update_title () ;
-        lb_aw_update_filename () ;
         aw_update_qd_tt () ;
         filew#destroy ();
     ));
@@ -946,8 +936,6 @@ let start ?open_file () = (
   ignore(mw#button_update_sngnam#connect#clicked ~callback:b_aw_update_sngnam);
 
   aw_update_qd_tt ();
-
-  lb_aw_update_filename ();
 
   global_tv_aw_midiview_info := tv_aw_init_trackview `MIDI mw#treeview_midi ;
   tv_aw_update_midi_view () ;
