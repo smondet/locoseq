@@ -102,10 +102,21 @@ let util_set_playing_state playing = (
 (** {3 Updating info-labels} *)
 
 let aw_update_title () = (
+  let str_song_name =
+    match App.get_song_name (get_app ()) with
+    | ""   -> "-- (no song name) --"
+    | name -> name in
+  let str_file_name =
+    match App.get_filename (get_app ()) with
+    | "" -> "-- (no file) --"
+    | name -> name in
   (get_aw ())#app_window#set_title (
-    S.make_appwin_title (App.get_song_name (get_app ())));
-    (get_aw ())#entry_sngnam#set_text (App.get_song_name (get_app ())) ;
+    Printf.sprintf "%s %s [%s : %s]"
+    !S.App.app_name  !S.App.version str_song_name str_file_name
+  );
+  (get_aw ())#entry_sngnam#set_text (App.get_song_name (get_app ()));
 )
+
 let lb_aw_update_filename () = (
   let fnm =
     match App.get_filename (get_app ()) with
