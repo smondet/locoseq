@@ -855,10 +855,12 @@ module RTControl = struct
         (n / d) + (if n mod d = 0 then 0 else 1)
 
       let is_it_time_for_schedule ~current:(tik_b, tik_e) sched_length = (
-        let nb_of_sched_intervals =
-          int_just_over_division tik_b sched_length in
-        let current_sched = nb_of_sched_intervals * sched_length in
-        (tik_b <= current_sched) && (current_sched <= tik_e)
+        if sched_length = 0 then true
+        else 
+          let nb_of_sched_intervals =
+            int_just_over_division tik_b sched_length in
+          let current_sched = nb_of_sched_intervals * sched_length in
+          (tik_b <= current_sched) && (current_sched <= tik_e)
       )
 
       (** Returns a boolean: {i should the event be played}  *)
@@ -867,29 +869,33 @@ module RTControl = struct
         (** 
         {[ tik_b <= started_time + event_tick + k * loop_length <= tik_e ]}
         *)
-        let arbitrary_delta = 
-          loop_length *
-          (int_just_over_division (started_time + event_tick) loop_length)
-        in
-        let diff_b = tik_b - started_time - event_tick + arbitrary_delta in
-        let diff_e = tik_e - started_time - event_tick + arbitrary_delta in
-        (** now the problem: [ extisting k where diff_b <= k*loop <= diff_e ]
+        if loop_length = 0 then (
+          false
+        ) else (
+          let arbitrary_delta = 
+            loop_length *
+            (int_just_over_division (started_time + event_tick) loop_length)
+          in
+          let diff_b = tik_b - started_time - event_tick + arbitrary_delta in
+          let diff_e = tik_e - started_time - event_tick + arbitrary_delta in
+          (** now the problem: [ extisting k where diff_b <= k*loop <= diff_e ]
             ([arbitrary_delta] is a multiple of k used make all positive) *)
-        if diff_b mod loop_length = 0
-        then true (** [ diff_b / loop_length ] is a solution *)
-        else (
-          if diff_e mod loop_length = 0
-          then true (** [diff_e / loop_length] is a solution *)
+          if diff_b mod loop_length = 0
+          then true (** [ diff_b / loop_length ] is a solution *)
           else (
-            (** Now
-            [possibles = N <inter> \] (diff_b. /. loop.), (diff_e. /. loop.) \[]
-                ... so let's compute [|possibles|] 
+            if diff_e mod loop_length = 0
+            then true (** [diff_e / loop_length] is a solution *)
+            else (
+           (** Now
+           [possibles = N <inter> \] (diff_b. /. loop.), (diff_e. /. loop.) \[]
+            ... so let's compute [|possibles|] 
             *)
-            (* if diff_b <= 0 || diff_e <= 0 then *)
-            (* Log.p "card: %d cur:%d,%d l:%d\n" *)
-            (* ((diff_e / loop_length) - (diff_b / loop_length)) *)
-            (* diff_b diff_e loop_length; *)
-            (diff_e / loop_length) - (diff_b / loop_length)  > 0
+              (* if diff_b <= 0 || diff_e <= 0 then *)
+              (* Log.p "card: %d cur:%d,%d l:%d\n" *)
+              (* ((diff_e / loop_length) - (diff_b / loop_length)) *)
+              (* diff_b diff_e loop_length; *)
+              (diff_e / loop_length) - (diff_b / loop_length)  > 0
+            )
           )
         )
         (* in *)
@@ -912,7 +918,10 @@ module RTControl = struct
 
       let get_start_tick ~play_tick ~sched_length =
         match !current_method with
-        | SyncOnSched -> (play_tick / sched_length) * sched_length
+        | SyncOnSched ->
+            if sched_length = 0 then play_tick
+            else
+              (play_tick / sched_length) * sched_length
         | NoSync -> play_tick
         | SyncOnLength -> 0
 
