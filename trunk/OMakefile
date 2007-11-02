@@ -42,10 +42,6 @@ CODEDOC_CSS=codedoc.css
 INSPECTION_OUTPUT=Inspection
 INSPECTION_DIR=InspectionData
 
-## LICENSING:
-LICENSE_SRC=license.mit
-
-
 ## Compilation variables:
 OCAMLFLAGS = -dtypes -thread -ccopt -pthread
 NATIVE_ENABLED = true
@@ -101,19 +97,12 @@ MakePackage ()=
   cp  src/gui_files/app.glade  $(DIR_NAME)/src/gui_files/
   cp  test/*  $(DIR_NAME)/test/
   cp  OMakefile OMakeroot README license.bsd $(DIR_NAME)/
-  headache -h $(LICENSE_SRC) $(DIR_NAME)/src/*.ml $(DIR_NAME)/src/*.c
   tar cvfz $(DIR_NAME).tar.gz $(DIR_NAME)
   rm -rf $(DIR_NAME)
 
-package: $(LICENSE_SRC)
+package:
   MakePackage ()
 
-
-license: $(LICENSE_SRC)
-  headache -h $(LICENSE_SRC) src/*.ml src/*.c
-
-unlicense: $(LICENSE_SRC)
-  headache -r src/*.ml src/*.c
 
 codedoc: $(DOC_SOURCES)
   ocamlfind ocamldoc -package $(OCAMLPACKS) -d $(HTML_DIR) -I src\
@@ -143,52 +132,4 @@ MakeExec () =
 .SUBDIRS: doc/manual/src/
 
 
-## .SUBDIRS: src
-##   MakeApp ()
-##   .SUBDIRS: alsa_wrapper
-##     MakeLib ()
-
-##.SUBDIRS: test
-## 	MakeTest ()
-##.SUBDIRS: doc
-##  echo "SUBDIR: $(basename $(absname $(CWD))) "
- 
-
-### MakeExec () =
-###   echo "[My Omake] <MakeApp>"
-###     # ocamlopt $(OCAMLFLAGS) $(APP_O_LIBS) $(APP_SRCS) $(APP_C_LIBS) -o $(APP_NAME)
-###   $(LABLGLADE_GEN_FILE): $(LABLGLADE_FILE)
-###     lablgladecc2 $(LABLGLADE_OPT) $(LABLGLADE_FILE) > $(LABLGLADE_GEN_FILE)
-###   $(APP_NAME): $(APP_SRCS)
-###     ocamlfind ocamlopt  -linkpkg  -package $(APP_OFIND_PACKS) $(OCAMLFLAGS) $(APP_SRCS) $(APP_C_LIBS) -o $(APP_NAME)
-###   .DEFAULT: $(APP_NAME)
-
-
-## install: src/$(LIB_NAME).cmxa src/$(LIB_NAME).cma
-## 	if [ -f $(INSTALL_LIB_DIR) ] then
-## 		rm -rf $(INSTALL_LIB_DIR)
-## 	mkdir $(INSTALL_LIB_DIR)
-## 	cp \
-## 	src/*.cmi src/lib* \
-## 	$(INSTALL_LIB_DIR)
-
-## MakeLib () =
-##   echo "[My Omake] <MakeLib>"
-##   touch $(LIB_NAME).a
-##   $(LIB_NAME).a: $(LIB_NAME).cmxa
-##   $(LIB_NAME).cmxa: $(LIB_SOURCES)
-##      ocamlopt -c $(LIB_SOURCES)
-##      ocamlc -c $(LIB_SOURCES)
-##      ocamlmklib -o $(LIB_NAME)  $(LIB_OBJECTS) $(LIB_STATIC_LINKS)
-##   # OCAMLINCLUDES += ../client
-##   #OCamlLibrary($(LIB_NAME), $(LIB_MODS))
-##   .DEFAULT: $(LIB_NAME).cmxa $(LIB_NAME).a
-## 
-## 
-## MakeApp () =
-##   echo "[My Omake] <MakeApp>"
-##   OCAML_LIBS += $(APP_LIBS)
-##   OCAMLINCLUDES += $(APP_INCS)
-##   OCamlProgram($(APP_NAME), $(APP_MODS) )
-##   .DEFAULT: $(APP_NAME) $(APP_NAME).opt
 
