@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <song version="0" name="The testing Song">
-  <tracker pqn="192" bpm="216" queue_delay="4" timer_ticks="10">
+  <tracker pqn="192" bpm="220" queue_delay="4" timer_ticks="10">
     <midi_tracks>
       <midi_track id="1" name="Drums 1" track_lgth="768" sched_lgth="768" outport="0">
         <midi_event tcks="0" stat="144" chan="9" dat1="35" dat2="100"/>
@@ -223,8 +223,31 @@
         <midi_event tcks="189" stat="144" chan="9" dat1="37" dat2="115"/>
         <midi_event tcks="0" stat="144" chan="9" dat1="37" dat2="103"/>
       </midi_track>
+      <midi_track id="6" name="Piano Basic" track_lgth="768" sched_lgth="384" outport="0">
+        <midi_event tcks="762" stat="128" chan="0" dat1="37" dat2="0"/>
+        <midi_event tcks="672" stat="144" chan="0" dat1="37" dat2="141"/>
+        <midi_event tcks="666" stat="128" chan="0" dat1="38" dat2="0"/>
+        <midi_event tcks="577" stat="144" chan="0" dat1="38" dat2="109"/>
+        <midi_event tcks="577" stat="128" chan="0" dat1="37" dat2="0"/>
+        <midi_event tcks="480" stat="144" chan="0" dat1="37" dat2="141"/>
+        <midi_event tcks="477" stat="128" chan="0" dat1="38" dat2="0"/>
+        <midi_event tcks="386" stat="144" chan="0" dat1="38" dat2="109"/>
+        <midi_event tcks="383" stat="128" chan="0" dat1="39" dat2="0"/>
+        <midi_event tcks="193" stat="144" chan="0" dat1="39" dat2="130"/>
+        <midi_event tcks="192" stat="128" chan="0" dat1="36" dat2="0"/>
+        <midi_event tcks="0" stat="144" chan="0" dat1="36" dat2="119"/>
+      </midi_track>
     </midi_tracks>
-    <meta_tracks/>
+    <meta_tracks>
+      <meta_track id="-1" name="DrumNBass" track_lgth="3072" sched_lgth="768">
+        <meta_event begin="3058" end="3058" action="track_set_off" arg1="4"/>
+        <meta_event begin="2302" end="2302" action="track_set_on" arg1="4"/>
+        <meta_event begin="2726" end="2726" action="track_set_off" arg1="2"/>
+        <meta_event begin="2302" end="2302" action="track_set_off" arg1="1"/>
+        <meta_event begin="0" end="0" action="track_set_on" arg1="2"/>
+        <meta_event begin="0" end="0" action="track_set_on" arg1="1"/>
+      </meta_track>
+    </meta_tracks>
   </tracker>
   <input_manager>
     <handler input_match="custom:0" action_type="schedule_toggle_track" action_arg="direct_int:1"/>

@@ -990,11 +990,14 @@ module RTControl = struct
       ManageTracks.meta_iteri tr (fun id tk ->
 
         (* Do the schedules: *)
-        if (
-          Times.is_it_time_for_schedule
-          ~current:(prev_tick + 1, cur_tick) (T.meta_sched_lgth tk)
-        ) then (
-          T.set_meta_state tk (A.process_TimeForSched (T.meta_state tk));
+        let cur_state = T.meta_state tk in
+        if cur_state = A.AS_SchedOff || cur_state = A.AS_SchedOn then (
+          if (
+            Times.is_it_time_for_schedule
+            ~current:(prev_tick + 1, cur_tick) (T.meta_sched_lgth tk)
+          ) then (
+            T.set_meta_state tk (A.process_TimeForSched (T.meta_state tk));
+          );
         );
 
         let cur_state = T.meta_state tk in
@@ -1059,11 +1062,14 @@ module RTControl = struct
       ManageTracks.midi_iteri tr (fun id tk ->
 
         (* Do the schedules: *)
-        if (
-          Times.is_it_time_for_schedule
-          ~current:(prev_tick + 1, cur_tick) (T.midi_sched_lgth tk)
-        ) then (
-          T.set_midi_state tk (A.process_TimeForSched (T.midi_state tk));
+        let cur_state = T.midi_state tk in
+        if cur_state = A.AS_SchedOff || cur_state = A.AS_SchedOn then (
+          if (
+            Times.is_it_time_for_schedule
+            ~current:(prev_tick + 1, cur_tick) (T.midi_sched_lgth tk)
+          ) then (
+            T.set_midi_state tk (A.process_TimeForSched (T.midi_state tk));
+          );
         );
 
         let cur_state = T.midi_state tk in
@@ -1075,8 +1081,6 @@ module RTControl = struct
             Times.get_start_tick ~play_tick:cur_tick
             ~sched_length:(Tracks.midi_sched_lgth tk) in
           Tracks.set_midi_start_tick tk start_time;
-          Log.p "Start time: %d(cur: %d) (prev state: %s)\n"
-          start_time cur_tick (A.as_str prev_state);
           Tracks.update_midi_previous tk;
         );
 
