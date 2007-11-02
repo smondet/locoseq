@@ -766,15 +766,21 @@ end
 module RTControl = struct
 
   let _apply_action_to_track act tr tk = (
-    if ManageTracks.is_midi tk then (
-      let tk = ManageTracks.midi_get_track tr tk in
-      let cur_state = Tracks.midi_state tk in
-      Tracks.set_midi_state tk (Automata.process_action cur_state act)
-    ) else (
-      let tk = ManageTracks.meta_get_track tr tk in
-      let cur_state = Tracks.meta_state tk in
-      Tracks.set_meta_state tk (Automata.process_action cur_state act)
-    );
+    begin try 
+      if ManageTracks.is_midi tk then (
+        let tk = ManageTracks.midi_get_track tr tk in
+        let cur_state = Tracks.midi_state tk in
+        Tracks.set_midi_state tk (Automata.process_action cur_state act)
+      ) else (
+        let tk = ManageTracks.meta_get_track tr tk in
+        let cur_state = Tracks.meta_state tk in
+        Tracks.set_meta_state tk (Automata.process_action cur_state act)
+      );
+    with 
+    | Not_found ->
+        Log.warn "Trying to apply action to unknown track %d\n" tk;
+    | e -> raise e;
+    end;
   )
 
   let toggle_playing_track = _apply_action_to_track Automata.AA_TrackToggle
