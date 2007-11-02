@@ -115,18 +115,14 @@ let set_ppqn app ppqn = (
   app.a_is_saved <- false ;
 )
 
-let get_sequencer_info app =
-  (app.a_tracker.Tracker.t_queue_delay, app.a_tracker.Tracker.t_timer_ticks) ;;
+let get_sequencer_info app = (app.a_tracker.Tracker.t_timer_ticks)
 
-let set_sequencer_info app (qd, tt) = 
-  if (
-    app.a_tracker.Tracker.t_queue_delay <> qd ||
-    app.a_tracker.Tracker.t_timer_ticks <> tt ) then (
-      app.a_tracker.Tracker.t_queue_delay <- qd ;
-      app.a_tracker.Tracker.t_timer_ticks <- tt ;
-      Log.p "Setting to false\n" ;
-      app.a_is_saved <- false ;
-    )
+let set_sequencer_info app (tt) = 
+  if (app.a_tracker.Tracker.t_timer_ticks <> tt) then (
+    app.a_tracker.Tracker.t_timer_ticks <- tt ;
+    Log.p "Setting to false\n" ;
+    app.a_is_saved <- false ;
+  )
 
 let get_song_name app = app.a_songname
 let set_song_name app str = (
