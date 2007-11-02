@@ -131,8 +131,7 @@ let sp_aw_update_bpm_ppqn_values () = (
   (get_aw ())#spinbutton_pqn#adjustment#set_value (float p) ;
 )
 let aw_update_qd_tt () = (
-  let qd,tt = App.get_sequencer_info (get_app()) in
-  (get_aw ())#spinbutton_qd#adjustment#set_value (float qd) ;
+  let tt = App.get_sequencer_info (get_app()) in
   (get_aw ())#spinbutton_tt#adjustment#set_value (float tt) ;
 )
 
@@ -836,14 +835,12 @@ let b_aw_open   () = (
 )
 let b_aw_help   () = (Log.p "b_aw_help not implemented\n" ; )
 let b_aw_play   () = (
-  App.set_sequencer_info (get_app ()) (
-    int_of_float (get_aw ())#spinbutton_qd#value,
-    int_of_float (get_aw ())#spinbutton_tt#value
-  ) ;
-  App.update_input_mgr (get_app());
+  let app = (get_app ()) in
+  App.set_sequencer_info app (int_of_float (get_aw ())#spinbutton_tt#value);
+  App.update_input_mgr app;
   App.threaded_play (fun () ->
     update_during_play () ;
-  ) (get_app ());
+  ) app;
   util_set_playing_state true ;
   aw_append_msg `LOG "start playing"
 )

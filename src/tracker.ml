@@ -330,7 +330,6 @@ type tracker_engine = {
   mutable t_meta_tracks : (int,Tracks.meta_track) Hashtbl.t;
   mutable t_ppqn: int;
   mutable t_bpm: int;
-  mutable t_queue_delay: int;
   mutable t_timer_ticks: int;
   mutable t_is_playing: bool;
   mutable t_do_before: tracker_engine -> unit;
@@ -400,7 +399,6 @@ let make_engine ~pqn ~bpm ~sequencer ~before ~after = {
   t_meta_tracks  = Util.new_HT ();  
   t_ppqn         = pqn         ;  
   t_bpm          = bpm         ;  
-  t_queue_delay  = 4           ;  
   t_timer_ticks  = 4           ;  
   t_is_playing   = false       ;
   t_do_before    = before      ;
@@ -581,7 +579,6 @@ module XML_IO = struct
   let xml_meta_tracks = "meta_tracks"
   let xml_pqn = "pqn"
   let xml_bpm = "bpm"
-  let xml_queue_delay = "queue_delay"
   let xml_timer_ticks = "timer_ticks"
 
   let xml_midi_event = "midi_event" 
@@ -666,7 +663,6 @@ module XML_IO = struct
       X.Element (xml_meta_tracks, [], !l_xml_meta_tracks) in
     X.Element (xml_tracker , [
       (xml_pqn, soi tr.t_ppqn); (xml_bpm, soi tr.t_bpm);
-      (xml_queue_delay, soi tr.t_queue_delay);
       (xml_timer_ticks, soi tr.t_timer_ticks) 
     ] , [ xml_all_midi_tracks ; xml_all_meta_tracks ])
   )
@@ -679,7 +675,6 @@ module XML_IO = struct
 
     trkr.t_ppqn        <- ios (X.attrib xml xml_pqn );
     trkr.t_bpm         <- ios (X.attrib xml xml_bpm);
-    trkr.t_queue_delay <- ios (X.attrib xml xml_queue_delay);
     trkr.t_timer_ticks <- ios (X.attrib xml xml_timer_ticks);
 
     trkr.t_midi_tracks <- Util.new_HT () ;
@@ -748,8 +743,8 @@ module Debug = struct
     let l = ManageTracks.get_midi_tracks_number tr in
     pr 
     "[Tracker: midi_tracks:%d, bpm:%d,\
-    ppqn:%d, queue_delay:%d, timer_ticks:%d]\n"
-    l tr.t_bpm tr.t_ppqn tr.t_queue_delay tr.t_timer_ticks;
+    ppqn:%d, timer_ticks:%d]\n"
+    l tr.t_bpm tr.t_ppqn  tr.t_timer_ticks;
 
     ManageTracks.midi_iteri tr (fun i tk ->
       Printf.fprintf chan
