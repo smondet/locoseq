@@ -148,6 +148,7 @@ process_callback(jack_nframes_t nframes, void * context) {
     jack_midi_event_t event;
     void *i_port_buf;
     unsigned int i, j;
+    size_t writable;
     int ret;
 
     for (i = 0; i < js->js_iports_nb; i++) {
@@ -174,10 +175,13 @@ process_callback(jack_nframes_t nframes, void * context) {
           } else {
             stack_event.me_dat2 = event.buffer[2];
           }
-          ret = jack_ringbuffer_write(js->js_i_rbuf,
-              (char *)&stack_event, sizeof(jack_seq_midi_event_t));
-          rt_assert(ret == sizeof(jack_seq_midi_event_t),
-              "Can't write in ring buffer !!");
+          writable = jack_ringbuffer_write_space(js->js_i_rbuf);
+          if (writable >= sizeof(jack_seq_midi_event_t)) {
+            ret = jack_ringbuffer_write(js->js_i_rbuf,
+                (char *)&stack_event, sizeof(jack_seq_midi_event_t));
+            rt_assert(ret == sizeof(jack_seq_midi_event_t),
+                "Can't write in ring buffer !!");
+          } /* else { higher level does not consume => we stop writing } */
         } else {
           char msg[34];
           sprintf(msg, "Got an event of size: %d", event.size);
