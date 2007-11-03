@@ -369,7 +369,7 @@ ml_jackseq_get_input(value ml_seq){
 
   return_array = caml_alloc(to_read , 0) ;
 
-  for (i = 0; i < to_read; i += sizeof(jack_seq_midi_event_t)) {
+  for (i = 0; i < to_read; i++) {
 
     ret = jack_ringbuffer_read(js->js_i_rbuf,
         (void *)&stack_event, sizeof(jack_seq_midi_event_t));
