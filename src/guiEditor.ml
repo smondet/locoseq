@@ -721,7 +721,9 @@ let ef_on_mouse_press ef x y = (
       let on_release x_release =
         let distance = (float (x_release - x_start)) in
         let new_velo =
-          midi_ev.Tracker.MidiEvent.e_dat2 + (int_of_float (distance *. 0.4)) in
+          max 0 (min 255 (
+            midi_ev.Tracker.MidiEvent.e_dat2 + (int_of_float (distance *. 0.4))
+          )) in
         midi_ev.Tracker.MidiEvent.e_dat2 <- new_velo;
         ef_cmd_redraw ef;
       in
