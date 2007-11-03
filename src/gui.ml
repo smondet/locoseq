@@ -426,7 +426,22 @@ let tv_aw_update_iact_view () = (
 let b_aw_import_midi () = (
 
   let file_ok_sel fw () =
-    App.add_midi_file (get_app ()) fw#filename;
+    begin try
+      App.add_midi_file (get_app ()) fw#filename;
+    with
+    | MidiFile.Parsing_error msg ->
+        Log.warn "Parse Midi File got Midifile.Parsing_error: %s\n" msg;
+        aw_append_msg `ERR "Unable to parse the midi file !";
+    | Sys_error msg ->
+        Log.warn "Parse Midi File got SYS error: %s\n" msg;
+        aw_append_msg `ERR (
+          "Unable to open the midi file:\n" ^ msg
+        );
+    | e ->    
+        Log.warn "Parse Midi File got an unpredicted exception: %s\n"
+        (Printexc.to_string e);
+        aw_append_msg `ERR "Unable to parse the midi file !";
+    end;
     fw#destroy ();
     tv_aw_update_midi_view () ;
   in
@@ -730,7 +745,16 @@ let b_aw_suppr_iact  () = (
 
 let b_aw_saveas ?(and_then=fun () -> ()) () = (
   let file_ok_sel fw () =
-    App.save_to_file (get_app ()) fw#filename;
+    begin try
+      App.save_to_file (get_app ()) fw#filename;
+    with
+    | e ->
+        Log.warn "b_aw_saveas: got exception while opening: %s\n"
+        (Printexc.to_string e);
+        aw_append_msg `ERR (
+          "Unable to write the file:\n" ^ (Printexc.to_string e)
+        );
+    end;
     aw_update_title () ;
     fw#destroy ();
     and_then () ;
@@ -813,7 +837,23 @@ let b_aw_open   () = (
     let filew = GWindow.file_selection ~title:"Open File" ~modal:true () in
     ignore(filew#ok_button#connect#clicked ~callback:(
       fun () ->
-        App.load_of_file (get_app ()) filew#filename;
+        begin try
+          App.load_of_file (get_app ()) filew#filename;
+        with
+        | Xml.Error  e ->
+            Log.warn "b_aw_open: got exception while opening: %s\n"
+            (Xml.error e);
+            aw_append_msg `ERR (
+              "Unable to load the file:\n" ^ filew#filename ^
+              " seems malformed..."
+            );
+        | e ->
+            Log.warn "b_aw_open: got exception while opening: %s\n"
+            (Printexc.to_string e);
+            aw_append_msg `ERR (
+              "Unable to load the file:\n" ^ (Printexc.to_string e)
+            );
+        end;
         tv_aw_update_midi_view ();
         tv_aw_update_meta_view ();
         tv_aw_update_iact_view ();
