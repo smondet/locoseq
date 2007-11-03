@@ -120,7 +120,7 @@ process_callback(jack_nframes_t nframes, void * context) {
     jack_seq_midi_event_t stack_event;
     jack_midi_data_t *midi_buf = NULL;
     void *o_port_buf;
-    size_t to_read, i;
+    size_t to_read, i, to_write;
     int ret;
 
     to_read = jack_ringbuffer_read_space(js->js_o_rbuf);
@@ -131,14 +131,22 @@ process_callback(jack_nframes_t nframes, void * context) {
           "Can't read in ring buffer !!");
       o_port_buf =
         jack_port_get_buffer(js->js_oports[stack_event.me_port], nframes);
+      if (0xC0 <= (unsigned char)stack_event.me_stat
+          && (unsigned char)stack_event.me_stat <= 0xDF) {
+        to_write = 2;
+      } else {
+        to_write = 3;
+      }
 #ifdef JACK_MIDI_NEEDS_NFRAMES      
-      midi_buf = jack_midi_event_reserve(o_port_buf, 0, 3, nframes);
+      midi_buf = jack_midi_event_reserve(o_port_buf, 0, to_write, nframes);
 #else
-      midi_buf = jack_midi_event_reserve(o_port_buf, 0, 3);
+      midi_buf = jack_midi_event_reserve(o_port_buf, 0, to_write);
 #endif
       midi_buf[0] = (stack_event.me_stat & 0xF0) + (stack_event.me_chan & 0x0F);
       midi_buf[1] = stack_event.me_dat1;
-      midi_buf[2] = stack_event.me_dat2;
+      if (to_write == 3) {
+        midi_buf[2] = stack_event.me_dat2;
+      }
     }
   }
 
