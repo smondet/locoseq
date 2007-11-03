@@ -67,10 +67,10 @@ let empty_midi_ev () = {
 
 let match_event (hev:midi_ev) (ev:Midi.midi_event) = (
   let no = unmatched_midi_val in 
-  (hev.status  = no || hev.status  land 0xF0 = ev.Midi.status  land 0xF0) &&
-  (hev.channel = no || hev.channel land 0xF0 = ev.Midi.channel land 0xF0) &&
-  (hev.data_1  = no || hev.data_1  land 0xF0 = ev.Midi.data_1  land 0xF0) &&
-  (hev.data_2  = no || hev.data_2  land 0xF0 = ev.Midi.data_2  land 0xF0) 
+  (hev.status  = no || hev.status  = ev.Midi.status ) &&
+  (hev.channel = no || hev.channel = ev.Midi.channel) &&
+  (hev.data_1  = no || hev.data_1  = ev.Midi.data_1 ) &&
+  (hev.data_2  = no || hev.data_2  = ev.Midi.data_2 ) 
 )
 
 
