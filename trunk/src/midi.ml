@@ -23,6 +23,9 @@
 (*      OTHER DEALINGS IN THE SOFTWARE.                                       *)
 (******************************************************************************)
 
+(**
+ Values allowing to implement the MIDI standard.
+*)
 
 type midi_event = {
   mutable ticks     : int ;

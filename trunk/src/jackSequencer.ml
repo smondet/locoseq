@@ -32,38 +32,52 @@ OCaml types and functions providing high level access to the jack sequencer
 
  *)
 
-(** {3 The sequencer object} *)
 
-(** The sequencer object (abstract type) *)
+(** The sequencer object *)
 type sequencer
 
 
 (**
  The sequencer constructor
  should be called as  {[
- let my_seq = make_sequencer "client_name" 
- [| "input_port_A" ; "input_port_B" |]
-   [| "out1" ; "out2" ; "outN" |] in
+ let my_seq =
+   make_sequencer "client_name"
+   [| "input_port_A" ; "input_port_B" |]
+   [| "out1" ; "out2" ; "outN" |]
+ in
    ]}
  *)
-external make_sequencer: string -> string array -> string array -> sequencer
-= "ml_jackseq_make"
+external make_sequencer:
+  string -> string array -> string array -> sequencer
+  = "ml_jackseq_make"
 
-external close_sequencer: sequencer -> unit
-= "ml_jackseq_close"
+(** Close the sequencer ({i ie} jack client) *)
+external close_sequencer:
+  sequencer -> unit
+  = "ml_jackseq_close"
 
+(** Put an event in the output buffer, it will be really output at next 
+jack frame (which means quasi immediately) *)
 external output_event:
-  sequencer -> port:int -> stat:int -> chan:int ->
-  dat1:int -> dat2:int -> unit
-= "ml_jackseq_output_event_bytecode" "ml_jackseq_output_event"
+  sequencer -> port:int -> stat:int -> chan:int -> dat1:int -> dat2:int -> unit
+  = "ml_jackseq_output_event_bytecode" "ml_jackseq_output_event"
 
+
+(** Get all events in input buffer and clear it *)
 external get_input:
   sequencer -> (int*int*int*int*int) array
   = "ml_jackseq_get_input"
 
 
+(**/**) 
 
+(* 
+A very simple test which outputs its input
 
+ocamlfind ocamlopt -package unix,threads.posix \
+-linkpkg  -cclib -ljack -thread jackseq.c jackSequencer.ml
+
+*)
 let test_jack_seq () = (
 
   let seq = 
@@ -85,8 +99,3 @@ let test_jack_seq () = (
   Unix.sleep 3;
 )
 
-(* 
- 
-ocamlfind ocamlopt -package unix,threads.posix -linkpkg  -cclib -ljack -thread jackseq.c jackSequencer.ml
-
- *)
