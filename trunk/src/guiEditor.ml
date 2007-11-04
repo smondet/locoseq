@@ -721,7 +721,7 @@ let ef_on_mouse_press ef x y = (
       let on_release x_release =
         let distance = (float (x_release - x_start)) in
         let new_velo =
-          max 0 (min 255 (
+          max 0 (min !Midi.Event.max_midi_val (
             midi_ev.Tracker.MidiEvent.e_dat2 + (int_of_float (distance *. 0.4))
           )) in
         midi_ev.Tracker.MidiEvent.e_dat2 <- new_velo;
@@ -1181,7 +1181,9 @@ let rec util_update_add_edit_line box ef = (
     ));
     GuiUtil.append_label (MetaUtil.type_of_arg_string typ) box;
     let lower,upper = 
-      match typ with MetaUtil.SetBPM -> 0., 255. | _ -> (-20000., 20000.) in
+      match typ with
+      | MetaUtil.SetBPM -> 0., (float !Midi.Event.max_midi_val)
+      | _ -> (-20000., 20000.) in
     let adj =
       GData.adjustment ~value:(float edit_val) ~lower ~upper
       ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
@@ -1223,7 +1225,8 @@ let rec util_update_add_edit_line box ef = (
           let _, octave = MidiUtil.note_octave_of_event mev_b in
           let new_note = cbo#active in
           let new_dat1 =
-            min 255 (MidiUtil.note_of_val_and_oct new_note octave) in
+            min !Midi.Event.max_midi_val
+            (MidiUtil.note_of_val_and_oct new_note octave) in
           List.iter (
             fun (evb, eve) ->
               evb.Tracker.MidiEvent.e_dat1 <- new_dat1;
@@ -1246,7 +1249,8 @@ let rec util_update_add_edit_line box ef = (
           let note, old_octave = MidiUtil.note_octave_of_event mev_b in
           let new_octave = int_of_float octave_adj#value in
           let new_dat1 =
-            min 255 (MidiUtil.note_of_val_and_oct note new_octave) in
+            min !Midi.Event.max_midi_val
+            (MidiUtil.note_of_val_and_oct note new_octave) in
           if old_octave <> new_octave then (
             List.iter (
               fun (evb, eve) ->
@@ -1317,7 +1321,8 @@ let rec util_update_add_edit_line box ef = (
         let note_adj =
           GData.adjustment
           ~value:(float ev.Tracker.MidiEvent.e_dat1) ~lower:(0.)
-          ~upper:255.0 ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+          ~upper:(float !Midi.Event.max_midi_val)
+          ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
         let spin =
           GEdit.spin_button ~adjustment:note_adj ~packing:(box#add) () in
         ignore (spin#connect#changed ~callback:( fun () ->
@@ -1334,7 +1339,8 @@ let rec util_update_add_edit_line box ef = (
           let velo_adj =
             GData.adjustment
             ~value:(float ev.Tracker.MidiEvent.e_dat2) ~lower:(0.0)
-            ~upper:255.0 ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
+            ~upper:(float !Midi.Event.max_midi_val)
+            ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
           let spin =
             GEdit.spin_button ~adjustment:velo_adj ~packing:(box#add) () in
           ignore (spin#connect#changed ~callback:( fun () ->

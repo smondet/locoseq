@@ -564,7 +564,8 @@ let  add_or_edit_iact ?to_edit () = (
         ));
         let _ =  GMisc.label ~text:" note: " ~packing:arg_input_hbox#add () in
         let note_adj =
-          GData.adjustment ~value:(-1.0) ~lower:(-1.0) ~upper:256.0
+          GData.adjustment ~value:(-1.0) ~lower:(-1.0)
+          ~upper:(float !Midi.Event.max_midi_val)
           ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
         let spin =
           GEdit.spin_button ~adjustment:note_adj
@@ -574,7 +575,8 @@ let  add_or_edit_iact ?to_edit () = (
         ));
         let _= GMisc.label ~text:" velocity: " ~packing:arg_input_hbox#add () in
         let velo_adj =
-          GData.adjustment ~value:(-1.0) ~lower:(-1.0) ~upper:256.0
+          GData.adjustment ~value:(-1.0) ~lower:(-1.0)
+          ~upper:(float !Midi.Event.max_midi_val)
           ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
         let spin =
           GEdit.spin_button ~adjustment:velo_adj
@@ -604,7 +606,7 @@ let  add_or_edit_iact ?to_edit () = (
     GEdit.combo_box_text ~strings:S.argument_string_list
     ~packing:iw#hbox_action#add () in
   let act_adj =
-    GData.adjustment ~value:(0.0) ~lower:(-256.0) ~upper:256.0
+    GData.adjustment ~value:(0.0) ~lower:(-20000.0) ~upper:200000.0
     ~step_incr:1.0 ~page_incr:10.0 ~page_size:0.0 () in
   let _ =
     GEdit.spin_button ~adjustment:act_adj ~packing:iw#hbox_action#add  () in
