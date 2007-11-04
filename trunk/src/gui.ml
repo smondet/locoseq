@@ -27,6 +27,7 @@
 The main GUI module
 *)
 
+(**/**)
 module GenGui = GeneratedGui
 module App = SeqApp
 module S = StringServer
@@ -36,6 +37,7 @@ let get_option opt = (
   | None -> failwith "NoneOptionException"
   | Some x -> x
 )
+(**/**)
 
 
 (******************************************************************************)

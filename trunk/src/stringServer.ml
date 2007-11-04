@@ -29,9 +29,10 @@ StringServer provides all the {i user visible} strings and some functions to
 manipulate them.
 *)
 
-
+(**/**)
 let spr = Printf.sprintf
 let soi = string_of_int
+(**/**)
 
 (** Strings related to the {i application} (name, version, client...) *)
 module App =  struct

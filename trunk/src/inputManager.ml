@@ -23,8 +23,15 @@
 (*  OTHER DEALINGS IN THE SOFTWARE.                                       *)
 (**************************************************************************)
 
-module Seq = JackSequencer ;;
+(**
+Code for handling midi and {i custom} ({i ie} keyboard, mouse, ...) input,
+and control the Tracker engine.
+ *)
 
+
+(**/**)
+module Seq = JackSequencer ;;
+(**/**)
 
 type arg_t =
   | ArgMidiStat
@@ -275,31 +282,3 @@ let manage_input mgr tracker =
 
   ();;
 
-
-
-(*
-
-let manage_input_old mgr tracker =
-
-  let ev_list = Seq.get_input_events mgr.sequencer in () ;
-  List.iter (
-    fun ev ->
-      let cmd = Midi.midi_cmd_of_event ev in
-Log.p "MIDI INPUT: [%s][Ch:%d, T:%d]\n" (Midi.midi_cmd_to_string cmd)
-ev.Midi.channel ev.Midi.ticks;
-let _ =
-  match cmd with
-  | Midi.NoteON (119, velo) ->
-      Tracker.set_bpm tracker (2 * velo) ;
-      Log.p "set bpm to %d \n" (2 * velo) ;
-  | Midi.NoteON (note, velo) -> (
-    try 
-      Tracker.toggle_playing_track tracker note ;
-            with  exn -> Log.p "No track %d\n" note ;
-)
-  |  _ -> ()
-in () ;
-(* Printexc.print  Log.p "Event pending !\n"; *)
-) ev_list ;
-();;
-*)

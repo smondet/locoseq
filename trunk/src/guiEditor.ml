@@ -30,10 +30,10 @@
  @author S. Mondet
  *)
 
-(** {3 Practical Renamings} *)
-
+(**/**)
 module App = SeqApp
 module S = StringServer
+(**/**)
 
 (** {3 Internal modules} *)
 
@@ -220,8 +220,9 @@ module Settings = struct
   let midi_note_minimum_tick_size = ref 15
 end
 
-(** One more renaming *)
+(**/**)
 module Col = Settings.Colors
+(**/**)
 
 (******************************************************************************)
 (** {3 The model} *)

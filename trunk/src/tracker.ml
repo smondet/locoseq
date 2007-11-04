@@ -27,8 +27,10 @@
  @author S. Mondet
  *)
 
+(**/**)
 module HT = Hashtbl
 module Seq = JackSequencer
+(**/**)
 
 (** Some utilities  *)
 module Util = struct
