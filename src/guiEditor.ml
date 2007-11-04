@@ -1191,19 +1191,21 @@ let rec util_update_add_edit_line box ef = (
       GEdit.spin_button ~adjustment:adj ~packing:(box#add) () in
     ignore (spin#connect#changed ~callback:( fun () ->
       let new_val = int_of_float adj#value in
-      begin match typ with
-      | MetaUtil.KeepTrOn ->
-          ef.ef_model.tv_edit_evts.(ef.ef_current_selection) <- (
-            EE_MetaSpecRange (MetaUtil.KeepTrOn, start_t, end_t, new_val)
-          );
-      | new_typ -> 
-          ef.ef_model.tv_edit_evts.(ef.ef_current_selection) <- (
-            EE_MetaSpecOneTick (new_typ, start_t, new_val)
-          );
-      end;
-      tv_do_changes_for_meta_track ef.ef_model;
-      util_update_add_edit_line box ef;
-      ef_cmd_redraw ef;
+      if (new_val <> edit_val) then (
+        begin match typ with
+        | MetaUtil.KeepTrOn ->
+            ef.ef_model.tv_edit_evts.(ef.ef_current_selection) <- (
+              EE_MetaSpecRange (MetaUtil.KeepTrOn, start_t, end_t, new_val)
+            );
+        | new_typ -> 
+            ef.ef_model.tv_edit_evts.(ef.ef_current_selection) <- (
+              EE_MetaSpecOneTick (new_typ, start_t, new_val)
+            );
+        end;
+        tv_do_changes_for_meta_track ef.ef_model;
+        util_update_add_edit_line box ef;
+        ef_cmd_redraw ef;
+      );
     ));
   in
   if ef.ef_current_selection >= 0 then (
