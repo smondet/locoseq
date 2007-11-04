@@ -65,6 +65,13 @@ type midi_file =
     mutable tracks           : midi_track array ;
   } ;;
 
+module Event = struct
+
+  let max_midi_val = ref 127
+
+
+end
+
 (******************************************************************************)
 (* 
  * Some Help about meta-event services:
