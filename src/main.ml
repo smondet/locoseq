@@ -50,10 +50,12 @@ let test_parse_and_print_midi_file file = (
 (******************************************************************************)
 (** {3 Inspection functions} *)
 
+(**/**)
 let used_channel = ref stdout
 let pr (form:('a, out_channel, unit ) format) = (
   Printf.fprintf !used_channel ( form ^^ "%!" )
 )
+(**/**)
 
 let str_of_cmd cmd = (
 
@@ -124,8 +126,9 @@ let make_inspection file = (
 (******************************************************************************)
 (** {3 Command line functions} *)
 
+(**/**)
 module S = StringServer
-
+(**/**)
 let short_usage = 
   "This is " ^ !S.App.app_name ^ " v. " ^  !S.App.version
 
