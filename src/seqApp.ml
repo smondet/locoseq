@@ -66,6 +66,10 @@ let make_app  ?(visitor=fun () -> ()) () = (
     StringServer.App.in_put_ports
     StringServer.App.out_put_ports ;
   in
+  at_exit (fun () ->
+    Log.p "Closing the Sequencer\n" ;
+    JackSequencer.close_sequencer my_seq;
+  );
 
   let the_input_mgr = InputManager.make_manager my_seq in
 
@@ -84,7 +88,7 @@ let make_app  ?(visitor=fun () -> ()) () = (
     a_songname = "" ;
     a_filename = "" ;
     a_is_saved = true ;(* Nothing has been done neither ! *)
-  };
+  }
 )
 
 (******************************************************************************)
