@@ -44,26 +44,26 @@ module App =  struct
   let jack_client_name = ref "locoseq"
 
   let out_put_ports = [|
-    !jack_client_name ^":out_" ^ (spr "%02d"   0) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"   1) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"   2) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"   3) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"   4) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"   5) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"   6) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"   7) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"   8) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"   9) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"  10) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"  11) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"  12) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"  13) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"  14) ;
-    !jack_client_name ^":out_" ^ (spr "%02d"  15) ;
+    "out_" ^ (spr "%02d"   0);
+    "out_" ^ (spr "%02d"   1);
+    "out_" ^ (spr "%02d"   2);
+    "out_" ^ (spr "%02d"   3);
+    "out_" ^ (spr "%02d"   4);
+    "out_" ^ (spr "%02d"   5);
+    "out_" ^ (spr "%02d"   6);
+    "out_" ^ (spr "%02d"   7);
+    "out_" ^ (spr "%02d"   8);
+    "out_" ^ (spr "%02d"   9);
+    "out_" ^ (spr "%02d"  10);
+    "out_" ^ (spr "%02d"  11);
+    "out_" ^ (spr "%02d"  12);
+    "out_" ^ (spr "%02d"  13);
+    "out_" ^ (spr "%02d"  14);
+    "out_" ^ (spr "%02d"  15);
   |] 
 
   let in_put_ports = [|
-    !jack_client_name ^":ctrl"
+    "control"
   |]
 
   let licence = ref "
