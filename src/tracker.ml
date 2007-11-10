@@ -332,7 +332,8 @@ type tracker_engine = {
   mutable t_meta_tracks : (int,Tracks.meta_track) Hashtbl.t;
   mutable t_ppqn: int;
   mutable t_bpm: int;
-  mutable t_timer_ticks: int;
+  mutable t_timer_ticks: int; (* XXX currently it's a workaround... 
+                               -> delay milliseconds *)
   mutable t_is_playing: bool;
   mutable t_do_before: tracker_engine -> unit;
   mutable t_do_after:  tracker_engine -> unit;
@@ -401,7 +402,7 @@ let make_engine ~pqn ~bpm ~sequencer ~before ~after = {
   t_meta_tracks  = Util.new_HT ();  
   t_ppqn         = pqn         ;  
   t_bpm          = bpm         ;  
-  t_timer_ticks  = 4           ;  
+  t_timer_ticks  = 12          ;  
   t_is_playing   = false       ;
   t_do_before    = before      ;
   t_do_after     = after       ;
