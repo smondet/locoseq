@@ -1,6 +1,5 @@
 === Bugs: ===
 
- * Gui: meta events bigger than tracks are not banned
  * GuiEditor: X.org kills the application when drawn track becomes too big !
 
 === Features: ===
@@ -22,11 +21,11 @@
    * *done* \SourceCodeOCaml -> packge listing
    * *done* \SourceCodeC -> idem
  * *done* re-do the README without txt2tags
- * disable "stop" action in InputMgr
- * *done* 'main' with options (the file to load, alsa client name, see licence, ...)
+ * decide what to do with "play" action in !InputMgr
+ * *done* 'main' with options (the file to load, jack client name, see licence, ...)
  * *done* s/alsa/jack_midi/g (no more libasound dependency)
- * *needs debug* re-implement the tracker engine (with schedulle length feature)
- * Compile against any version of JACK (`nframes` issue)
+ * *almost done* re-implement the tracker engine (still lack of some useful meta events)
+ * *done* Compile against any version of JACK (`nframes` issue)
 
 
 *-> 0.1*
