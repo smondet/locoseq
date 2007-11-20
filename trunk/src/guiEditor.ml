@@ -201,9 +201,11 @@ module Settings = struct
   (** The colors used: *)
   module Colors = struct
     let make_color str = (`NAME str : GDraw.color)
-    let background   = ref (make_color "#4A00DD")
-    let grid = ref (make_color "#E8B500")
-    let text = ref (make_color "#B9FFB1")
+    let background   = ref (make_color "#B6B6B9")
+    let grid = ref (make_color "#FFFFFF")
+    let grid_quarter = ref (make_color "#FFC800")
+    let grid_bar = ref (make_color "#009625")
+    let text = ref (make_color "#615DB8")
     let selected_text = ref (make_color "#FF0C00")
     let text_velocity = ref (make_color "#D40000")
 
@@ -546,10 +548,18 @@ let ef_draw_background ef = (
 
   (* Vertical lines: *)
   for i = 0 to ticks_length do
-    if ( i mod ef.ef_model.tv_pqn) = 0 then (
+    if ( i mod (ef.ef_model.tv_pqn * 4)) = 0 then (
+      ef.ef_draw#set_foreground !Col.grid_bar;
       let x = ef_ticks_to_pixels ef i in
       ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x + x) ~y:0
       ~width:!Settings.vert_quarter_width ~height:ef.ef_h ~filled:true ();
+      ef.ef_draw#set_foreground !Col.grid;
+    ) else if ( i mod ef.ef_model.tv_pqn) = 0 then (
+      ef.ef_draw#set_foreground !Col.grid_quarter;
+      let x = ef_ticks_to_pixels ef i in
+      ef.ef_draw#rectangle ~x:(ef.ef_grid_begin_x + x) ~y:0
+      ~width:!Settings.vert_quarter_width ~height:ef.ef_h ~filled:true ();
+      ef.ef_draw#set_foreground !Col.grid;
     ) else (
       if ( i mod (ef.ef_model.tv_pqn / ef.ef_cut_quarters) ) = 0 then (
         let x = ef_ticks_to_pixels ef i in
