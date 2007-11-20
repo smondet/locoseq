@@ -34,31 +34,30 @@ Some utilities for logging.
 
 
 (** One module providing color in the ANSI terminal *)
-module Color =
-  struct
+module Color = struct
 
-    (** The head of a colored string *)
-    let before str = "\027[;" ^ str ^ "m"
+  (** The head of a colored string *)
+  let before str = "\027[;" ^ str ^ "m"
 
-    (** The tail of a colored string *)
-    let after = "\027[0m"
+  (** The tail of a colored string *)
+  let after = "\027[0m"
 
-    (** Colorize a string *)
-    let color_str color str = (before color) ^ str ^ after
+  (** Colorize a string *)
+  let color_str color str = (before color) ^ str ^ after
 
-    (** Green foreground *)
-    let fg_green str = color_str "32" str
+  (** Green foreground *)
+  let fg_green str = color_str "32" str
 
-    (** Bold string *)
-    let bold str = color_str "1" str
+  (** Bold string *)
+  let bold str = color_str "1" str
 
-    (** Red foreground *)
-    let fgred str = color_str "31" str
+  (** Red foreground *)
+  let fgred str = color_str "31" str
 
-    (** Bold & Red foreground *)
-    let fg_bold_red str = color_str "31;1" str
+  (** Bold & Red foreground *)
+  let fg_bold_red str = color_str "31;1" str
 
-  end
+end
 
 
 (** The channel used for logging (you can set it to a file) *)
@@ -66,38 +65,35 @@ let used_channel = ref stdout
 
 
 (**
-The most-used debug, works like  Printf.printf (but you can choose a file for
-output)
-*)
+  The most-used debug, works like  Printf.printf (but you can choose a file for
+  output)
+  *)
 let p (form:('a, out_channel, unit ) format) = (
-  (* let prefix = format_of_string ( *)
-    (* P.sprintf "[LOG:] " ) in *)
-  (* let suffix = format_of_string "%!" in *)
   Printf.fprintf !used_channel ( "[DEBUG:] " ^^ form ^^ "%!" ) 
 )
 
 
 (** The more "official" log *)
 let log (form:('a, out_channel, unit ) format) = (
-  let head_fmt =
-    Scanf.sscanf_format ("[" ^ (Color.bold "LOG") ^ ":] ") "" in
-  Printf.fprintf !used_channel ( head_fmt ^^ form ^^ "%!" ) 
+  let head_fmt = Scanf.sscanf_format ("[" ^ (Color.bold "LOG") ^ ":] ") "" in
+    Printf.fprintf !used_channel ( head_fmt ^^ form ^^ "%!" ) 
 )
 
 
 (** The warning *)
 let warn (form:('a, out_channel, unit ) format) = (
   let head =
-    Scanf.sscanf_format ("[" ^ (Color.fg_bold_red "WARNING") ^ ":] ") "" in
-  Printf.fprintf !used_channel ( head ^^ form ^^ "%!" ) 
+    Scanf.sscanf_format ("[" ^ (Color.fg_bold_red "WARNING") ^ ":] ") ""
+  in
+    Printf.fprintf !used_channel ( head ^^ form ^^ "%!" ) 
 )
 
 
 
 
 (** Get a string containing date in RFC 822 format
- (under unix, try `date -R`, under windows try wikipedia...)
- *)
+  (e.g. used for e-mails)
+  *)
 let rfc_822_date () = (
 
   let module U = Unix in
@@ -119,7 +115,7 @@ let rfc_822_date () = (
     else
       if yday > (U.gmtime t).U.tm_yday then
         (24 + hour) - (U.gmtime t).U.tm_hour 
-    else
+      else
         hour - (24 + (U.gmtime t).U.tm_hour )
   in
   let sdiff =
@@ -130,22 +126,22 @@ let rfc_822_date () = (
   in
   let dday = 
     match wday with
-    | 0 -> "Sun" | 1 -> "Mon" | 2 -> "Tue" | 3 -> "Wed"
-    | 4 -> "Thu" | 5 -> "Fri" | 6 -> "Sat" | _ -> "???"
+      | 0 -> "Sun" | 1 -> "Mon" | 2 -> "Tue" | 3 -> "Wed"
+      | 4 -> "Thu" | 5 -> "Fri" | 6 -> "Sat" | _ -> "???"
   in
   let mmon = 
     match mon with
-    | 0  -> "Jan" | 1  -> "Feb" | 2  -> "Mar" | 3  -> "Apr"
-    | 4  -> "May" | 5  -> "Jun" | 6  -> "Jul" | 7  -> "Aug"
-    | 8  -> "Sep" | 9  -> "Oct" | 10 -> "Nov" | 11 -> "Dec"
-    | _ -> warn "Unknown month in Log.rfc_822_date: %d\n" mon ; "???"
+      | 0  -> "Jan" | 1  -> "Feb" | 2  -> "Mar" | 3  -> "Apr"
+      | 4  -> "May" | 5  -> "Jun" | 6  -> "Jul" | 7  -> "Aug"
+      | 8  -> "Sep" | 9  -> "Oct" | 10 -> "Nov" | 11 -> "Dec"
+      | _ -> warn "Unknown month in Log.rfc_822_date: %d\n" mon ; "???"
   in
   let s =
-    Printf.sprintf
-    "%s, %d %s %d  %d:%02d:%02d  %s"
-    dday mday mmon (1900 + year) hour min sec sdiff in
+    Printf.sprintf "%s, %d %s %d  %d:%02d:%02d  %s"
+      dday mday mmon (1900 + year) hour min sec sdiff
+  in
     (* yday  *)
     (* isdst *)
-  s
+    s
 )
 
