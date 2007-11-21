@@ -192,7 +192,7 @@ process_callback(jack_nframes_t nframes, void * context) {
           } /* else { higher level does not consume => we stop writing } */
         } else {
           char msg[34];
-          sprintf(msg, "Got an event of size: %d", event.size);
+          sprintf(msg, "Got an event of size: %lu", event.size);
           rt_assert(0, msg);
         }
       }
