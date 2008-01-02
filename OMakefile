@@ -125,8 +125,8 @@ MakeExec () =
   OCamlProgram($(APP_NAME), $(APP_MODS) )
   .DEFAULT:  $(APP_NAME)
 
-
-.SUBDIRS: src
+vmount(-l, src, build)
+.SUBDIRS: build
   MakeExec ()
 
 .SUBDIRS: doc/manual/src/
