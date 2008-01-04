@@ -125,6 +125,8 @@ MakeExec () =
   OCamlProgram($(APP_NAME), $(APP_MODS) )
   .DEFAULT:  $(APP_NAME)
 
+if $(not $(file-exists build/))
+    mkdir -p build/
 vmount(-l, src, build)
 .SUBDIRS: build
   MakeExec ()
