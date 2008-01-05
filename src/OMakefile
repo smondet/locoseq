@@ -1,0 +1,65 @@
+
+
+## Glade management:
+LABLGLADE_OPT= -embed
+LABLGLADE_FILE= gui_files/app.glade
+LABLGLADE_GEN_MOD= generatedGui
+LABLGLADE_GEN_FILE=$(LABLGLADE_GEN_MOD).ml
+LABLGLADE_DEPENDERS= gui.ml
+
+## Application:
+APP_MODS[]=
+    $(LABLGLADE_GEN_MOD)
+    midi
+    log
+    jackSequencer
+    tracker
+    inputManager
+    midiFile
+    stringServer
+    seqApp
+    guiEditor
+    gui
+    main
+
+## The jack wrapper:
+JACKITF_NAME=jackseq
+JACKITF_FLAGS= $(JACK_MIDI_COMPATIBILTY) -I $(shell ocamlc -where) \
+  -ansi -pedantic -Wall -Wextra -Wpointer-arith -Wbad-function-cast
+
+## The library of C interfaces (currently only JACKITF_NAME):
+ITF_LIB=interfaces
+
+## Compilation variables:
+OCAMLFLAGS = -dtypes -thread -ccopt -pthread
+NATIVE_ENABLED = true
+BYTE_ENABLED = false
+
+USE_OCAMLFIND = true
+
+#OCAMLINCLUDES +=
+#OCAML_OTHER_LIBS +=
+OCAML_CLIBS= $(ITF_LIB)
+OCAML_NATIVE_LINK_FLAGS= -cclib -ljack
+
+
+
+##### RULES:
+
+## The rule for glade-based generated file:
+$(LABLGLADE_GEN_FILE): $(LABLGLADE_FILE)
+    lablgladecc2 $(LABLGLADE_OPT) $(LABLGLADE_FILE) > $(LABLGLADE_GEN_MOD).ml
+
+$(JACKITF_NAME).o:$(JACKITF_NAME).c
+    gcc $(JACKITF_FLAGS) -c $(JACKITF_NAME).c
+$(ITF_LIB).a: $(JACKITF_NAME).o
+    ar -crv $(ITF_LIB).a $(JACKITF_NAME).o
+
+OCamlProgram($(APP_NAME) ,  $(APP_MODS))
+
+clean: #Some specific cleaning
+    rm -f $(LABLGLADE_GEN_FILE)
+
+.DEFAULT: $(APP_NAME)
+
+
